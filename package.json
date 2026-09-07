@@ -1,0 +1,19 @@
+{
+  "name": "allshops",
+  "private": true,
+  "packageManager": "pnpm@10.15.0",
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev --parallel",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "db:generate": "pnpm --filter @allshops/database prisma generate",
+    "db:validate": "pnpm --filter @allshops/database prisma validate",
+    "db:migrate": "pnpm --filter @allshops/database prisma migrate dev"
+  },
+  "devDependencies": {
+    "turbo": "^2.5.6",
+    "typescript": "^5.9.2"
+  }
+}
