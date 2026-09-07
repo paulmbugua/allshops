@@ -1,0 +1,16 @@
+{
+  "name": "@allshops/database",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "prisma": "prisma",
+    "generate": "prisma generate",
+    "validate": "prisma validate"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.15.0"
+  },
+  "devDependencies": {
+    "prisma": "^6.15.0"
+  }
+}
