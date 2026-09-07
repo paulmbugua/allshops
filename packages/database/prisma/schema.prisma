@@ -1,0 +1,234 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum OrganizationStatus {
+  TRIAL
+  ACTIVE
+  SUSPENDED
+  CANCELLED
+}
+
+enum BusinessType {
+  RETAIL
+  GROCERY
+  RESTAURANT_CAFE
+  SALON
+  BARBERSHOP
+  GARAGE
+  AUTO_SPARES
+  LAUNDRY
+  HARDWARE
+  ELECTRONICS
+  PRINTING
+  GENERAL_SERVICES
+  OTHER
+}
+
+enum UserStatus {
+  ACTIVE
+  INVITED
+  SUSPENDED
+}
+
+enum MembershipStatus {
+  ACTIVE
+  INVITED
+  SUSPENDED
+}
+
+enum DeviceStatus {
+  ACTIVE
+  REVOKED
+}
+
+model Organization {
+  id                 String             @id @default(uuid()) @db.Uuid
+  name               String
+  legalName          String?
+  arabicName         String?
+  businessType       BusinessType
+  registrationNumber String?
+  email              String?
+  phone              String?
+  currency           String             @default("QAR")
+  timezone           String             @default("Asia/Qatar")
+  logoUrl            String?
+  status             OrganizationStatus @default(TRIAL)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  branches           Branch[]
+  memberships        OrganizationUser[]
+  roles              Role[]
+  devices            Device[]
+  auditLogs          AuditLog[]
+  idempotencyRecords IdempotencyRecord[]
+
+  @@index([status])
+  @@map("organizations")
+}
+
+model Branch {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @db.Uuid
+  name           String
+  code           String
+  phone          String?
+  email          String?
+  address        String?
+  timezone       String       @default("Asia/Qatar")
+  isActive       Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  memberships    OrganizationUser[]
+  devices        Device[]
+
+  @@unique([organizationId, code])
+  @@index([organizationId, isActive])
+  @@map("branches")
+}
+
+model User {
+  id              String             @id @default(uuid()) @db.Uuid
+  name            String
+  email           String?            @unique
+  phone           String?            @unique
+  passwordHash    String
+  emailVerifiedAt DateTime?
+  mfaEnabled      Boolean            @default(false)
+  status          UserStatus         @default(ACTIVE)
+  lastLoginAt     DateTime?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  memberships     OrganizationUser[]
+  auditLogs       AuditLog[]
+
+  @@index([status])
+  @@map("users")
+}
+
+model OrganizationUser {
+  id             String           @id @default(uuid()) @db.Uuid
+  organizationId String           @db.Uuid
+  userId         String           @db.Uuid
+  roleId         String           @db.Uuid
+  branchId       String?          @db.Uuid
+  status         MembershipStatus @default(ACTIVE)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role           Role             @relation(fields: [roleId], references: [id], onDelete: Restrict)
+  branch         Branch?          @relation(fields: [branchId], references: [id], onDelete: SetNull)
+
+  @@unique([organizationId, userId])
+  @@index([organizationId, branchId, status])
+  @@map("organization_users")
+}
+
+model Role {
+  id             String           @id @default(uuid()) @db.Uuid
+  organizationId String?          @db.Uuid
+  name           String
+  code           String
+  isSystemRole   Boolean          @default(false)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  organization   Organization?    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  memberships    OrganizationUser[]
+  permissions    RolePermission[]
+
+  @@unique([organizationId, code])
+  @@index([organizationId])
+  @@map("roles")
+}
+
+model Permission {
+  id          String           @id @default(uuid()) @db.Uuid
+  code        String           @unique
+  description String
+  createdAt   DateTime         @default(now())
+
+  roles       RolePermission[]
+
+  @@map("permissions")
+}
+
+model RolePermission {
+  roleId       String     @db.Uuid
+  permissionId String     @db.Uuid
+
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model Device {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @db.Uuid
+  branchId       String?      @db.Uuid
+  name           String
+  deviceUuid     String       @unique
+  status         DeviceStatus @default(ACTIVE)
+  lastSeenAt     DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  branch         Branch?      @relation(fields: [branchId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, branchId, status])
+  @@map("devices")
+}
+
+model IdempotencyRecord {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @db.Uuid
+  key            String
+  operation      String
+  requestHash    String
+  responseCode   Int?
+  responseBody   Json?
+  createdAt      DateTime     @default(now())
+  expiresAt      DateTime?
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, operation, key])
+  @@index([expiresAt])
+  @@map("idempotency_records")
+}
+
+model AuditLog {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String?      @db.Uuid
+  userId         String?      @db.Uuid
+  action         String
+  entityType     String
+  entityId       String?
+  beforeJson     Json?
+  afterJson      Json?
+  ipAddress      String?
+  deviceId       String?
+  createdAt      DateTime     @default(now())
+
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  user           User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, createdAt])
+  @@index([entityType, entityId])
+  @@map("audit_logs")
+}
