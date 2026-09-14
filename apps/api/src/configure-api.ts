@@ -6,6 +6,17 @@ import type { RequestContext, ResponseContext } from "./security.types.js";
 
 type Next = () => void;
 
+export function parseTrustProxy(
+  value: string | undefined,
+): string | number | boolean {
+  const trustProxy = value?.trim() || "false";
+  const normalized = trustProxy.toLowerCase();
+  if (normalized === "true") return true;
+  if (normalized === "false") return false;
+  if (/^\d+$/.test(trustProxy)) return Number(trustProxy);
+  return trustProxy;
+}
+
 export function configureApi(app: INestApplication): void {
   app.setGlobalPrefix("api/v1");
   const origins = (process.env.CORS_ORIGINS ?? "http://localhost:3000")
@@ -33,15 +44,7 @@ export function configureApi(app: INestApplication): void {
   const express = app.getHttpAdapter().getInstance() as {
     set(name: string, value: string | number | boolean): void;
   };
-  const trustProxy = process.env.TRUST_PROXY ?? "false";
-  express.set(
-    "trust proxy",
-    trustProxy === "false"
-      ? false
-      : /^\d+$/.test(trustProxy)
-        ? Number(trustProxy)
-        : trustProxy,
-  );
+  express.set("trust proxy", parseTrustProxy(process.env.TRUST_PROXY));
   app.use((request: RequestContext, response: ResponseContext, next: Next) => {
     const supplied = request.headers["x-request-id"];
     const suppliedId = Array.isArray(supplied) ? supplied[0] : supplied;

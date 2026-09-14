@@ -4,6 +4,14 @@ import { Test } from "@nestjs/testing";
 import request from "supertest";
 
 import { AppModule } from "../src/app.module.js";
+import { parseTrustProxy } from "../src/configure-api.js";
+
+assert.equal(parseTrustProxy(undefined), false);
+assert.equal(parseTrustProxy("false"), false);
+assert.equal(parseTrustProxy("true"), true);
+assert.equal(parseTrustProxy("  TRUE  "), true);
+assert.equal(parseTrustProxy("1"), 1);
+assert.equal(parseTrustProxy("loopback"), "loopback");
 
 const module = await Test.createTestingModule({
   imports: [AppModule],
