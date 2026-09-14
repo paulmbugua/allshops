@@ -14,6 +14,7 @@ import {
   completeHeldSaleSchema,
   holdSaleSchema,
   idempotencyKeySchema,
+  posBarcodeLookupSchema,
   posProductListSchema,
   salesListSchema,
 } from "@allshops/contracts";
@@ -37,6 +38,15 @@ export class SalesController {
     return this.sales.posProducts(
       request.tenant!,
       parseInput(posProductListSchema, query),
+    );
+  }
+
+  @RequirePermission("catalogue.read")
+  @Get("pos/products/barcode")
+  productByBarcode(@Query() query: unknown, @Req() request: RequestContext) {
+    return this.sales.posProductByBarcode(
+      request.tenant!,
+      parseInput(posBarcodeLookupSchema, query),
     );
   }
 

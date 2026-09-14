@@ -250,7 +250,12 @@ try {
   const variant = await request(server)
     .post(`/api/v1/organizations/${orgId}/products/${stockId}/variants`)
     .set(bearer(owner))
-    .send({ name: "Large", sku: `LARGE-${suffix}`, priceMinor: 450 });
+    .send({
+      name: "Large",
+      sku: `LARGE-${suffix}`,
+      barcode: `629L${suffix}`,
+      priceMinor: 450,
+    });
   assert.equal(variant.status, 201);
   assert.equal(
     (
@@ -627,6 +632,34 @@ try {
   assert.equal(
     pos.body.items.every((row: object) => !("costMinor" in row)),
     true,
+  );
+  const barcodeLookup = await request(server)
+    .get(
+      `/api/v1/organizations/${orgId}/pos/products/barcode?branchId=${branchId}&barcode=629${suffix}`,
+    )
+    .set(bearer(cashier));
+  assert.equal(barcodeLookup.status, 200);
+  assert.equal(barcodeLookup.body.productId, stockId);
+  assert.equal(barcodeLookup.body.variantId, null);
+  assert.equal(barcodeLookup.body.barcode, `629${suffix}`);
+  assert.equal("costMinor" in barcodeLookup.body, false);
+  const variantBarcodeLookup = await request(server)
+    .get(
+      `/api/v1/organizations/${orgId}/pos/products/barcode?branchId=${branchId}&barcode=629L${suffix}`,
+    )
+    .set(bearer(cashier));
+  assert.equal(variantBarcodeLookup.status, 200);
+  assert.equal(variantBarcodeLookup.body.productId, stockId);
+  assert.equal(variantBarcodeLookup.body.variantId, variant.body.id);
+  assert.equal(
+    (
+      await request(server)
+        .get(
+          `/api/v1/organizations/${orgId}/pos/products/barcode?branchId=${branchId}&barcode=UNKNOWN-${suffix}`,
+        )
+        .set(bearer(cashier))
+    ).body,
+    null,
   );
   const reconciliation = await request(server)
     .get(`/api/v1/organizations/${orgId}/inventory/reconciliation`)

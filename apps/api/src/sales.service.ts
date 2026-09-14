@@ -14,6 +14,7 @@ import type {
   DiscountInput,
   HoldSaleInput,
   PaymentInput,
+  PosBarcodeLookupInput,
   PosProductListInput,
   SaleItemInput,
   SalesListInput,
@@ -122,6 +123,54 @@ export class SalesService {
   ) {}
 
   async posProducts(tenant: TenantContext, input: PosProductListInput) {
+    return this.posProductsQuery(tenant, input);
+  }
+
+  async posProductByBarcode(
+    tenant: TenantContext,
+    input: PosBarcodeLookupInput,
+  ) {
+    this.assertBranchScope(tenant, input.branchId);
+    const [product, variant] = await Promise.all([
+      prisma.product.findFirst({
+        where: {
+          organizationId: tenant.organizationId,
+          barcode: input.barcode,
+          isActive: true,
+        },
+        select: { id: true },
+      }),
+      prisma.productVariant.findFirst({
+        where: {
+          organizationId: tenant.organizationId,
+          barcode: input.barcode,
+          isActive: true,
+          product: { isActive: true },
+        },
+        select: { id: true, productId: true },
+      }),
+    ]);
+    const productId = product?.id ?? variant?.productId;
+    if (!productId) return null;
+    const result = await this.posProductsQuery(
+      tenant,
+      { branchId: input.branchId, page: 1, pageSize: 1 },
+      productId,
+    );
+    const variantId = variant?.id ?? null;
+    return (
+      result.items.find(
+        (row) =>
+          row["variantId"] === variantId && row["barcode"] === input.barcode,
+      ) ?? null
+    );
+  }
+
+  private async posProductsQuery(
+    tenant: TenantContext,
+    input: PosProductListInput,
+    exactProductId?: string,
+  ) {
     this.assertBranchScope(tenant, input.branchId);
     const location = await this.activeBranchLocation(
       prisma,
@@ -131,32 +180,38 @@ export class SalesService {
     const where: Prisma.ProductWhereInput = {
       organizationId: tenant.organizationId,
       isActive: true,
-      ...(input.search
-        ? {
-            OR: [
-              { name: { contains: input.search, mode: "insensitive" } },
-              { sku: { contains: input.search, mode: "insensitive" } },
-              { barcode: { contains: input.search, mode: "insensitive" } },
-              {
-                variants: {
-                  some: {
-                    isActive: true,
-                    OR: [
-                      { name: { contains: input.search, mode: "insensitive" } },
-                      { sku: { contains: input.search, mode: "insensitive" } },
-                      {
-                        barcode: {
-                          contains: input.search,
-                          mode: "insensitive",
+      ...(exactProductId
+        ? { id: exactProductId }
+        : input.search
+          ? {
+              OR: [
+                { name: { contains: input.search, mode: "insensitive" } },
+                { sku: { contains: input.search, mode: "insensitive" } },
+                { barcode: { contains: input.search, mode: "insensitive" } },
+                {
+                  variants: {
+                    some: {
+                      isActive: true,
+                      OR: [
+                        {
+                          name: { contains: input.search, mode: "insensitive" },
                         },
-                      },
-                    ],
+                        {
+                          sku: { contains: input.search, mode: "insensitive" },
+                        },
+                        {
+                          barcode: {
+                            contains: input.search,
+                            mode: "insensitive",
+                          },
+                        },
+                      ],
+                    },
                   },
                 },
-              },
-            ],
-          }
-        : {}),
+              ],
+            }
+          : {}),
     };
     const [products, total] = await prisma.$transaction([
       prisma.product.findMany({

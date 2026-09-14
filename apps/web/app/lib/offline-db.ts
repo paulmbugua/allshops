@@ -1,3 +1,5 @@
+import type { PosProduct } from "./sales";
+
 export type LocalSyncState =
   | "LOCAL_PENDING"
   | "SYNCING"
@@ -315,6 +317,64 @@ export async function cachedPosProducts(branchId: string) {
         ? String(quantities.get(key) ?? 0)
         : null,
       unitSymbol: "unit",
+    };
+  });
+}
+
+export async function cachedPosProductByBarcode(
+  branchId: string,
+  rawBarcode: string,
+): Promise<PosProduct | null> {
+  const barcode = rawBarcode.trim();
+  if (!barcode) return null;
+  const db = await openOfflineDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(["products", "stockSnapshots"]);
+    const productRequest = tx
+      .objectStore("products")
+      .index("barcode")
+      .get(barcode);
+    productRequest.onerror = () => reject(productRequest.error);
+    productRequest.onsuccess = () => {
+      const row = productRequest.result as Record<string, unknown> | undefined;
+      if (!row) {
+        resolve(null);
+        return;
+      }
+      const productId = String(row.productId ?? row.id);
+      const variantId = row.productId ? String(row.id) : null;
+      const key = `${branchId}:${productId}:${variantId ?? "BASE"}`;
+      const stockRequest = tx.objectStore("stockSnapshots").get(key);
+      stockRequest.onerror = () => reject(stockRequest.error);
+      stockRequest.onsuccess = () => {
+        const stock = stockRequest.result as
+          Record<string, unknown> | undefined;
+        resolve({
+          productId,
+          variantId,
+          name: String(row.productId ? row.productName : row.name),
+          variantName: row.productId ? String(row.name) : null,
+          sku: (row.sku as string | null | undefined) ?? null,
+          barcode: (row.barcode as string | null | undefined) ?? null,
+          type: row.type as PosProduct["type"],
+          priceMinor: Number(row.priceMinor),
+          trackInventory: Boolean(row.trackInventory),
+          allowNegativeStock: Boolean(row.allowNegativeStock),
+          availableQuantity: row.trackInventory
+            ? String(Number(stock?.quantity ?? 0))
+            : null,
+          unitSymbol: "unit",
+        });
+      };
+    };
+    tx.oncomplete = () => db.close();
+    tx.onerror = () => {
+      db.close();
+      reject(tx.error);
+    };
+    tx.onabort = () => {
+      db.close();
+      reject(tx.error ?? new Error("Offline barcode lookup failed."));
     };
   });
 }

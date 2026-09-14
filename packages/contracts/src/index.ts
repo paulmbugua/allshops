@@ -454,6 +454,10 @@ export const posProductListSchema = paginationSchema.extend({
   branchId: identifier,
   search: optionalText(120),
 });
+export const posBarcodeLookupSchema = z.object({
+  branchId: identifier,
+  barcode: z.string().trim().min(1).max(120),
+});
 
 export const supplierListSchema = paginationSchema.extend({
   search: optionalText(120),
@@ -1086,6 +1090,7 @@ export type HoldSaleInput = z.infer<typeof holdSaleSchema>;
 export type CompleteHeldSaleInput = z.infer<typeof completeHeldSaleSchema>;
 export type SalesListInput = z.infer<typeof salesListSchema>;
 export type PosProductListInput = z.infer<typeof posProductListSchema>;
+export type PosBarcodeLookupInput = z.infer<typeof posBarcodeLookupSchema>;
 export type SupplierListInput = z.infer<typeof supplierListSchema>;
 export type CreateSupplierInput = z.infer<typeof createSupplierSchema>;
 export type UpdateSupplierInput = z.infer<typeof updateSupplierSchema>;

@@ -7,13 +7,16 @@ class OfflineStore {
   Database? _database;
   Future<Database> get database async => _database ??= await openDatabase(
     p.join(await getDatabasesPath(), 'allshops_pos.db'),
-    version: 2,
+    version: 3,
     onCreate: (db, _) async {
       await db.execute(
         'CREATE TABLE products (key TEXT PRIMARY KEY, branch_id TEXT NOT NULL, barcode TEXT, sku TEXT, normalized_name TEXT NOT NULL, payload TEXT NOT NULL, snapshot_at TEXT NOT NULL)',
       );
       await db.execute(
         'CREATE INDEX products_barcode_idx ON products(barcode)',
+      );
+      await db.execute(
+        'CREATE INDEX products_branch_barcode_idx ON products(branch_id, barcode)',
       );
       await db.execute(
         'CREATE TABLE pending_sales (transaction_uuid TEXT PRIMARY KEY, organization_id TEXT NOT NULL, branch_id TEXT NOT NULL, device_id TEXT NOT NULL, local_reference TEXT NOT NULL, payload TEXT NOT NULL, status TEXT NOT NULL, attempt_count INTEGER NOT NULL DEFAULT 0, last_error_code TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL)',
@@ -28,6 +31,11 @@ class OfflineStore {
     },
     onUpgrade: (db, oldVersion, _) async {
       if (oldVersion < 2) await _createCheckoutOutbox(db);
+      if (oldVersion < 3) {
+        await db.execute(
+          'CREATE INDEX IF NOT EXISTS products_branch_barcode_idx ON products(branch_id, barcode)',
+        );
+      }
     },
   );
 
@@ -90,6 +98,24 @@ class OfflineStore {
           (row) => jsonDecode(row['payload'] as String) as Map<String, dynamic>,
         )
         .toList();
+  }
+
+  Future<Map<String, dynamic>?> productByBarcode(
+    String branchId,
+    String rawBarcode,
+  ) async {
+    final barcode = rawBarcode.trim();
+    if (barcode.isEmpty) return null;
+    final db = await database;
+    final rows = await db.query(
+      'products',
+      columns: ['payload'],
+      where: 'branch_id = ? AND barcode = ?',
+      whereArgs: [branchId, barcode],
+      limit: 1,
+    );
+    if (rows.isEmpty) return null;
+    return jsonDecode(rows.first['payload'] as String) as Map<String, dynamic>;
   }
 
   Future<void> persistPaidSale(Map<String, dynamic> payload) async {

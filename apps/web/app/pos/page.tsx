@@ -6,6 +6,7 @@ import { formatMinorCurrency } from "../lib/catalogue";
 import type { Paged, PosProduct } from "../lib/sales";
 import type { Appointment } from "../lib/phase5";
 import {
+  cachedPosProductByBarcode,
   cachedPosProducts,
   getOfflineMetadata,
   type OfflineBranchContext,
@@ -202,14 +203,40 @@ export default function PosPage() {
       );
     });
   }
-  function scan(event: KeyboardEvent<HTMLInputElement>) {
+  async function scan(event: KeyboardEvent<HTMLInputElement>) {
     if (event.key !== "Enter") return;
-    const exact = products.find((product) => product.barcode === query.trim());
-    if (exact) {
-      event.preventDefault();
-      add(exact);
-      setQuery("");
+    event.preventDefault();
+    const barcode = event.currentTarget.value.trim();
+    if (!barcode || !organizationId || !branchId) return;
+    let product: PosProduct | null = null;
+    let offline = false;
+    try {
+      product = await api<PosProduct | null>(
+        `/organizations/${organizationId}/pos/products/barcode?branchId=${branchId}&barcode=${encodeURIComponent(barcode)}`,
+      );
+    } catch {
+      offline = true;
+      product = await cachedPosProductByBarcode(branchId, barcode);
     }
+    if (!product) {
+      setMessage(`No product found for barcode ${barcode}.`);
+      return;
+    }
+    if (
+      product.trackInventory &&
+      !product.allowNegativeStock &&
+      Number(product.availableQuantity ?? 0) <= 0
+    ) {
+      setMessage(`${product.name} is out of stock.`);
+      return;
+    }
+    add(product);
+    setQuery((current) => (current.trim() === barcode ? "" : current));
+    setMessage(
+      offline
+        ? `${product.name} added from the offline catalogue.`
+        : `${product.name} added.`,
+    );
   }
   function changeBranch(next: string) {
     if (appointmentId) {

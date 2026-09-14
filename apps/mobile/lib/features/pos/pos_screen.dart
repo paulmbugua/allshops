@@ -205,13 +205,53 @@ class _PosScreenState extends ConsumerState<PosScreen> {
     });
   }
 
-  void scan(String barcode) {
-    query.text = barcode;
-    final product = products.where((row) => row.barcode == barcode).firstOrNull;
-    if (product != null) {
-      add(product);
-      query.clear();
+  Future<void> scan(String rawBarcode) async {
+    final barcode = rawBarcode.trim();
+    if (barcode.isEmpty || branchId == null) return;
+    PosProduct? product;
+    var offline = false;
+    AppLogger.info('pos', 'barcode_lookup_started');
+    try {
+      final row = await ref
+          .read(apiProvider)
+          .get<Map<String, dynamic>?>(
+            '/organizations/$organizationId/pos/products/barcode',
+            query: {'branchId': branchId, 'barcode': barcode},
+          );
+      if (row != null) product = PosProduct.fromJson(row);
+    } catch (_) {
+      offline = true;
+      final row = await ref
+          .read(offlineStoreProvider)
+          .productByBarcode(branchId!, barcode);
+      if (row != null) product = PosProduct.fromJson(row);
     }
+    if (!mounted) return;
+    if (product == null) {
+      setState(() => message = 'No product found for barcode $barcode.');
+      AppLogger.warning('pos', 'barcode_not_found');
+      return;
+    }
+    final available = double.tryParse(product.availableQuantity ?? '0') ?? 0;
+    if (product.trackInventory &&
+        !product.allowNegativeStock &&
+        available <= 0) {
+      setState(() => message = '${product!.name} is out of stock.');
+      AppLogger.warning('pos', 'barcode_product_out_of_stock');
+      return;
+    }
+    add(product);
+    query.clear();
+    setState(() {
+      message = offline
+          ? '${product!.name} added from the offline catalogue.'
+          : '${product!.name} added.';
+    });
+    AppLogger.info(
+      'pos',
+      'barcode_product_added',
+      fields: {'offline': offline},
+    );
   }
 
   Future<void> checkout() async {
@@ -451,7 +491,7 @@ class _PosScreenState extends ConsumerState<PosScreen> {
                     context,
                     MaterialPageRoute(builder: (_) => const ScannerScreen()),
                   );
-                  if (value != null) scan(value);
+                  if (value != null) await scan(value);
                 },
                 icon: const Icon(Icons.qr_code_scanner_rounded),
               ),
