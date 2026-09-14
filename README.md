@@ -191,6 +191,8 @@ Set `PAYSTACK_SECRET_KEY`, `PAYSTACK_SUBSCRIPTION_CALLBACK_URL`, and the account
 
 Production images, Compose, reverse proxy, CI/CD, backups, recovery, security, observability, and readiness procedures are documented in [`docs/architecture/0009-production-hardening.md`](docs/architecture/0009-production-hardening.md) and [`docs/operations`](docs/operations). Build all production images with `pnpm docker:build`; deploy migrations once with `pnpm db:migrate`; verify a deployment with `pnpm smoke:production`.
 
+Windows Server 2022 hosts without Docker use the native deployment kit in [`docs/operations/windows-vps-deployment.md`](docs/operations/windows-vps-deployment.md). It retains an existing PostgreSQL installation and runs the API, worker, web server, and Caddy as restartable Windows services.
+
 ## Phase boundary
 
 Purchase returns, sales refunds/returns, expense reversals and commission reversals, advanced accounts receivable/payable, full accounting/general ledger, automatic recurring subscription payments, stored cards, Paystack webhook reconciliation, proration, subscription tax invoicing, loyalty, WhatsApp, AI, restaurant KDS, and hotel PMS remain deferred to later controlled phases.

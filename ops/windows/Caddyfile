@@ -1,0 +1,35 @@
+{
+	email admin@ekazi.co.ke
+}
+
+(security_headers) {
+	header {
+		-Server
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+	}
+}
+
+allshops.ekazi.co.ke {
+	import security_headers
+	encode zstd gzip
+	@api path /api/*
+	handle @api {
+		header Cache-Control "no-store"
+		reverse_proxy 127.0.0.1:4000
+	}
+	handle {
+		reverse_proxy 127.0.0.1:3000
+	}
+}
+
+api.ekazi.co.ke {
+	import security_headers
+	encode zstd gzip
+	@metrics path /api/v1/metrics
+	respond @metrics 404
+	header Cache-Control "no-store"
+	reverse_proxy 127.0.0.1:4000
+}

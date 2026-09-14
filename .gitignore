@@ -33,3 +33,4 @@ apps/mobile/build/
 
 # VPS production secrets
 ops/vps-production.env
+ops/windows/vps-production.env
