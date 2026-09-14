@@ -79,7 +79,21 @@ const environmentSchema = z
     SMTP_SECURE: booleanValue.default(false),
     SMTP_USER: z.string().optional(),
     SMTP_PASSWORD: z.string().optional(),
+    SMTP_PASS: z.string().optional(),
     SMTP_FROM: z.string().min(3).default("AllShops <no-reply@allshops.app>"),
+    MAIL_FROM_NAME: z.string().optional(),
+    MAIL_FROM_ADDRESS: z.preprocess(
+      (value) => (value === "" ? undefined : value),
+      z.string().email().optional(),
+    ),
+    MAIL_FROM: z.preprocess(
+      (value) => (value === "" ? undefined : value),
+      z.string().min(3).optional(),
+    ),
+    MAIL_REPLY_TO: z.preprocess(
+      (value) => (value === "" ? undefined : value),
+      z.string().email().optional(),
+    ),
     REPORT_EXPORT_MAX_ROWS: z.coerce
       .number()
       .int()

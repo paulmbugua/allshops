@@ -734,3 +734,33 @@ body.pos-focus-mode .app-layout { grid-template-columns: 1fr; } body.pos-focus-m
 .qatar-hero-frame { position: absolute; inset: 1rem 0 0 1rem; overflow: hidden; border-radius: 2rem; background: #6f1738; box-shadow: 1rem 1.2rem 0 #8d1b46, 0 2rem 5rem rgb(23 37 42 / 20%); }.qatar-hero-frame::after { position: absolute; inset: 0; background: linear-gradient(90deg, rgb(23 37 42 / 10%), transparent 45%), linear-gradient(0deg, rgb(23 37 42 / 42%), transparent 40%); content: ""; }.qatar-hero-frame img { width: 100%; height: 100%; object-fit: cover; }.qatar-hero-caption { position: absolute; z-index: 2; right: 1.25rem; bottom: 1.1rem; padding: .55rem .8rem; border: 1px solid rgb(255 255 255 / 28%); border-radius: 999px; background: rgb(23 37 42 / 58%); color: #fff; font-size: .64rem; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; backdrop-filter: blur(10px); }.hero-visual .pos-preview-card { top: auto; right: auto; bottom: -2rem; left: -1.5rem; width: 19rem; border-width: 6px; transform: rotate(-2deg); }.hero-visual .preview-body { padding: .8rem; }.hero-visual .preview-products { gap: .35rem; }.hero-visual .product-art { height: 2.8rem; font-size: 1.3rem; }.hero-visual .receipt-float { top: -.5rem; right: -1rem; left: auto; transform: rotate(5deg); }
 .shop-cultural-photo { position: absolute; z-index: 0; top: 0; right: 0; width: 58%; height: 100%; object-fit: cover; object-position: 68% center; opacity: .72; filter: saturate(.8) contrast(1.04); -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 42%); mask-image: linear-gradient(90deg, transparent 0%, #000 42%); }.shop-welcome::before { z-index: 1; background: linear-gradient(90deg, var(--shop-primary) 0%, color-mix(in srgb, var(--shop-primary) 95%, transparent) 35%, color-mix(in srgb, var(--shop-primary) 25%, transparent) 100%), radial-gradient(circle at 75% 15%, color-mix(in srgb, var(--shop-accent) 24%, transparent), transparent 32%); }.shop-welcome-nav, .shop-welcome-hero, .shop-welcome-footer { position: relative; z-index: 3; }.shop-orb { z-index: 2; mix-blend-mode: soft-light; }
 @media (max-width: 800px) { .qatar-hero-frame { inset: 0; }.hero-visual .pos-preview-card { left: .5rem; bottom: -1rem; width: min(18rem, 76vw); }.shop-cultural-photo { width: 100%; opacity: .38; -webkit-mask-image: linear-gradient(0deg, transparent 0%, #000 58%); mask-image: linear-gradient(0deg, transparent 0%, #000 58%); }.shop-welcome::before { background: linear-gradient(0deg, var(--shop-primary) 0%, color-mix(in srgb, var(--shop-primary) 55%, transparent) 80%); } }
+
+/* Bilingual public and merchant welcome surfaces */
+.language-toggle { display: inline-flex; align-items: center; gap: .15rem; padding: .25rem; border: 1px solid #e5ded6; border-radius: 999px; background: rgb(255 255 255 / 78%); box-shadow: 0 .35rem 1rem rgb(23 37 42 / 6%); direction: ltr; }
+.language-toggle button { min-height: 1.85rem; padding: .3rem .6rem; border: 0; border-radius: 999px; background: transparent; color: #667573; font-size: .68rem; font-weight: 900; }
+.language-toggle button.active { background: #6d1738; color: #fff; box-shadow: 0 .2rem .65rem rgb(109 23 56 / 24%); }
+.language-globe { display: grid; width: 1.55rem; height: 1.55rem; place-items: center; color: #a07e88; font-size: .72rem; }
+.language-toggle-inverse { border-color: rgb(255 255 255 / 20%); background: rgb(255 255 255 / 10%); box-shadow: none; backdrop-filter: blur(12px); }
+.language-toggle-inverse button { color: rgb(255 255 255 / 68%); }
+.language-toggle-inverse button.active { background: var(--shop-accent, #f3dfc1); color: var(--shop-primary, #6d1738); }
+.language-toggle-inverse .language-globe { color: rgb(255 255 255 / 55%); }
+.shop-welcome-actions { display: flex; align-items: center; gap: .8rem; }
+.shop-welcome-empty { position: relative; }
+.shop-welcome-empty > .language-toggle { position: absolute; top: 1.5rem; right: 1.5rem; }
+.shop-welcome-empty[dir="rtl"] > .language-toggle { right: auto; left: 1.5rem; }
+.landing-page[dir="rtl"], .shop-welcome[dir="rtl"], .shop-welcome-empty[dir="rtl"] { font-family: Arial, "Segoe UI", Tahoma, sans-serif; }
+.landing-page[dir="rtl"] .landing-brand span { margin-right: 0; margin-left: .35rem; }
+.landing-page[dir="rtl"] .hero-copy h1, .landing-page[dir="rtl"] .section-intro h2, .landing-page[dir="rtl"] .business-section h2, .landing-page[dir="rtl"] .landing-cta h2, .shop-welcome[dir="rtl"] h1 { letter-spacing: -.035em; }
+.landing-page[dir="rtl"] .hero-text-link span { margin-right: .35rem; margin-left: 0; }
+.landing-page[dir="rtl"] .avatar-stack span { margin-right: -.4rem; margin-left: 0; }
+.landing-page[dir="rtl"] .avatar-stack span:first-child { margin-right: 0; }
+.landing-page[dir="rtl"] .preview-status i { margin-right: 0; margin-left: .25rem; }
+.landing-page[dir="rtl"] .feature-card { text-align: right; }
+.landing-page[dir="rtl"] .business-blob { right: -10rem; left: auto; }
+.shop-welcome[dir="rtl"] .shop-welcome-kicker, .shop-welcome[dir="rtl"] .shop-welcome-footer { letter-spacing: .02em; }
+.shop-welcome[dir="rtl"] .shop-cultural-photo { right: auto; left: 0; object-position: 32% center; -webkit-mask-image: linear-gradient(270deg, transparent 0%, #000 42%); mask-image: linear-gradient(270deg, transparent 0%, #000 42%); }
+.shop-welcome[dir="rtl"]::before { background: linear-gradient(270deg, var(--shop-primary) 0%, color-mix(in srgb, var(--shop-primary) 95%, transparent) 35%, color-mix(in srgb, var(--shop-primary) 25%, transparent) 100%), radial-gradient(circle at 25% 15%, color-mix(in srgb, var(--shop-accent) 24%, transparent), transparent 32%); }
+.shop-welcome[dir="rtl"] .shop-orb-one { right: auto; left: -10rem; }
+.shop-welcome[dir="rtl"] .shop-orb-two { right: auto; left: 18%; }
+@media (max-width: 900px) { .landing-actions { gap: .65rem; }.landing-actions .landing-login { display: none; }.language-globe { display: none; } }
+@media (max-width: 650px) { .landing-nav { width: min(100% - 2rem, 1180px); }.landing-actions .landing-button { display: none; }.shop-welcome-nav { align-items: flex-start; }.shop-welcome-actions { align-items: flex-end; flex-direction: column; }.shop-platform-link { display: none; } }

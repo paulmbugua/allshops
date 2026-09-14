@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/api_client.dart';
 import 'core/app_logger.dart';
@@ -18,6 +19,8 @@ class AllShopsApp extends StatelessWidget {
     title: 'AllShops POS',
     debugShowCheckedModeBanner: false,
     theme: AllShopsTheme.light,
+    supportedLocales: const [Locale('en'), Locale('ar')],
+    localizationsDelegates: GlobalMaterialLocalizations.delegates,
     navigatorObservers: [AppNavigationObserver()],
     home: const SessionGate(),
   );

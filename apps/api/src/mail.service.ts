@@ -32,6 +32,8 @@ export class MailService {
     const host = process.env.SMTP_HOST?.trim();
     if (!host) return null;
     const user = process.env.SMTP_USER?.trim();
+    const password =
+      process.env.SMTP_PASSWORD?.trim() || process.env.SMTP_PASS || "";
     return nodemailer.createTransport({
       host,
       port: Number(process.env.SMTP_PORT ?? 587),
@@ -40,7 +42,7 @@ export class MailService {
         ? {
             auth: {
               user,
-              pass: process.env.SMTP_PASSWORD ?? "",
+              pass: password,
             },
           }
         : {}),
@@ -58,11 +60,24 @@ export class MailService {
     const branch = input.branchName ? ` at ${input.branchName}` : "";
     const primary = input.primaryColor ?? "#172C2B";
     const accent = input.accentColor ?? "#FFCF5C";
+    const fromAddress = process.env.MAIL_FROM_ADDRESS?.trim();
+    const fromName = process.env.MAIL_FROM_NAME?.trim();
+    const from =
+      (fromAddress
+        ? fromName
+          ? `${fromName} <${fromAddress}>`
+          : fromAddress
+        : process.env.MAIL_FROM?.trim()) ||
+      process.env.SMTP_FROM?.trim() ||
+      "AllShops <no-reply@allshops.app>";
     const logo = input.logoUrl
       ? `<img src="${escapeHtml(input.logoUrl)}" alt="" width="64" height="64" style="display:block;object-fit:contain;border-radius:14px;background:white;margin-bottom:18px" />`
       : "";
     await transporter.sendMail({
-      from: process.env.SMTP_FROM ?? "AllShops <no-reply@allshops.app>",
+      from,
+      ...(process.env.MAIL_REPLY_TO?.trim()
+        ? { replyTo: process.env.MAIL_REPLY_TO.trim() }
+        : {}),
       to: input.recipient,
       subject: `Your ${input.organizationName} AllShops account is ready`,
       text: [

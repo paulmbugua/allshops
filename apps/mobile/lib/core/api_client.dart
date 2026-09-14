@@ -183,7 +183,16 @@ class ApiClient {
     } catch (_) {
       /* Local logout must still clear the session. */
     }
+    final displayLanguage = await _storage.read(
+      key: 'allshops_display_language',
+    );
     await _storage.deleteAll();
+    if (displayLanguage != null) {
+      await _storage.write(
+        key: 'allshops_display_language',
+        value: displayLanguage,
+      );
+    }
     AppLogger.info('auth', 'logout_completed');
   }
 

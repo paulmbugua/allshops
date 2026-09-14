@@ -10,6 +10,38 @@ $repo = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 Set-Location $repo
 . (Join-Path $PSScriptRoot 'Import-Environment.ps1') -EnvironmentFile $EnvironmentFile
 
+function Invoke-CheckedCommand {
+  param(
+    [Parameter(Mandatory = $true)][string]$Label,
+    [Parameter(Mandatory = $true)][scriptblock]$Command
+  )
+
+  & $Command
+  if ($LASTEXITCODE -ne 0) {
+    throw "$Label failed with exit code $LASTEXITCODE."
+  }
+}
+
+function Wait-HttpReady {
+  param(
+    [Parameter(Mandatory = $true)][string]$Uri,
+    [int]$TimeoutSeconds = 60
+  )
+
+  $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+  do {
+    try {
+      $response = Invoke-WebRequest -UseBasicParsing -Uri $Uri -TimeoutSec 5
+      if ($response.StatusCode -eq 200) { return $response }
+    } catch {
+      if ((Get-Date) -ge $deadline) { throw }
+      Start-Sleep -Seconds 2
+    }
+  } while ((Get-Date) -lt $deadline)
+
+  throw "Timed out waiting for $Uri."
+}
+
 if (git status --porcelain) {
   throw 'Deployment refused because the VPS repository has uncommitted changes.'
 }
@@ -45,25 +77,55 @@ if (-not $SkipBackup) {
 
 if (-not (Get-Command pnpm.cmd -ErrorAction SilentlyContinue)) {
   npm install --global pnpm@10.15.0
+  if ($LASTEXITCODE -ne 0) { throw 'pnpm installation failed.' }
 }
-pnpm.cmd install --frozen-lockfile
-pnpm.cmd db:generate
-node ops/windows/Test-Redis.mjs
-if ($LASTEXITCODE -ne 0) { throw 'Redis protocol preflight failed.' }
-pnpm.cmd build
-pnpm.cmd db:migrate
-pnpm.cmd db:seed
 
 $services = @('AllShopsApi', 'AllShopsWorker', 'AllShopsWeb')
 $installed = @($services | Where-Object { Get-Service -Name $_ -ErrorAction SilentlyContinue })
-if ($installed.Count -eq $services.Count) {
-  foreach ($service in $services) { Restart-Service -Name $service -Force }
-  Start-Sleep -Seconds 5
-  $api = Invoke-WebRequest -UseBasicParsing 'http://127.0.0.1:4000/api/v1/health/ready'
-  $web = Invoke-WebRequest -UseBasicParsing 'http://127.0.0.1:3000/login'
-  if ($api.StatusCode -ne 200 -or $web.StatusCode -ne 200) {
-    throw 'Local production readiness verification failed.'
+$servicesInstalled = $installed.Count -eq $services.Count
+$servicesStopped = $false
+$deploymentComplete = $false
+
+try {
+  if ($servicesInstalled) {
+    Write-Host 'Stopping AllShops application services to release build files.'
+    $servicesStopped = $true
+    foreach ($service in $services) {
+      $current = Get-Service -Name $service
+      if ($current.Status -ne 'Stopped') {
+        Stop-Service -Name $service -Force
+        $current.WaitForStatus('Stopped', [TimeSpan]::FromSeconds(30))
+      }
+    }
   }
+
+  Invoke-CheckedCommand 'Dependency installation' { pnpm.cmd install --frozen-lockfile }
+  Invoke-CheckedCommand 'Prisma client generation' { pnpm.cmd db:generate }
+  Invoke-CheckedCommand 'Redis protocol preflight' { node ops/windows/Test-Redis.mjs }
+  Invoke-CheckedCommand 'Application build' { pnpm.cmd build }
+  Invoke-CheckedCommand 'Database migration' { pnpm.cmd db:migrate }
+  Invoke-CheckedCommand 'Database seed' { pnpm.cmd db:seed }
+
+  $deploymentComplete = $true
+} finally {
+  if ($servicesInstalled -and $servicesStopped) {
+    Write-Host 'Starting AllShops application services.'
+    foreach ($service in $services) {
+      $current = Get-Service -Name $service
+      if ($current.Status -ne 'Running') {
+        Start-Service -Name $service
+      }
+    }
+  }
+}
+
+if (-not $deploymentComplete) {
+  throw 'Deployment failed before readiness verification. Review the error above and service logs.'
+}
+
+if ($servicesInstalled) {
+  $api = Wait-HttpReady -Uri 'http://127.0.0.1:4000/api/v1/health/ready'
+  $web = Wait-HttpReady -Uri 'http://127.0.0.1:3000/login'
   Write-Host "AllShops $env:GIT_SHA deployed and healthy."
 } else {
   Write-Host "AllShops $env:GIT_SHA built and migrated. Install the Windows services to complete first deployment."
