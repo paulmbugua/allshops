@@ -117,6 +117,10 @@ try {
   $config = [ordered]@{
     Port = $redisUri.Port
     Address = '127.0.0.1'
+    MemorySize = '256m'
+    PageSize = '4m'
+    IndexSize = '32m'
+    ObjectStoreHeapMemorySize = '128m'
     ProtectedMode = 'yes'
     AuthenticationMode = 'Password'
     Password = $password
@@ -125,12 +129,11 @@ try {
     WaitForCommit = $false
     Recover = $true
     CheckpointDir = (Join-Path $DataDirectory 'checkpoints')
-    LogDir = (Join-Path $DataDirectory 'logs')
     EnableLua = $true
     FileLogger = 'C:\AllShops\logs\AllShopsGarnet.log'
     LogLevel = 'Information'
   }
-  New-Item -ItemType Directory -Force -Path $config.CheckpointDir,$config.LogDir | Out-Null
+  New-Item -ItemType Directory -Force -Path $config.CheckpointDir | Out-Null
   $config | ConvertTo-Json | Set-Content -LiteralPath $configPath -Encoding UTF8
   & icacls.exe $DataDirectory /inheritance:r /grant:r 'Administrators:(OI)(CI)F' 'SYSTEM:(OI)(CI)F' | Out-Null
 
@@ -145,8 +148,27 @@ try {
   & $nssm set AllShopsGarnet AppStderr 'C:\AllShops\logs\AllShopsGarnet-error.log' | Out-Null
   & $nssm set AllShopsGarnet AppExit Default Restart | Out-Null
   & $nssm set AllShopsGarnet Start SERVICE_AUTO_START | Out-Null
-  Start-Service AllShopsGarnet
+  try {
+    Start-Service AllShopsGarnet
+  } catch {
+    Write-Warning 'Garnet did not start. Recent service output follows.'
+    foreach ($logPath in @(
+        'C:\AllShops\logs\AllShopsGarnet-error.log',
+        'C:\AllShops\logs\AllShopsGarnet-stdout.log',
+        'C:\AllShops\logs\AllShopsGarnet.log'
+      )) {
+      if (Test-Path -LiteralPath $logPath) {
+        Write-Host "===== $logPath ====="
+        Get-Content -LiteralPath $logPath -Tail 40
+      }
+    }
+    throw
+  }
   Start-Sleep -Seconds 3
+
+  if ((Get-Service AllShopsGarnet).Status -ne 'Running') {
+    throw 'Garnet did not remain in the Running state.'
+  }
 
   Set-Location $repo
   node ops/windows/Test-Redis.mjs
