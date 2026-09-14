@@ -1,0 +1,127 @@
+name: Build and release production images
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      deploy:
+        description: Run the configured migration and deployment hook
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: allshops
+          POSTGRES_PASSWORD: allshops
+          POSTGRES_DB: allshops_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U allshops -d allshops_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping" --health-interval 5s
+          --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://allshops:allshops@localhost:5432/allshops_test?schema=public
+      REDIS_URL: redis://localhost:6379
+      JWT_ACCESS_SECRET: release-validation-access-secret
+      JWT_REFRESH_SECRET: release-validation-refresh-secret
+      APP_URL: http://localhost:3000
+      API_URL: http://localhost:4000
+      CORS_ORIGINS: http://localhost:3000
+      NODE_ENV: test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.14.0
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm db:generate
+      - run: pnpm db:migrate
+      - run: pnpm typecheck
+      - run: pnpm lint
+      - run: pnpm test:critical
+      - run: pnpm test:security
+      - run: pnpm security:audit
+      - run: pnpm build
+
+  images:
+    needs: validate
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        include:
+          - service: web
+            dockerfile: apps/web/Dockerfile
+          - service: api
+            dockerfile: apps/api/Dockerfile
+          - service: worker
+            dockerfile: apps/worker/Dockerfile
+          - service: migrate
+            dockerfile: docker/migrate.Dockerfile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          push: true
+          tags: ghcr.io/${{ github.repository_owner }}/allshops-${{ matrix.service }}:sha-${{ github.sha }}
+      - uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ghcr.io/${{ github.repository_owner }}/allshops-${{ matrix.service }}:sha-${{ github.sha }}
+          severity: CRITICAL,HIGH
+          exit-code: "1"
+          ignore-unfixed: true
+
+  migrate-and-deploy:
+    if: github.event_name == 'workflow_dispatch' && inputs.deploy
+    needs: images
+    runs-on: ubuntu-24.04
+    environment: production
+    env:
+      DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.14.0
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Apply migrations once
+        run: pnpm db:migrate
+      - name: Trigger provider-neutral deployment hook
+        env:
+          DEPLOY_HOOK_URL: ${{ secrets.DEPLOY_HOOK_URL }}
+          IMAGE_TAG: sha-${{ github.sha }}
+        run: curl --fail --silent --show-error --retry 2 -X POST -H "X-AllShops-Image-Tag:${IMAGE_TAG}" "$DEPLOY_HOOK_URL"
+      - name: Verify readiness
+        env:
+          PRODUCTION_HEALTH_URL: ${{ secrets.PRODUCTION_HEALTH_URL }}
+        run: curl --fail --silent --show-error --retry 10 --retry-all-errors --retry-delay 6 "$PRODUCTION_HEALTH_URL"

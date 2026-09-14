@@ -1,0 +1,89 @@
+"use client";
+export const API_URL =
+  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1";
+export interface Membership {
+  id: string;
+  organizationId: string;
+  organizationName: string;
+  organizationStatus: string;
+  roleId: string;
+  role: string;
+  roleName: string;
+  permissions: string[];
+  branchId: string | null;
+  branchName: string | null;
+  status: string;
+}
+export interface CurrentUser {
+  id: string;
+  name: string;
+  email: string;
+  status: string;
+  memberships: Membership[];
+}
+export interface AuthResult {
+  accessToken: string;
+  expiresIn: number;
+  user: CurrentUser;
+}
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+    readonly code: string,
+  ) {
+    super(message);
+  }
+}
+export function setAccessToken(token: string): void {
+  sessionStorage.setItem("allshops_access", token);
+}
+export function clearSession(): void {
+  sessionStorage.removeItem("allshops_access");
+}
+export function selectedOrganization(): string | null {
+  return typeof window === "undefined"
+    ? null
+    : sessionStorage.getItem("allshops_organization");
+}
+export function selectOrganization(id: string): void {
+  sessionStorage.setItem("allshops_organization", id);
+}
+export async function api<T>(
+  path: string,
+  init: RequestInit = {},
+  retry = true,
+): Promise<T> {
+  const headers = new Headers(init.headers);
+  if (init.body) headers.set("Content-Type", "application/json");
+  const token = sessionStorage.getItem("allshops_access");
+  if (token) headers.set("Authorization", `Bearer ${token}`);
+  const response = await fetch(`${API_URL}${path}`, {
+    ...init,
+    headers,
+    credentials: "include",
+  });
+  if (response.status === 401 && retry && path !== "/auth/refresh") {
+    const refreshed = await fetch(`${API_URL}/auth/refresh`, {
+      method: "POST",
+      credentials: "include",
+    });
+    if (refreshed.ok) {
+      const session = (await refreshed.json()) as AuthResult;
+      setAccessToken(session.accessToken);
+      return api<T>(path, init, false);
+    }
+  }
+  const payload = (await response.json().catch(() => ({}))) as Record<
+    string,
+    unknown
+  >;
+  if (!response.ok) {
+    throw new ApiError(
+      typeof payload.message === "string" ? payload.message : "Request failed.",
+      response.status,
+      typeof payload.code === "string" ? payload.code : "ERROR",
+    );
+  }
+  return payload as T;
+}

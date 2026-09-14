@@ -1,0 +1,36 @@
+{
+  "name": "@allshops/api",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "node ../../node_modules/typescript/bin/tsc -p tsconfig.build.json && node dist/main.js",
+    "build": "node ../../node_modules/typescript/bin/tsc -p tsconfig.build.json",
+    "start": "node dist/main.js",
+    "typecheck": "node ../../node_modules/typescript/bin/tsc --noEmit",
+    "test": "node ../../node_modules/typescript/bin/tsc -p tsconfig.test.json && node test-dist/test/health.test.js"
+  },
+  "dependencies": {
+    "@allshops/contracts": "workspace:*",
+    "@allshops/database": "workspace:*",
+    "@nestjs/common": "^11.1.6",
+    "@nestjs/core": "^11.1.6",
+    "@nestjs/platform-express": "^11.1.6",
+    "@nestjs/swagger": "^11.4.7",
+    "argon2": "^0.45.1",
+    "dotenv": "^17.2.2",
+    "ioredis": "^5.7.0",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@allshops/config": "workspace:*",
+    "@nestjs/testing": "^11.1.6",
+    "@types/node": "^22.18.1",
+    "@types/supertest": "^6.0.3",
+    "supertest": "^7.1.4",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.2"
+  }
+}

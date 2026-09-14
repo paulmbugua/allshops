@@ -1,0 +1,35 @@
+node_modules/
+.pnpm-store/
+
+.next/
+dist/
+test-dist/
+coverage/
+*.tsbuildinfo
+
+.env
+.env.*
+!.env.example
+
+.turbo/
+.tmp-*/
+
+.DS_Store
+Thumbs.db
+
+.idea/
+.vscode/
+*.swp
+*.swo
+
+*.log
+pnpm-debug.log*
+
+# Mobile signing and generated release artifacts
+apps/mobile/android/key.properties
+*.jks
+*.keystore
+apps/mobile/build/
+
+# VPS production secrets
+ops/vps-production.env

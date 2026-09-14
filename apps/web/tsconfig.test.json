@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "incremental": false,
+    "outDir": "test-dist",
+    "rootDir": ".",
+    "moduleResolution": "Bundler"
+  },
+  "include": ["app/lib/offline-db.ts", "test/**/*.ts"],
+  "exclude": ["node_modules"]
+}

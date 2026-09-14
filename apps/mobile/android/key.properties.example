@@ -1,0 +1,6 @@
+# Copy this file to key.properties and never commit the populated file.
+storePassword=REPLACE_WITH_UPLOAD_KEY_PASSWORD
+keyPassword=REPLACE_WITH_UPLOAD_KEY_PASSWORD
+keyAlias=upload
+# Windows paths need escaped backslashes, for example C:\\secure\\allshops-upload.jks
+storeFile=C:\\secure\\allshops-upload.jks

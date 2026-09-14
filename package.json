@@ -3,17 +3,53 @@
   "private": true,
   "packageManager": "pnpm@10.15.0",
   "scripts": {
-    "build": "turbo run build",
-    "dev": "turbo run dev --parallel",
-    "lint": "turbo run lint",
-    "typecheck": "turbo run typecheck",
-    "test": "turbo run test",
-    "db:generate": "pnpm --filter @allshops/database prisma generate",
-    "db:validate": "pnpm --filter @allshops/database prisma validate",
-    "db:migrate": "pnpm --filter @allshops/database prisma migrate dev"
+    "build": "node scripts/build.mjs",
+    "dev": "node scripts/dev.mjs",
+    "mobile:bootstrap": "flutter create --platforms=android,ios apps/mobile",
+    "mobile:pubget": "flutter pub get --directory apps/mobile",
+    "mobile:test": "flutter test apps/mobile",
+    "mobile:production": "powershell -ExecutionPolicy Bypass -File scripts/build-mobile-production.ps1",
+    "lint": "node node_modules/eslint/bin/eslint.js .",
+    "format": "node node_modules/prettier/bin/prettier.cjs --write .",
+    "format:check": "node node_modules/prettier/bin/prettier.cjs --check .",
+    "typecheck": "node scripts/typecheck.mjs",
+    "test": "node scripts/run-foundation-tests.mjs",
+    "test:critical": "node scripts/run-phase9-tests.mjs critical",
+    "test:security": "node scripts/run-phase9-tests.mjs security",
+    "test:pilot": "node scripts/run-phase10-tests.mjs",
+    "security:audit": "node scripts/source-review.mjs",
+    "migrations:audit": "node scripts/check-migrations.mjs",
+    "docker:build": "node scripts/docker-build.mjs",
+    "docker:production:config": "docker compose --env-file ops/vps-production.env -f docker-compose.prod.yml config --quiet",
+    "docker:production:build": "docker compose --env-file ops/vps-production.env -f docker-compose.prod.yml build --pull",
+    "docker:production:deploy": "docker compose --env-file ops/vps-production.env -f docker-compose.prod.yml up -d --remove-orphans",
+    "smoke:production": "node scripts/smoke-production.mjs",
+    "ops:reconcile-inventory": "node scripts/reconcile.mjs inventory",
+    "ops:reconcile-customers": "node scripts/reconcile.mjs customers",
+    "ops:reconcile-suppliers": "node scripts/reconcile.mjs suppliers",
+    "ops:reconcile-subscriptions": "node scripts/reconcile.mjs subscriptions",
+    "db:generate": "node packages/database/node_modules/prisma/build/index.js generate --schema packages/database/prisma/schema.prisma",
+    "db:validate": "node packages/database/node_modules/prisma/build/index.js validate --schema packages/database/prisma/schema.prisma",
+    "db:migrate": "node packages/database/node_modules/prisma/build/index.js migrate deploy --schema packages/database/prisma/schema.prisma",
+    "db:seed": "node packages/database/prisma/seed.mjs"
   },
   "devDependencies": {
+    "@eslint/js": "^9.35.0",
+    "@next/eslint-plugin-next": "15.5.24",
+    "eslint": "^9.35.0",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^16.3.0",
+    "prettier": "^3.6.2",
     "turbo": "^2.5.6",
-    "typescript": "^5.9.2"
+    "typescript": "^5.9.2",
+    "typescript-eslint": "^8.42.0"
+  },
+  "pnpm": {
+    "overrides": {
+      "multer": ">=2.3.0",
+      "postcss": ">=8.5.23",
+      "sharp": ">=0.35.4",
+      "deepmerge-ts": ">=8.0.0"
+    }
   }
 }

@@ -1,0 +1,224 @@
+name: allshops-production
+
+x-app-environment: &app-environment
+  NODE_ENV: production
+  DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
+  REDIS_URL: ${REDIS_URL:?REDIS_URL is required}
+  APP_URL: ${APP_URL:-https://allshops.ekazi.co.ke}
+  API_URL: ${API_URL:-https://api.ekazi.co.ke}
+  CORS_ORIGINS: ${CORS_ORIGINS:-https://allshops.ekazi.co.ke}
+  JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?JWT_ACCESS_SECRET is required}
+  JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?JWT_REFRESH_SECRET is required}
+  JWT_ACCESS_TTL: ${JWT_ACCESS_TTL:-15m}
+  JWT_REFRESH_TTL: ${JWT_REFRESH_TTL:-7d}
+  APP_VERSION: ${APP_VERSION:-0.0.0}
+  GIT_SHA: ${GIT_SHA:-unknown}
+  BUILD_TIME: ${BUILD_TIME:-unknown}
+  LOG_LEVEL: ${LOG_LEVEL:-info}
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-allshops}
+      POSTGRES_USER: ${POSTGRES_USER:-allshops}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+    restart: unless-stopped
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [data]
+    logging: *logging
+
+  redis:
+    image: redis:7.4-alpine
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
+    command:
+      [
+        "sh",
+        "-c",
+        'exec redis-server --appendonly yes --maxmemory-policy noeviction --requirepass "$$REDIS_PASSWORD"',
+      ]
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", 'redis-cli -a "$$REDIS_PASSWORD" ping | grep PONG']
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    networks: [data]
+    logging: *logging
+
+  migrate:
+    image: ${REGISTRY:-ghcr.io/paulmbugua}/allshops-migrate:${IMAGE_TAG:?IMAGE_TAG is required}
+    build:
+      context: .
+      dockerfile: docker/migrate.Dockerfile
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+    networks: [data]
+    logging: *logging
+
+  api:
+    image: ${REGISTRY:-ghcr.io/paulmbugua}/allshops-api:${IMAGE_TAG:?IMAGE_TAG is required}
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    environment:
+      <<: *app-environment
+      TRUST_PROXY: "1"
+      JSON_BODY_LIMIT: ${JSON_BODY_LIMIT:-1mb}
+      REQUEST_TIMEOUT_MS: ${REQUEST_TIMEOUT_MS:-30000}
+      SWAGGER_ENABLED: ${SWAGGER_ENABLED:-false}
+      METRICS_ENABLED: ${METRICS_ENABLED:-false}
+      METRICS_TOKEN: ${METRICS_TOKEN:-}
+      SENTRY_DSN: ${SENTRY_DSN:-}
+      PAYSTACK_SECRET_KEY: ${PAYSTACK_SECRET_KEY:?PAYSTACK_SECRET_KEY is required for subscription billing}
+      PAYSTACK_BASE_URL: ${PAYSTACK_BASE_URL:-https://api.paystack.co}
+      PAYSTACK_SUBSCRIPTION_CALLBACK_URL: ${PAYSTACK_SUBSCRIPTION_CALLBACK_URL:-https://allshops.ekazi.co.ke/settings/subscription/payment-return}
+      PAYSTACK_CURRENCY: ${PAYSTACK_CURRENCY:-KES}
+      PAYSTACK_QAR_TO_KES_RATE: ${PAYSTACK_QAR_TO_KES_RATE:-}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:4000/api/v1/health/ready').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
+        ]
+      interval: 15s
+      timeout: 5s
+      start_period: 20s
+      retries: 5
+    networks: [edge, data]
+    logging: *logging
+
+  worker:
+    image: ${REGISTRY:-ghcr.io/paulmbugua}/allshops-worker:${IMAGE_TAG:?IMAGE_TAG is required}
+    build:
+      context: .
+      dockerfile: apps/worker/Dockerfile
+    environment:
+      <<: *app-environment
+      WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-5}
+      WORKER_HEALTH_PORT: 4001
+      SUBSCRIPTION_GRACE_DAYS: ${SUBSCRIPTION_GRACE_DAYS:-7}
+      SUBSCRIPTION_JOB_INTERVAL_MINUTES: ${SUBSCRIPTION_JOB_INTERVAL_MINUTES:-60}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:4001/health/ready').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
+        ]
+      interval: 15s
+      timeout: 5s
+      start_period: 20s
+      retries: 5
+    networks: [data]
+    logging: *logging
+
+  web:
+    image: ${REGISTRY:-ghcr.io/paulmbugua}/allshops-web:${IMAGE_TAG:?IMAGE_TAG is required}
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: /api/v1
+        NEXT_PUBLIC_APP_VERSION: ${APP_VERSION:-0.0.0}
+        NEXT_PUBLIC_GIT_SHA: ${GIT_SHA:-unknown}
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000/login').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
+        ]
+      interval: 15s
+      timeout: 5s
+      start_period: 20s
+      retries: 5
+    networks: [edge]
+    logging: *logging
+
+  caddy:
+    image: caddy:2.10-alpine
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN:-allshops.ekazi.co.ke}
+      API_DOMAIN: ${API_DOMAIN:-api.ekazi.co.ke}
+      ACME_EMAIL: ${ACME_EMAIL:?ACME_EMAIL is required}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./docker/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      api:
+        condition: service_healthy
+      web:
+        condition: service_healthy
+    restart: unless-stopped
+    networks: [edge]
+    logging: *logging
+
+  backup:
+    image: postgres:17-alpine
+    profiles: ["operations"]
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
+      BACKUP_DIRECTORY: /backups
+      MINIMUM_BACKUP_BYTES: ${MINIMUM_BACKUP_BYTES:-1024}
+    volumes:
+      - ./ops/backup-postgres.sh:/usr/local/bin/backup-postgres:ro
+      - postgres_backups:/backups
+    entrypoint: ["/bin/sh", "/usr/local/bin/backup-postgres"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [data]
+
+networks:
+  edge:
+  data:
+    internal: true
+
+volumes:
+  postgres_data:
+  postgres_backups:
+  redis_data:
+  caddy_data:
+  caddy_config:

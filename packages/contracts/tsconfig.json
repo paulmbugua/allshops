@@ -1,0 +1,7 @@
+{
+  "extends": "@allshops/config/node.json",
+  "compilerOptions": {
+    "noEmit": true
+  },
+  "include": ["src/**/*.ts", "test/**/*.ts"]
+}

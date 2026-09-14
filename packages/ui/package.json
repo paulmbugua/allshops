@@ -1,0 +1,27 @@
+{
+  "name": "@allshops/ui",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "node ../../node_modules/typescript/bin/tsc -p tsconfig.build.json",
+    "typecheck": "node ../../node_modules/typescript/bin/tsc --noEmit"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0"
+  },
+  "devDependencies": {
+    "@allshops/config": "workspace:*",
+    "@types/react": "^19.1.12",
+    "react": "^19.1.1",
+    "typescript": "^5.9.2"
+  }
+}

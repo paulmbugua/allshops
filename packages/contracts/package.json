@@ -3,14 +3,25 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "main": "src/index.ts",
+  "main": "./dist/index.js",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./dist/index.js"
+    }
+  },
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "build": "node ../../node_modules/typescript/bin/tsc -p tsconfig.build.json",
+    "typecheck": "node ../../node_modules/typescript/bin/tsc --noEmit",
+    "test": "node ../../node_modules/typescript/bin/tsc -p tsconfig.test.json && node test-dist/test/contracts.test.js"
   },
   "dependencies": {
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@allshops/config": "workspace:*",
+    "@types/node": "^22.18.1",
     "typescript": "^5.9.2"
   }
 }

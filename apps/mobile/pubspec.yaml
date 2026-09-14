@@ -1,0 +1,51 @@
+name: allshops_mobile
+description: Native AllShops POS and business operations client.
+publish_to: none
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.8.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  flutter_riverpod: 2.6.1
+  dio: 5.8.0+1
+  dio_cookie_manager: 3.2.0
+  cookie_jar: 4.0.8
+  flutter_secure_storage: 9.2.4
+  sqflite: 2.4.2
+  path: 1.9.1
+  path_provider: 2.1.5
+  connectivity_plus: 6.1.4
+  mobile_scanner: 6.0.7
+  uuid: 4.5.1
+  intl: 0.20.3
+  url_launcher: 6.3.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: 5.0.0
+  flutter_launcher_icons: ^0.14.4
+
+# Newer Android platform packages currently require SDK/NDK toolchains that
+# are newer than this project's installed, stable Android 36 toolchain.
+dependency_overrides:
+  path_provider_android: 2.2.15
+  path_provider_foundation: 2.4.1
+  objective_c: 7.1.0
+
+flutter:
+  uses-material-design: true
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: assets/branding/allshops-icon-1024.png
+  adaptive_icon_background: "#172C2B"
+  adaptive_icon_foreground: assets/branding/allshops-icon-foreground.png
+  min_sdk_android: 24
+  remove_alpha_ios: true
