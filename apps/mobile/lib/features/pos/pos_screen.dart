@@ -29,9 +29,11 @@ class _PosScreenState extends ConsumerState<PosScreen> {
   String? message;
   String? deviceId;
   String? catalogueSnapshotAt;
+  List<PosBranch> branches = const [];
+  String? selectedBranchId;
   int sequence = 1;
   String get organizationId => widget.membership.organizationId;
-  String? get branchId => widget.membership.branchId;
+  String? get branchId => widget.membership.branchId ?? selectedBranchId;
   int get totalMinor =>
       cart.values.fold(0, (sum, line) => sum + line.totalMinor);
   @override
@@ -50,18 +52,71 @@ class _PosScreenState extends ConsumerState<PosScreen> {
   }
 
   Future<void> initialize() async {
+    await _resolveBranch();
     AppLogger.info(
       'pos',
       'initializing',
       fields: {'hasBranch': branchId != null},
     );
     if (branchId == null) {
-      setState(() {
-        loading = false;
-        message = 'Select a branch in your membership before opening POS.';
-      });
+      if (mounted) {
+        setState(() {
+          loading = false;
+          message = branches.isEmpty
+              ? 'No active branch is available. Ask an owner to create or activate a branch.'
+              : 'Choose the branch where this sale will be recorded.';
+        });
+      }
       return;
     }
+    await _initializeBranch();
+  }
+
+  Future<void> _resolveBranch() async {
+    final assignedBranchId = widget.membership.branchId;
+    if (assignedBranchId != null) {
+      selectedBranchId = assignedBranchId;
+      branches = [
+        PosBranch(
+          id: assignedBranchId,
+          name: widget.membership.branchName ?? 'Assigned branch',
+          code: '',
+        ),
+      ];
+      return;
+    }
+
+    try {
+      final rows = await ref
+          .read(apiProvider)
+          .get<List<dynamic>>('/organizations/$organizationId/pos/branches');
+      branches = rows
+          .map((row) => PosBranch.fromJson(row as Map<String, dynamic>))
+          .toList(growable: false);
+      const storage = FlutterSecureStorage();
+      final stored = await storage.read(key: 'pos_branch_$organizationId');
+      if (branches.any((branch) => branch.id == stored)) {
+        selectedBranchId = stored;
+      } else if (branches.length == 1) {
+        selectedBranchId = branches.first.id;
+        await storage.write(
+          key: 'pos_branch_$organizationId',
+          value: selectedBranchId,
+        );
+      }
+    } catch (error, stackTrace) {
+      AppLogger.error(
+        'pos',
+        'branch_list_failed',
+        error,
+        stackTrace: stackTrace,
+      );
+      message =
+          'Could not load the available branches. Check your connection and retry.';
+    }
+  }
+
+  Future<void> _initializeBranch() async {
     await _ensureDevice();
     await search();
     await _bootstrapOffline();
@@ -70,10 +125,50 @@ class _PosScreenState extends ConsumerState<PosScreen> {
     AppLogger.info('pos', 'initialized');
   }
 
+  Future<void> _selectBranch(String? value) async {
+    if (value == null || value == branchId) return;
+    if (cart.isNotEmpty) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Switch branch?'),
+          content: const Text(
+            'The current cart belongs to the present branch and will be cleared.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Keep current branch'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Switch branch'),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true) return;
+    }
+    const storage = FlutterSecureStorage();
+    await storage.write(key: 'pos_branch_$organizationId', value: value);
+    if (!mounted) return;
+    setState(() {
+      selectedBranchId = value;
+      deviceId = null;
+      catalogueSnapshotAt = null;
+      products = [];
+      cart.clear();
+      loading = true;
+      message = 'Opening branch…';
+    });
+    await _initializeBranch();
+    if (mounted) setState(() => message = null);
+  }
+
   Future<void> _ensureDevice() async {
     const storage = FlutterSecureStorage();
-    final storedKey = 'device_id_$organizationId';
-    final identifierKey = 'device_identifier_$organizationId';
+    final storedKey = 'device_id_${organizationId}_$branchId';
+    final identifierKey = 'device_identifier_${organizationId}_$branchId';
     deviceId = await storage.read(key: storedKey);
     var identifier = await storage.read(key: identifierKey);
     identifier ??= const Uuid().v4();
@@ -392,7 +487,9 @@ class _PosScreenState extends ConsumerState<PosScreen> {
   Future<void> syncPending() async {
     await _syncCheckoutOutbox();
     if (deviceId == null) return;
-    final rows = await ref.read(offlineStoreProvider).pendingSales();
+    final rows = await ref
+        .read(offlineStoreProvider)
+        .pendingSales(deviceId: deviceId);
     AppLogger.info(
       'sync',
       'pending_sales_checked',
@@ -504,6 +601,69 @@ class _PosScreenState extends ConsumerState<PosScreen> {
             ],
           ),
         ),
+        if (widget.membership.branchId == null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(18, 0, 18, 10),
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(14, 8, 8, 8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFE7F6EF),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: const Color(0xFFC8E5D7)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.storefront_rounded,
+                    color: Color(0xFF16705A),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      key: ValueKey(selectedBranchId),
+                      initialValue: selectedBranchId,
+                      isExpanded: true,
+                      decoration: const InputDecoration(
+                        labelText: 'Selling branch',
+                        border: InputBorder.none,
+                        isDense: true,
+                      ),
+                      hint: const Text('Choose a branch'),
+                      items: branches
+                          .map(
+                            (branch) => DropdownMenuItem(
+                              value: branch.id,
+                              child: Text(
+                                branch.code.isEmpty
+                                    ? branch.name
+                                    : '${branch.name} · ${branch.code}',
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          )
+                          .toList(growable: false),
+                      onChanged: loading ? null : _selectBranch,
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: 'Reload branches',
+                    onPressed: loading
+                        ? null
+                        : () async {
+                            setState(() {
+                              loading = true;
+                              message = null;
+                              branches = const [];
+                              selectedBranchId = null;
+                            });
+                            await initialize();
+                          },
+                    icon: const Icon(Icons.refresh_rounded),
+                  ),
+                ],
+              ),
+            ),
+          ),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 18),
           child: TextField(

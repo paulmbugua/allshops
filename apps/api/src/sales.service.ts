@@ -122,6 +122,18 @@ export class SalesService {
     private readonly entitlements: EntitlementService,
   ) {}
 
+  posBranches(tenant: TenantContext) {
+    return prisma.branch.findMany({
+      where: {
+        organizationId: tenant.organizationId,
+        isActive: true,
+        ...(tenant.branchId ? { id: tenant.branchId } : {}),
+      },
+      select: { id: true, name: true, code: true },
+      orderBy: [{ name: "asc" }, { id: "asc" }],
+    });
+  }
+
   async posProducts(tenant: TenantContext, input: PosProductListInput) {
     return this.posProductsQuery(tenant, input);
   }

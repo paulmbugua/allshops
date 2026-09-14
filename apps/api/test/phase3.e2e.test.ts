@@ -633,6 +633,24 @@ try {
     pos.body.items.every((row: object) => !("costMinor" in row)),
     true,
   );
+  const ownerPosBranches = await request(server)
+    .get(`/api/v1/organizations/${orgId}/pos/branches`)
+    .set(bearer(owner));
+  assert.equal(ownerPosBranches.status, 200);
+  assert.equal(
+    ownerPosBranches.body.some(
+      (row: { id: string }) => row.id === branchId,
+    ),
+    true,
+  );
+  const cashierPosBranches = await request(server)
+    .get(`/api/v1/organizations/${orgId}/pos/branches`)
+    .set(bearer(cashier));
+  assert.equal(cashierPosBranches.status, 200);
+  assert.deepEqual(
+    cashierPosBranches.body.map((row: { id: string }) => row.id),
+    [branchId],
+  );
   const barcodeLookup = await request(server)
     .get(
       `/api/v1/organizations/${orgId}/pos/products/barcode?branchId=${branchId}&barcode=629${suffix}`,

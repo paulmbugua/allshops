@@ -33,6 +33,12 @@ export class SalesController {
   constructor(private readonly sales: SalesService) {}
 
   @RequirePermission("catalogue.read")
+  @Get("pos/branches")
+  branches(@Req() request: RequestContext) {
+    return this.sales.posBranches(request.tenant!);
+  }
+
+  @RequirePermission("catalogue.read")
   @Get("pos/products")
   products(@Query() query: unknown, @Req() request: RequestContext) {
     return this.sales.posProducts(

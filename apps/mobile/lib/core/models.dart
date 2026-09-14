@@ -50,6 +50,20 @@ class CurrentUser {
   );
 }
 
+class PosBranch {
+  const PosBranch({required this.id, required this.name, required this.code});
+
+  final String id;
+  final String name;
+  final String code;
+
+  factory PosBranch.fromJson(Map<String, dynamic> json) => PosBranch(
+    id: json['id'] as String,
+    name: json['name'] as String,
+    code: json['code'] as String,
+  );
+}
+
 class PosProduct {
   const PosProduct({
     required this.productId,

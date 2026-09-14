@@ -138,11 +138,14 @@ class OfflineStore {
     AppLogger.info('offline', 'paid_sale_persisted');
   }
 
-  Future<List<Map<String, dynamic>>> pendingSales() async {
+  Future<List<Map<String, dynamic>>> pendingSales({String? deviceId}) async {
     final db = await database;
     final rows = await db.query(
       'pending_sales',
-      where: "status IN ('LOCAL_PENDING','FAILED_RETRYABLE','SYNCING')",
+      where: deviceId == null
+          ? "status IN ('LOCAL_PENDING','FAILED_RETRYABLE','SYNCING')"
+          : "device_id = ? AND status IN ('LOCAL_PENDING','FAILED_RETRYABLE','SYNCING')",
+      whereArgs: deviceId == null ? null : [deviceId],
       orderBy: 'created_at ASC',
     );
     AppLogger.debug(
