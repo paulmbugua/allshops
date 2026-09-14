@@ -79,10 +79,11 @@ Ensure Cloudflare proxied `A` records for `allshops.ekazi.co.ke` and
 `api.ekazi.co.ke` point to the VPS. Use Full (strict) SSL mode and bypass cache
 for both API paths.
 
-Place `caddy.exe` at `C:\Tools\caddy\caddy.exe` and `nssm.exe` at
-`C:\Tools\nssm\nssm.exe`. Validate and build:
+Place `nssm.exe` at `C:\Tools\nssm\nssm.exe`. Install the pinned Caddy release,
+open only its public ingress ports, validate and build:
 
 ```powershell
+powershell -ExecutionPolicy Bypass -File ops\windows\Install-Caddy.ps1
 powershell -ExecutionPolicy Bypass -File ops\windows\Deploy.ps1 -SkipBackup
 powershell -ExecutionPolicy Bypass -File ops\windows\Install-Services.ps1
 ```

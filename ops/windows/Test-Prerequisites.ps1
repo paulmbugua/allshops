@@ -19,6 +19,10 @@ $checks.DotNet10Runtime = if (Test-Path -LiteralPath $dotnet) {
     Where-Object { $_ -match '^Microsoft\.NETCore\.App 10\.' }
   if ($matchingRuntime) { $matchingRuntime -join ', ' } else { 'MISSING' }
 } else { 'MISSING' }
+$caddy = 'C:\Tools\caddy\caddy.exe'
+$checks.Caddy = if (Test-Path -LiteralPath $caddy) {
+  (& $caddy version 2>$null)
+} else { 'MISSING' }
 
 $psql = Get-Command psql.exe -ErrorAction SilentlyContinue
 if (-not $psql) {
