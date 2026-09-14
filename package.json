@@ -45,6 +45,14 @@
     "typescript-eslint": "^8.42.0"
   },
   "pnpm": {
+    "onlyBuiltDependencies": [
+      "@prisma/client",
+      "@prisma/engines",
+      "argon2",
+      "esbuild",
+      "prisma",
+      "sharp"
+    ],
     "overrides": {
       "multer": ">=2.3.0",
       "postcss": ">=8.5.23",
