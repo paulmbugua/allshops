@@ -48,6 +48,8 @@ if (-not (Get-Command pnpm.cmd -ErrorAction SilentlyContinue)) {
 }
 pnpm.cmd install --frozen-lockfile
 pnpm.cmd db:generate
+node ops/windows/Test-Redis.mjs
+if ($LASTEXITCODE -ne 0) { throw 'Redis protocol preflight failed.' }
 pnpm.cmd build
 pnpm.cmd db:migrate
 pnpm.cmd db:seed

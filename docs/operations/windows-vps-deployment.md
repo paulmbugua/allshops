@@ -10,10 +10,11 @@ Node.js, NSSM-managed application services, and Caddy for automatic HTTPS.
   may be used only after the complete build and smoke test pass on the VPS.
 - PostgreSQL 17 with its `bin` directory available, or discoverable below
   `C:\Program Files\PostgreSQL`.
-- Redis 7-compatible storage on `127.0.0.1:6379`. Use a production-licensed,
-  supported Windows service such as Memurai Enterprise, or a managed Redis
-  provider. Memurai Developer Edition is not licensed for production and has a
-  forced maximum uptime. Do not use an abandoned Windows Redis port.
+- Redis-compatible storage on `127.0.0.1:6379`. The included installer uses the
+  stable Microsoft Garnet 1.1 release on Windows, enables password
+  authentication and append-only recovery, and verifies the Redis commands
+  required by AllShops. Memurai Enterprise or a managed Redis service may be
+  substituted. Do not use the abandoned Redis 5 Windows port.
 - Git, Caddy, and NSSM.
 
 PostgreSQL and Redis must listen only on loopback or a private interface. Public
@@ -54,6 +55,23 @@ icacls C:\ProgramData\AllShops\production.env /inheritance:r
 icacls C:\ProgramData\AllShops\production.env /grant:r "Administrators:F" "SYSTEM:R"
 ```
 
+For the self-hosted Windows cache, set `REDIS_URL` to
+`redis://:URL_ENCODED_PASSWORD@127.0.0.1:6379`. Use a unique password of at
+least 32 characters. Then replace any legacy Redis process with authenticated
+Microsoft Garnet (NSSM must already be at `C:\Tools\nssm\nssm.exe`):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File ops\windows\Install-Garnet.ps1
+Get-Service AllShopsGarnet
+```
+
+The installer pins and verifies the official release archive checksum, binds
+only to loopback, enables AOF recovery and Lua, protects the configuration ACL,
+installs an automatic Windows service, and runs a protocol preflight. Garnet is
+not a universal Redis replacement; the preflight deliberately covers the data
+types and scripting AllShops is prepared to use. Expand that test before adding
+new queue primitives.
+
 Ensure Cloudflare proxied `A` records for `allshops.ekazi.co.ke` and
 `api.ekazi.co.ke` point to the VPS. Use Full (strict) SSL mode and bypass cache
 for both API paths.
@@ -72,7 +90,7 @@ deployment creates and validates a PostgreSQL custom-format backup first.
 ## Verify
 
 ```powershell
-Get-Service AllShopsApi,AllShopsWorker,AllShopsWeb,AllShopsCaddy
+Get-Service AllShopsGarnet,AllShopsApi,AllShopsWorker,AllShopsWeb,AllShopsCaddy
 Invoke-WebRequest -UseBasicParsing http://127.0.0.1:4000/api/v1/health/ready
 Invoke-WebRequest -UseBasicParsing http://127.0.0.1:3000/login
 Invoke-WebRequest -UseBasicParsing https://api.ekazi.co.ke/api/v1/health/ready
