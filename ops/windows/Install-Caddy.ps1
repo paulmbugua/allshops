@@ -53,7 +53,14 @@ try {
     }
   }
 
-  Write-Host "Caddy $Version is installed, verified, and configured for TCP 80/443."
+  foreach ($port in 3000,4000,4001,5432,6379) {
+    $name = "AllShops - Block external internal service $port"
+    if (-not (Get-NetFirewallRule -DisplayName $name -ErrorAction SilentlyContinue)) {
+      New-NetFirewallRule -DisplayName $name -Direction Inbound -Protocol TCP -LocalPort $port -Action Block -Profile Any | Out-Null
+    }
+  }
+
+  Write-Host "Caddy $Version is installed and verified; public ingress is limited to TCP 80/443."
   & $destination version
 } finally {
   Remove-Item -LiteralPath $temporary -Recurse -Force -ErrorAction SilentlyContinue

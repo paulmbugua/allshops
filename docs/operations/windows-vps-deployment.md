@@ -80,7 +80,8 @@ Ensure Cloudflare proxied `A` records for `allshops.ekazi.co.ke` and
 for both API paths.
 
 Place `nssm.exe` at `C:\Tools\nssm\nssm.exe`. Install the pinned Caddy release,
-open only its public ingress ports, validate and build:
+open only its public ingress ports, explicitly block internal service ports,
+validate and build:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File ops\windows\Install-Caddy.ps1
