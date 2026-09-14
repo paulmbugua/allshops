@@ -2,7 +2,8 @@
 param(
   [string]$NssmPath = 'C:\Tools\nssm\nssm.exe',
   [string]$CaddyPath = 'C:\Tools\caddy\caddy.exe',
-  [string]$EnvironmentFile = 'C:\ProgramData\AllShops\production.env'
+  [string]$EnvironmentFile = 'C:\ProgramData\AllShops\production.env',
+  [string]$NodePath = ''
 )
 
 $ErrorActionPreference = 'Stop'
@@ -14,6 +15,8 @@ New-Item -ItemType Directory -Force -Path $logs | Out-Null
 if (-not (Test-Path -LiteralPath $NssmPath)) { throw "NSSM not found: $NssmPath" }
 if (-not (Test-Path -LiteralPath $CaddyPath)) { throw "Caddy not found: $CaddyPath" }
 if (-not (Test-Path -LiteralPath $EnvironmentFile)) { throw "Environment file not found: $EnvironmentFile" }
+if (-not $NodePath) { $NodePath = (Get-Command node.exe -ErrorAction Stop).Source }
+if (-not (Test-Path -LiteralPath $NodePath)) { throw "Node.js not found: $NodePath" }
 
 function Install-AllShopsService($name, $script) {
   if (Get-Service -Name $name -ErrorAction SilentlyContinue) {
@@ -22,7 +25,7 @@ function Install-AllShopsService($name, $script) {
   }
   & $NssmPath install $name $powershell "-NoProfile -ExecutionPolicy Bypass -File `"$script`""
   & $NssmPath set $name AppDirectory $repo
-  & $NssmPath set $name AppEnvironmentExtra "ALLSHOPS_ENV_FILE=$EnvironmentFile"
+  & $NssmPath set $name AppEnvironmentExtra "ALLSHOPS_ENV_FILE=$EnvironmentFile" "ALLSHOPS_NODE_PATH=$NodePath"
   & $NssmPath set $name AppStdout (Join-Path $logs "$name.log")
   & $NssmPath set $name AppStderr (Join-Path $logs "$name-error.log")
   & $NssmPath set $name AppRotateFiles 1
