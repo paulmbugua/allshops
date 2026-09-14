@@ -13,6 +13,7 @@ import { AuthService } from "./auth.service.js";
 import type { TenantContext } from "./security.types.js";
 import { TokenService } from "./token.service.js";
 import { EntitlementService } from "./entitlement.service.js";
+import { MailService } from "./mail.service.js";
 
 @Injectable()
 export class UsersService {
@@ -20,6 +21,7 @@ export class UsersService {
     private readonly auth: AuthService,
     private readonly tokens: TokenService,
     private readonly entitlements: EntitlementService,
+    private readonly mail: MailService,
   ) {}
 
   list(tenant: TenantContext) {
@@ -99,7 +101,12 @@ export class UsersService {
         });
         return created;
       });
-      return { membership, invitationRequired: false };
+      return {
+        membership,
+        userId: existingUser.id,
+        invitationRequired: false,
+        emailDelivery: "EXISTING_ACCOUNT",
+      };
     }
 
     const invitationToken = this.tokens.randomInvitationToken();
@@ -161,9 +168,44 @@ export class UsersService {
         expiresAt: invitation.expiresAt,
       };
     });
+    const organization = await prisma.organization.findUniqueOrThrow({
+      where: { id: tenant.organizationId },
+      select: {
+        name: true,
+        logoUrl: true,
+        brandPrimaryColor: true,
+        brandAccentColor: true,
+      },
+    });
+    const branch = input.branchId
+      ? await prisma.branch.findUnique({
+          where: { id: input.branchId },
+          select: { name: true },
+        })
+      : null;
+    let emailDelivery: "SENT" | "FAILED" | "NOT_CONFIGURED";
+    try {
+      emailDelivery = (
+        await this.mail.sendInvitation({
+          recipient: input.email,
+          recipientName: input.name,
+          organizationName: organization.name,
+          roleName: role.name,
+          branchName: branch?.name,
+          invitationToken,
+          expiresAt: result.expiresAt,
+          logoUrl: organization.logoUrl,
+          primaryColor: organization.brandPrimaryColor,
+          accentColor: organization.brandAccentColor,
+        })
+      ).status;
+    } catch {
+      emailDelivery = "FAILED";
+    }
     return {
       ...result,
       invitationRequired: true,
+      emailDelivery,
       ...(process.env.NODE_ENV !== "production" ? { invitationToken } : {}),
     };
   }
@@ -277,6 +319,99 @@ export class UsersService {
       });
       return updated;
     });
+  }
+
+  async resendInvitation(
+    tenant: TenantContext,
+    actorId: string,
+    membershipId: string,
+  ) {
+    const membership = await prisma.organizationUser.findFirst({
+      where: {
+        id: membershipId,
+        organizationId: tenant.organizationId,
+        status: "INVITED",
+        ...(tenant.branchId ? { branchId: tenant.branchId } : {}),
+      },
+      include: {
+        user: { select: { id: true, name: true, email: true } },
+        role: { select: { id: true, name: true } },
+        branch: { select: { id: true, name: true } },
+        organization: {
+          select: {
+            name: true,
+            logoUrl: true,
+            brandPrimaryColor: true,
+            brandAccentColor: true,
+          },
+        },
+      },
+    });
+    if (!membership?.user.email)
+      throw new NotFoundException({
+        code: "PENDING_INVITATION_NOT_FOUND",
+        message: "A pending invitation was not found for this user.",
+      });
+    const invitationToken = this.tokens.randomInvitationToken();
+    const expiresAt = new Date(
+      Date.now() + Number(process.env.INVITATION_TTL_HOURS ?? 48) * 3_600_000,
+    );
+    await prisma.$transaction(async (tx) => {
+      await tx.invitation.updateMany({
+        where: {
+          organizationId: tenant.organizationId,
+          userId: membership.user.id,
+          acceptedAt: null,
+          revokedAt: null,
+        },
+        data: { revokedAt: new Date() },
+      });
+      const invitation = await tx.invitation.create({
+        data: {
+          organizationId: tenant.organizationId,
+          userId: membership.user.id,
+          invitedByUserId: actorId,
+          roleId: membership.role.id,
+          branchId: membership.branch?.id ?? null,
+          tokenHash: this.tokens.invitationHash(invitationToken),
+          expiresAt,
+        },
+      });
+      await tx.auditLog.create({
+        data: {
+          organizationId: tenant.organizationId,
+          userId: actorId,
+          action: "USER_INVITATION_RESENT",
+          entityType: "Invitation",
+          entityId: invitation.id,
+          afterJson: { invitedUserId: membership.user.id },
+        },
+      });
+    });
+    let emailDelivery: "SENT" | "FAILED" | "NOT_CONFIGURED";
+    try {
+      emailDelivery = (
+        await this.mail.sendInvitation({
+          recipient: membership.user.email,
+          recipientName: membership.user.name,
+          organizationName: membership.organization.name,
+          roleName: membership.role.name,
+          branchName: membership.branch?.name,
+          invitationToken,
+          expiresAt,
+          logoUrl: membership.organization.logoUrl,
+          primaryColor: membership.organization.brandPrimaryColor,
+          accentColor: membership.organization.brandAccentColor,
+        })
+      ).status;
+    } catch {
+      emailDelivery = "FAILED";
+    }
+    return {
+      expiresAt,
+      emailDelivery,
+      ...(process.env.NODE_ENV !== "production" ? { invitationToken } : {}),
+    };
   }
 
   private async role(organizationId: string, roleId: string) {

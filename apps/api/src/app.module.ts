@@ -48,6 +48,7 @@ import {
   ProductImageUploadsController,
 } from "./product-images.controller.js";
 import { ProductImagesService } from "./product-images.service.js";
+import { MailService } from "./mail.service.js";
 
 @Module({
   controllers: [
@@ -94,6 +95,7 @@ import { ProductImagesService } from "./product-images.service.js";
     OperationalRateLimitGuard,
     PilotService,
     ProductImagesService,
+    MailService,
     { provide: APP_GUARD, useClass: AuthGuard },
     { provide: APP_GUARD, useClass: PermissionGuard },
     { provide: APP_GUARD, useClass: SubscriptionGuard },

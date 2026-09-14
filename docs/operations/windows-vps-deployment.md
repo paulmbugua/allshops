@@ -45,6 +45,11 @@ notepad C:\ProgramData\AllShops\production.env
 Replace every `REPLACE_` value. `DATABASE_URL` uses the existing PostgreSQL
 server. Create the role/database with pgAdmin or `psql.exe`:
 
+Staff activation emails require the `SMTP_*` values in the same file. Use the
+SMTP credentials supplied by the merchant's email provider; `SMTP_FROM` should
+be a verified sender on that domain. AllShops emails a one-time activation link
+and never generates or emails reusable staff passwords.
+
 ```sql
 CREATE ROLE allshops LOGIN PASSWORD 'A_URL_SAFE_RANDOM_PASSWORD';
 CREATE DATABASE allshops OWNER allshops;
@@ -102,6 +107,11 @@ Invoke-WebRequest -UseBasicParsing https://api.ekazi.co.ke/api/v1/health/ready
 Invoke-WebRequest -UseBasicParsing https://allshops.ekazi.co.ke/login
 Get-Content C:\AllShops\logs\AllShopsApi-error.log -Tail 100
 ```
+
+After configuring a merchant in Business settings, open its welcome-screen
+preview once on each cashier computer. The browser remembers that shop for the
+next `/welcome` visit. The kiosk launcher now opens this branded idle screen by
+default.
 
 Complete login, Paystack subscription checkout, branch authorization, one test
 sale, receipt, report totals, and offline sync verification before onboarding a

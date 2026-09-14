@@ -71,6 +71,15 @@ const environmentSchema = z
     EXPORT_RATE_LIMIT_MAX: z.coerce.number().int().positive().default(10),
     BILLING_RATE_LIMIT_MAX: z.coerce.number().int().positive().default(20),
     INVITATION_TTL_HOURS: z.coerce.number().positive().default(48),
+    SMTP_HOST: z.preprocess(
+      (value) => (value === "" ? undefined : value),
+      z.string().min(1).optional(),
+    ),
+    SMTP_PORT: z.coerce.number().int().min(1).max(65535).default(587),
+    SMTP_SECURE: booleanValue.default(false),
+    SMTP_USER: z.string().optional(),
+    SMTP_PASSWORD: z.string().optional(),
+    SMTP_FROM: z.string().min(3).default("AllShops <no-reply@allshops.app>"),
     REPORT_EXPORT_MAX_ROWS: z.coerce
       .number()
       .int()

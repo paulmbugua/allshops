@@ -42,6 +42,20 @@ export const updateOrganizationSchema = createOrganizationSchema
     businessType: businessTypeSchema.optional(),
     currency: z.literal("QAR").optional(),
     timezone: z.literal("Asia/Qatar").optional(),
+    logoUrl: z.string().url().max(2048).nullable().optional(),
+    welcomeHeadline: z.string().trim().max(120).nullable().optional(),
+    tagline: z.string().trim().max(180).nullable().optional(),
+    motto: z.string().trim().max(180).nullable().optional(),
+    welcomeMessage: z.string().trim().max(600).nullable().optional(),
+    brandPrimaryColor: z
+      .string()
+      .regex(/^#[0-9A-F]{6}$/i)
+      .optional(),
+    brandAccentColor: z
+      .string()
+      .regex(/^#[0-9A-F]{6}$/i)
+      .optional(),
+    idleTimeoutMinutes: z.number().int().min(1).max(120).optional(),
   })
   .refine((value) => Object.keys(value).length > 0, "No changes supplied");
 
@@ -649,6 +663,7 @@ export const createStaffSchema = z.object({
   displayName: z.string().trim().min(1).max(160),
   phone: optionalNullableText(30),
   email: z.string().trim().toLowerCase().email().nullable().optional(),
+  employeeNumber: z.string().trim().min(1).max(60).nullable().optional(),
   jobTitle: optionalNullableText(120),
   isBookable: z.boolean().default(true),
   isActive: z.boolean().default(true),

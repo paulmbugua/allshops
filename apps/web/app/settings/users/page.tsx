@@ -25,6 +25,7 @@ interface InvitationResult {
   invitationRequired: boolean;
   invitationToken?: string;
   expiresAt?: string;
+  emailDelivery?: "SENT" | "FAILED" | "NOT_CONFIGURED" | "EXISTING_ACCOUNT";
 }
 const branchRoles = new Set([
   "BRANCH_MANAGER",
@@ -101,9 +102,15 @@ export default function UserSettingsPage() {
       );
       form.reset();
       setMessage(
-        result.invitationToken
-          ? `Invitation created. Development token: ${result.invitationToken}`
-          : "User added to the organization.",
+        result.emailDelivery === "SENT"
+          ? "Invitation emailed. The team member will create a private password from the secure link."
+          : result.emailDelivery === "FAILED"
+            ? "User created, but email delivery failed. Check the SMTP settings before inviting more users."
+            : result.invitationToken
+              ? `Invitation created. Development token: ${result.invitationToken}`
+              : result.emailDelivery === "EXISTING_ACCOUNT"
+                ? "Existing AllShops user added. They can sign in with their current password."
+                : "User added, but invitation email is not configured.",
       );
       await load();
     } catch (caught) {
@@ -135,6 +142,26 @@ export default function UserSettingsPage() {
     } catch (caught) {
       setMessage(
         caught instanceof Error ? caught.message : "Unable to update user.",
+      );
+    }
+  }
+  async function resend(member: Member) {
+    if (!organizationId) return;
+    try {
+      const result = await api<InvitationResult>(
+        `/organizations/${organizationId}/users/${member.id}/resend-invitation`,
+        { method: "POST" },
+      );
+      setMessage(
+        result.emailDelivery === "SENT"
+          ? `A fresh activation link was emailed to ${member.user.email}.`
+          : "A fresh invitation was created, but email delivery failed. Check SMTP settings.",
+      );
+    } catch (caught) {
+      setMessage(
+        caught instanceof Error
+          ? caught.message
+          : "Unable to resend invitation.",
       );
     }
   }
@@ -210,13 +237,28 @@ export default function UserSettingsPage() {
                 <option value="ACTIVE">Active</option>
                 <option value="SUSPENDED">Inactive</option>
               </select>
-              {canUpdate && <button className="secondary">Save</button>}
+              <div className="member-actions">
+                {canUpdate && <button className="secondary">Save</button>}
+                {member.status === "INVITED" && canInvite && (
+                  <button
+                    type="button"
+                    className="secondary"
+                    onClick={() => void resend(member)}
+                  >
+                    Resend invite
+                  </button>
+                )}
+              </div>
             </form>
           ))}
         </div>
         {canInvite && (
           <form className="form compact" onSubmit={invite}>
             <h2>Add user</h2>
+            <p className="muted">
+              A branded, one-time activation link is emailed to new users. They
+              choose their own password; administrators never see or store it.
+            </p>
             <div className="form-grid">
               <label>
                 Name

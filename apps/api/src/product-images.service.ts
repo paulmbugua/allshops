@@ -27,14 +27,18 @@ export class ProductImagesService {
     process.env.PRODUCT_IMAGE_MAX_BYTES ?? 5 * 1024 * 1024,
   );
 
-  async save(organizationId: string, file?: ProductImageUpload) {
+  async save(
+    organizationId: string,
+    file?: ProductImageUpload,
+    label = "product image",
+  ) {
     if (!file)
       throw new BadRequestException({
         code: "PRODUCT_IMAGE_REQUIRED",
-        message: "Choose a product image to upload.",
+        message: `Choose a ${label} to upload.`,
       });
     if (!acceptedMimeTypes.has(file.mimetype) || file.size > this.maximumBytes)
-      throw this.invalidImage();
+      throw this.invalidImage(label);
 
     let metadata: Metadata;
     try {
@@ -43,10 +47,10 @@ export class ProductImagesService {
         limitInputPixels: 40_000_000,
       }).metadata();
     } catch {
-      throw this.invalidImage();
+      throw this.invalidImage(label);
     }
     if (!metadata.format || !acceptedFormats.has(metadata.format))
-      throw this.invalidImage();
+      throw this.invalidImage(label);
 
     const imageId = randomUUID();
     const organizationDirectory = path.join(this.directory, organizationId);
@@ -106,10 +110,10 @@ export class ProductImagesService {
     }
   }
 
-  private invalidImage() {
+  private invalidImage(label = "product image") {
     return new BadRequestException({
       code: "INVALID_PRODUCT_IMAGE",
-      message: `Use a JPEG, PNG, or WebP image up to ${Math.floor(this.maximumBytes / 1024 / 1024)} MB.`,
+      message: `Use a JPEG, PNG, or WebP ${label} up to ${Math.floor(this.maximumBytes / 1024 / 1024)} MB.`,
     });
   }
 

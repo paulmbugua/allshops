@@ -30,8 +30,15 @@ export default function AcceptInvitePage() {
       const membership = result.user.memberships.find(
         (item) => item.status === "ACTIVE",
       );
-      if (membership) selectOrganization(membership.organizationId);
-      window.location.assign("/dashboard");
+      if (membership) {
+        selectOrganization(membership.organizationId);
+        const cashierReady = [
+          "catalogue.read",
+          "sale.create",
+          "payment.record",
+        ].every((permission) => membership.permissions.includes(permission));
+        window.location.assign(cashierReady ? "/pos" : "/dashboard");
+      } else window.location.assign("/dashboard");
     } catch (caught) {
       setMessage(
         caught instanceof Error

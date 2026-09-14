@@ -48,6 +48,7 @@ export function selectedOrganization(): string | null {
 }
 export function selectOrganization(id: string): void {
   sessionStorage.setItem("allshops_organization", id);
+  localStorage.setItem("allshops_last_organization", id);
 }
 export async function api<T>(
   path: string,

@@ -25,6 +25,18 @@ export class UsersController {
       parseInput(inviteUserSchema, body),
     );
   }
+  @RequirePermission("user.invite")
+  @Post(":membershipId/resend-invitation")
+  resendInvitation(
+    @Param("membershipId") membershipId: string,
+    @Req() request: RequestContext,
+  ) {
+    return this.users.resendInvitation(
+      request.tenant!,
+      request.user!.id,
+      assertUuid(membershipId, "membershipId"),
+    );
+  }
   @RequirePermission("user.update", "role.assign")
   @Patch(":membershipId")
   update(

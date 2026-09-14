@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import {
   api,
   selectOrganization,
@@ -10,6 +10,12 @@ import {
 export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  useEffect(() => {
+    const organizationId = new URLSearchParams(window.location.search).get(
+      "organization",
+    );
+    if (organizationId) selectOrganization(organizationId);
+  }, []);
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setLoading(true);
@@ -24,12 +30,22 @@ export default function LoginPage() {
         }),
       });
       setAccessToken(result.accessToken);
-      const membership = result.user.memberships.find(
-        (item) => item.status === "ACTIVE",
+      const requested = new URLSearchParams(window.location.search).get(
+        "organization",
       );
+      const membership =
+        result.user.memberships.find(
+          (item) =>
+            item.status === "ACTIVE" && item.organizationId === requested,
+        ) ?? result.user.memberships.find((item) => item.status === "ACTIVE");
       if (membership) {
         selectOrganization(membership.organizationId);
-        window.location.assign("/dashboard");
+        const cashierReady = [
+          "catalogue.read",
+          "sale.create",
+          "payment.record",
+        ].every((permission) => membership.permissions.includes(permission));
+        window.location.assign(cashierReady ? "/pos" : "/dashboard");
       } else window.location.assign("/onboarding");
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Unable to sign in.");

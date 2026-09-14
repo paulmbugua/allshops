@@ -107,6 +107,14 @@ export class OrganizationsService {
         registrationNumber: true,
         email: true,
         phone: true,
+        logoUrl: true,
+        welcomeHeadline: true,
+        tagline: true,
+        motto: true,
+        welcomeMessage: true,
+        brandPrimaryColor: true,
+        brandAccentColor: true,
+        idleTimeoutMinutes: true,
         currency: true,
         timezone: true,
         status: true,
@@ -118,6 +126,34 @@ export class OrganizationsService {
       throw new NotFoundException({
         code: "ORGANIZATION_NOT_FOUND",
         message: "Organization not found.",
+      });
+    }
+    return organization;
+  }
+
+  async welcome(organizationId: string) {
+    const organization = await prisma.organization.findFirst({
+      where: { id: organizationId, status: { not: "CANCELLED" } },
+      select: {
+        id: true,
+        name: true,
+        arabicName: true,
+        logoUrl: true,
+        welcomeHeadline: true,
+        tagline: true,
+        motto: true,
+        welcomeMessage: true,
+        brandPrimaryColor: true,
+        brandAccentColor: true,
+        idleTimeoutMinutes: true,
+        phone: true,
+        email: true,
+      },
+    });
+    if (!organization) {
+      throw new NotFoundException({
+        code: "SHOP_WELCOME_NOT_FOUND",
+        message: "This shop welcome screen is unavailable.",
       });
     }
     return organization;
@@ -148,6 +184,24 @@ export class OrganizationsService {
             : {}),
           ...(input.email !== undefined ? { email: input.email } : {}),
           ...(input.phone !== undefined ? { phone: input.phone } : {}),
+          ...(input.logoUrl !== undefined ? { logoUrl: input.logoUrl } : {}),
+          ...(input.welcomeHeadline !== undefined
+            ? { welcomeHeadline: input.welcomeHeadline }
+            : {}),
+          ...(input.tagline !== undefined ? { tagline: input.tagline } : {}),
+          ...(input.motto !== undefined ? { motto: input.motto } : {}),
+          ...(input.welcomeMessage !== undefined
+            ? { welcomeMessage: input.welcomeMessage }
+            : {}),
+          ...(input.brandPrimaryColor !== undefined
+            ? { brandPrimaryColor: input.brandPrimaryColor.toUpperCase() }
+            : {}),
+          ...(input.brandAccentColor !== undefined
+            ? { brandAccentColor: input.brandAccentColor.toUpperCase() }
+            : {}),
+          ...(input.idleTimeoutMinutes !== undefined
+            ? { idleTimeoutMinutes: input.idleTimeoutMinutes }
+            : {}),
           ...(input.currency !== undefined ? { currency: input.currency } : {}),
           ...(input.timezone !== undefined ? { timezone: input.timezone } : {}),
         },

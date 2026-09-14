@@ -256,6 +256,13 @@ model Organization {
   currency           String             @default("QAR")
   timezone           String             @default("Asia/Qatar")
   logoUrl            String?
+  welcomeHeadline    String?
+  tagline            String?
+  motto              String?
+  welcomeMessage     String?
+  brandPrimaryColor  String             @default("#172C2B")
+  brandAccentColor   String             @default("#FFCF5C")
+  idleTimeoutMinutes Int                @default(5)
   status             OrganizationStatus @default(TRIAL)
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
@@ -368,54 +375,54 @@ model User {
   updatedAt       DateTime   @updatedAt
 
   memberships               OrganizationUser[]
-  invitations               Invitation[]            @relation("InvitationUser")
-  sentInvitations           Invitation[]            @relation("InvitationInviter")
+  invitations               Invitation[]                 @relation("InvitationUser")
+  sentInvitations           Invitation[]                 @relation("InvitationInviter")
   sessions                  AuthSession[]
   devices                   Device[]
   auditLogs                 AuditLog[]
-  productsCreated           Product[]               @relation("ProductCreator")
-  movementsCreated          StockMovement[]         @relation("MovementCreator")
-  transfersCreated          StockTransfer[]         @relation("TransferCreator")
-  salesCreated              Sale[]                  @relation("SaleCreator")
-  paymentsRecorded          Payment[]               @relation("PaymentRecorder")
-  suppliersCreated          Supplier[]              @relation("SupplierCreator")
-  purchasesCreated          Purchase[]              @relation("PurchaseCreator")
-  supplierPaymentsRecorded  SupplierPayment[]       @relation("SupplierPaymentRecorder")
-  customersCreated          Customer[]              @relation("CustomerCreator")
-  customerLedgerEntries     CustomerLedgerEntry[]   @relation("CustomerLedgerCreator")
-  customerPaymentsRecorded  CustomerPayment[]       @relation("CustomerPaymentRecorder")
-  expensesCreated           Expense[]               @relation("ExpenseCreator")
+  productsCreated           Product[]                    @relation("ProductCreator")
+  movementsCreated          StockMovement[]              @relation("MovementCreator")
+  transfersCreated          StockTransfer[]              @relation("TransferCreator")
+  salesCreated              Sale[]                       @relation("SaleCreator")
+  paymentsRecorded          Payment[]                    @relation("PaymentRecorder")
+  suppliersCreated          Supplier[]                   @relation("SupplierCreator")
+  purchasesCreated          Purchase[]                   @relation("PurchaseCreator")
+  supplierPaymentsRecorded  SupplierPayment[]            @relation("SupplierPaymentRecorder")
+  customersCreated          Customer[]                   @relation("CustomerCreator")
+  customerLedgerEntries     CustomerLedgerEntry[]        @relation("CustomerLedgerCreator")
+  customerPaymentsRecorded  CustomerPayment[]            @relation("CustomerPaymentRecorder")
+  expensesCreated           Expense[]                    @relation("ExpenseCreator")
   staffProfiles             StaffProfile[]
-  staffProfilesCreated      StaffProfile[]          @relation("StaffProfileCreator")
-  staffTimeOffCreated       StaffTimeOff[]          @relation("StaffTimeOffCreator")
-  appointmentsCreated       Appointment[]           @relation("AppointmentCreator")
-  commissionRulesCreated    CommissionRule[]        @relation("CommissionRuleCreator")
-  subscriptionEventsCreated SubscriptionEvent[]     @relation("SubscriptionEventCreator")
-  billingRecordsConfirmed   BillingRecord[]         @relation("BillingRecordConfirmer")
+  staffProfilesCreated      StaffProfile[]               @relation("StaffProfileCreator")
+  staffTimeOffCreated       StaffTimeOff[]               @relation("StaffTimeOffCreator")
+  appointmentsCreated       Appointment[]                @relation("AppointmentCreator")
+  commissionRulesCreated    CommissionRule[]             @relation("CommissionRuleCreator")
+  subscriptionEventsCreated SubscriptionEvent[]          @relation("SubscriptionEventCreator")
+  billingRecordsConfirmed   BillingRecord[]              @relation("BillingRecordConfirmer")
   paystackPaymentsCreated   PaystackPaymentIntent[]
-  pilotsOwned               PilotOrganization[]      @relation("PilotSupportOwner")
+  pilotsOwned               PilotOrganization[]          @relation("PilotSupportOwner")
   onboardingStepsCompleted  OrganizationOnboardingStep[] @relation("OnboardingCompletedBy")
-  supportIssuesReported     SupportIssue[]           @relation("SupportIssueReporter")
-  pilotFeedbackSubmitted    PilotFeedback[]          @relation("PilotFeedbackSubmitter")
+  supportIssuesReported     SupportIssue[]               @relation("SupportIssueReporter")
+  pilotFeedbackSubmitted    PilotFeedback[]              @relation("PilotFeedbackSubmitter")
 
   @@index([status])
   @@map("users")
 }
 
 model PilotOrganization {
-  id                 String     @id @default(uuid()) @db.Uuid
-  organizationId     String     @unique @db.Uuid
-  status             PilotStatus @default(PENDING_SETUP)
-  pilotStartedAt     DateTime?
-  pilotEndedAt       DateTime?
-  assignedSupportOwner String?   @db.Uuid
-  businessCategory   String?
-  notes              String?
-  createdAt          DateTime   @default(now())
-  updatedAt          DateTime   @updatedAt
+  id                   String      @id @default(uuid()) @db.Uuid
+  organizationId       String      @unique @db.Uuid
+  status               PilotStatus @default(PENDING_SETUP)
+  pilotStartedAt       DateTime?
+  pilotEndedAt         DateTime?
+  assignedSupportOwner String?     @db.Uuid
+  businessCategory     String?
+  notes                String?
+  createdAt            DateTime    @default(now())
+  updatedAt            DateTime    @updatedAt
 
-  organization       Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  supportOwner       User?        @relation("PilotSupportOwner", fields: [assignedSupportOwner], references: [id], onDelete: SetNull)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  supportOwner User?        @relation("PilotSupportOwner", fields: [assignedSupportOwner], references: [id], onDelete: SetNull)
 
   @@index([status, updatedAt])
   @@map("pilot_organizations")
@@ -486,14 +493,14 @@ model SupportIssue {
 }
 
 model PilotFeedback {
-  id             String          @id @default(uuid()) @db.Uuid
-  organizationId String          @db.Uuid
-  submittedBy    String          @db.Uuid
+  id             String           @id @default(uuid()) @db.Uuid
+  organizationId String           @db.Uuid
+  submittedBy    String           @db.Uuid
   category       FeedbackCategory
   title          String
   description    String
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   submitter    User         @relation("PilotFeedbackSubmitter", fields: [submittedBy], references: [id], onDelete: Restrict)
@@ -1572,6 +1579,7 @@ model StaffProfile {
   displayName    String
   phone          String?
   email          String?
+  employeeNumber String?
   jobTitle       String?
   isBookable     Boolean  @default(true)
   isActive       Boolean  @default(true)
@@ -1593,6 +1601,7 @@ model StaffProfile {
   commissions         Commission[]
 
   @@unique([organizationId, userId])
+  @@unique([organizationId, employeeNumber])
   @@index([organizationId, isActive, displayName])
   @@map("staff_profiles")
 }

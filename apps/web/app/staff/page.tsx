@@ -47,6 +47,7 @@ export default function StaffPage() {
             <div className="data-row" key={row.id}>
               <Link href={`/staff/${row.id}`}>
                 <b>{row.displayName}</b>
+                {row.employeeNumber && <small>#{row.employeeNumber}</small>}
               </Link>
               <span>{row.jobTitle ?? "—"}</span>
               <span>{row.phone ?? row.email ?? "—"}</span>

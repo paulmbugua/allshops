@@ -26,15 +26,22 @@ export function AppShell({
   children: ReactNode;
 }) {
   const [membership, setMembership] = useState<Membership>();
+  const [idleTimeoutMinutes, setIdleTimeoutMinutes] = useState(5);
   const pathname = usePathname();
   useEffect(() => {
     const organizationId = selectedOrganization();
     if (!organizationId) return;
     void api<CurrentUser>("/auth/me")
-      .then((user) =>
+      .then((user) => {
         setMembership(
           user.memberships.find((row) => row.organizationId === organizationId),
-        ),
+        );
+        return api<{ idleTimeoutMinutes: number }>(
+          `/organizations/${organizationId}`,
+        );
+      })
+      .then((organization) =>
+        setIdleTimeoutMinutes(organization.idleTimeoutMinutes),
       )
       .catch(() => undefined);
   }, []);
@@ -46,11 +53,39 @@ export function AppShell({
     membership,
     ...permissionsForPath(pathname),
   );
-  async function logout() {
-    await api("/auth/logout", { method: "POST" }).catch(() => undefined);
+  async function leaveForWelcome(reason: "logout" | "idle" = "logout") {
+    const organizationId = selectedOrganization();
+    await Promise.race([
+      api("/auth/logout", { method: "POST" }).catch(() => undefined),
+      new Promise((resolve) => window.setTimeout(resolve, 2_000)),
+    ]);
     clearSession();
-    window.location.assign("/login");
+    window.location.assign(
+      organizationId
+        ? `/welcome?organization=${encodeURIComponent(organizationId)}&reason=${reason}`
+        : "/",
+    );
   }
+  useEffect(() => {
+    if (!membership) return;
+    let timer = 0;
+    const reset = () => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(
+        () => void leaveForWelcome("idle"),
+        idleTimeoutMinutes * 60_000,
+      );
+    };
+    const events = ["pointerdown", "keydown", "touchstart", "scroll"] as const;
+    events.forEach((event) =>
+      window.addEventListener(event, reset, { passive: true }),
+    );
+    reset();
+    return () => {
+      window.clearTimeout(timer);
+      events.forEach((event) => window.removeEventListener(event, reset));
+    };
+  }, [membership, idleTimeoutMinutes]);
   return (
     <div className="app-layout">
       <aside>
@@ -125,7 +160,7 @@ export function AppShell({
             <Link href="/settings/subscription">Subscription</Link>
           )}
         </nav>
-        <button className="link-button" onClick={logout}>
+        <button className="link-button" onClick={() => void leaveForWelcome()}>
           Sign out
         </button>
       </aside>

@@ -127,6 +127,20 @@ export class Phase5Service {
     return this.serializable(async (tx) => {
       if (input.userId)
         await this.requireMember(tx, tenant.organizationId, input.userId);
+      if (
+        input.employeeNumber &&
+        (await tx.staffProfile.findFirst({
+          where: {
+            organizationId: tenant.organizationId,
+            employeeNumber: input.employeeNumber,
+          },
+          select: { id: true },
+        }))
+      )
+        throw this.conflict(
+          "STAFF_NUMBER_EXISTS",
+          "This staff number is already assigned.",
+        );
       const staff = await tx.staffProfile.create({
         data: {
           ...input,
@@ -153,7 +167,13 @@ export class Phase5Service {
       ...(input.isActive === undefined ? {} : { isActive: input.isActive }),
       ...(input.search
         ? {
-            OR: ["displayName", "phone", "email", "jobTitle"].map((field) => ({
+            OR: [
+              "displayName",
+              "employeeNumber",
+              "phone",
+              "email",
+              "jobTitle",
+            ].map((field) => ({
               [field]: { contains: input.search, mode: "insensitive" },
             })) as Prisma.StaffProfileWhereInput[],
           }

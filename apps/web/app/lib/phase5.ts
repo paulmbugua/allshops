@@ -9,6 +9,7 @@ export interface Staff {
   displayName: string;
   phone?: string | null;
   email?: string | null;
+  employeeNumber?: string | null;
   jobTitle?: string | null;
   isBookable: boolean;
   isActive: boolean;
