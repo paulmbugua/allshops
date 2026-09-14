@@ -764,3 +764,92 @@ body.pos-focus-mode .app-layout { grid-template-columns: 1fr; } body.pos-focus-m
 .shop-welcome[dir="rtl"] .shop-orb-two { right: auto; left: 18%; }
 @media (max-width: 900px) { .landing-actions { gap: .65rem; }.landing-actions .landing-login { display: none; }.language-globe { display: none; } }
 @media (max-width: 650px) { .landing-nav { width: min(100% - 2rem, 1180px); }.landing-actions .landing-button { display: none; }.shop-welcome-nav { align-items: flex-start; }.shop-welcome-actions { align-items: flex-end; flex-direction: column; }.shop-platform-link { display: none; } }
+
+/* Viewport-fitted cashier workspace */
+@media (min-width: 901px) {
+  body.pos-route-mode { overflow: hidden; }
+  body.pos-route-mode .app-layout { height: 100vh; min-height: 0; }
+  body.pos-route-mode .app-layout > aside { min-height: 0; overflow-y: auto; }
+  body.pos-route-mode .workspace { display: flex; min-width: 0; min-height: 0; flex-direction: column; overflow: hidden; padding: .75rem; }
+  body.pos-route-mode .workspace > header { display: none; }
+  body.pos-route-mode .workspace > .notice { flex: 0 0 auto; margin: 0 auto .5rem; padding: .45rem .75rem; font-size: .78rem; }
+  body.pos-route-mode .workspace > section { min-height: 0; }
+  body.pos-focus-mode .workspace { height: 100vh; min-height: 0; }
+}
+
+.pos-workspace { height: 100%; min-height: 0; grid-template-rows: auto minmax(0, 1fr); gap: .65rem; }
+.pos-command-bar { min-height: 3.6rem; padding: .45rem .75rem; }
+.pos-command-bar select { min-height: 2.55rem; }
+.pos-command-bar button { min-height: 2.55rem; padding: .45rem .8rem; }
+.pos-brand-block small { font-size: .6rem; }
+.pos-layout { min-height: 0; grid-template-columns: minmax(0, 1.55fr) minmax(21rem, .8fr); gap: .75rem; align-items: stretch; }
+.pos-layout .card { min-width: 0; min-height: 0; padding: .75rem; }
+.pos-products { height: 100%; min-height: 0; overflow: hidden; }
+.pos-products .toolbar { flex: 0 0 auto; }
+.pos-products .toolbar input { min-height: 2.65rem; padding: .55rem .8rem; font-size: .88rem; }
+.pos-section-heading { flex: 0 0 auto; margin: .5rem 0 .55rem; }
+.pos-section-heading small { font-size: .62rem; }
+.scanner-hint { padding: .35rem .55rem; font-size: .62rem; }
+.product-grid { min-height: 0; flex: 1 1 auto; grid-template-columns: repeat(auto-fill, minmax(6.5rem, 1fr)); grid-auto-rows: minmax(0, 7.75rem); gap: .5rem; overflow: hidden; }
+.product-grid .product-tile { display: grid; min-width: 0; min-height: 0; height: 100%; grid-template-rows: minmax(0, 1fr) auto; gap: .35rem; padding: .4rem; overflow: hidden; text-align: center; }
+.product-grid .product-tile:disabled { opacity: .48; filter: grayscale(.45); }
+.product-grid .product-tile > strong { padding: 0 .2rem .15rem; color: #213a33; font-size: .76rem; line-height: 1.15; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.product-grid .product-tile > span:not(.product-tile-fallback), .product-grid .product-tile > b, .product-grid .product-tile > small { display: none; }
+.product-tile-image, .product-tile-fallback { width: 100%; height: 100%; min-height: 0; margin: 0; border-radius: .65rem; }
+.product-tile-fallback { font-size: 1.35rem; }
+.pos-pagination { flex: 0 0 auto; gap: .55rem; margin-top: 0; padding-top: .45rem; }
+.pos-pagination button { min-height: 2rem; padding: .3rem .65rem; font-size: .7rem; }
+.pos-pagination span { font-size: .7rem; }
+
+.pos-cart { position: relative; top: auto; display: flex; height: 100%; min-height: 0; flex-direction: column; overflow: hidden; }
+.pos-cart h2 { flex: 0 0 auto; margin: 0 0 .35rem; font-size: 1.25rem; }
+.pos-cart h3 { margin: .45rem 0 .3rem; font-size: .92rem; }
+.pos-cart-lines { min-height: 1.9rem; max-height: 24%; flex: 0 1 auto; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
+.pos-cart-lines > .muted { margin: .2rem 0 .35rem; font-size: .78rem; }
+.pos-cart-lines .notice { margin: 0 0 .35rem; padding: .4rem .55rem; font-size: .7rem; }
+.pos-cart .cart-line { grid-template-columns: minmax(5rem, 1fr) 3.4rem auto 2rem; gap: .35rem; padding: .35rem 0; }
+.pos-cart .cart-line strong { font-size: .75rem; }
+.pos-cart .cart-line small { font-size: .58rem; }
+.pos-cart .cart-line input, .pos-cart .cart-line select { min-height: 2rem; padding: .25rem .35rem; font-size: .72rem; }
+.pos-cart .cart-line button { min-height: 1.9rem; padding: .2rem; }
+.pos-cart .discount-row { gap: .4rem; }
+.pos-cart .discount-row select, .pos-cart .discount-row input { min-height: 2.35rem; padding: .4rem .55rem; font-size: .75rem; }
+.pos-cart .totals { flex: 0 0 auto; gap: .25rem; margin: .5rem 0; font-size: .78rem; }
+.pos-cart .totals strong { padding-top: .4rem; font-size: 1rem; }
+.pos-cart > label { flex: 0 0 auto; gap: .2rem; font-size: .7rem; }
+.pos-cart > label select { min-height: 2.35rem; padding: .4rem .55rem; font-size: .75rem; }
+.pos-cart .payment-choice-grid { flex: 0 0 auto; gap: .4rem; margin-bottom: .4rem; }
+.pos-cart .payment-choice-grid .product-tile { min-height: 3rem; padding: .5rem .7rem; }
+.pos-cart .payment-choice-grid .product-tile strong { font-size: .75rem; }
+.pos-cart .payment-choice-grid .product-tile small { display: none; }
+.pos-cart .cash-panel { flex: 0 0 auto; gap: .35rem; padding: .5rem; }
+.pos-cart .cash-panel label { gap: .2rem; font-size: .68rem; }
+.pos-cart .cash-panel input { min-height: 2.35rem; margin-top: 0; padding: .35rem .5rem; font-size: .95rem; }
+.pos-cart .quick-cash { gap: .3rem; }
+.pos-cart .quick-cash button { min-height: 1.8rem; padding: .2rem; font-size: .62rem; }
+.pos-cart .cash-change { padding: .4rem .55rem; font-size: .72rem; }
+.pos-cart .cash-change strong { font-size: 1rem; }
+.pos-cart .payment-row { gap: .4rem; }
+.pos-cart .payment-row label { gap: .2rem; font-size: .68rem; }
+.pos-cart .payment-row input, .pos-cart .payment-row select { min-height: 2.25rem; padding: .35rem .5rem; font-size: .72rem; }
+.pos-cart > .actions { display: grid; flex: 0 0 auto; grid-template-columns: .65fr 1.35fr; gap: .4rem; margin-top: .45rem; }
+.pos-cart > .actions button { min-height: 2.45rem; padding: .4rem .55rem; font-size: .72rem; }
+.pos-cart > .notice { margin: .35rem 0 0; padding: .4rem .55rem; font-size: .68rem; }
+
+@media (min-width: 901px) and (max-height: 700px) {
+  .pos-command-bar { min-height: 3rem; }
+  .pos-brand-block small, .scanner-hint { display: none; }
+  .pos-products .toolbar input { min-height: 2.35rem; }
+  .product-grid { grid-auto-rows: minmax(0, 6.8rem); }
+  .pos-cart h3 { display: none; }
+  .pos-cart .totals { margin: .3rem 0; }
+  .pos-cart-lines { max-height: 18%; }
+}
+
+@media (max-width: 900px) {
+  body.pos-route-mode { overflow: auto; }
+  .pos-workspace, .pos-products, .pos-cart { height: auto; overflow: visible; }
+  .pos-products { min-height: 32rem; }
+  .product-grid { min-height: 22rem; grid-auto-rows: 7.5rem; }
+  .pos-cart-lines { max-height: 16rem; }
+}

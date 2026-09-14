@@ -66,7 +66,8 @@ export default function PosPage() {
     nonce: number;
   }>();
   const searchRef = useRef<HTMLInputElement>(null);
-  const pageSize = focusMode ? 30 : 18;
+  const productGridRef = useRef<HTMLDivElement>(null);
+  const [pageSize, setPageSize] = useState(12);
   const subtotal = useMemo(
     () =>
       cart.reduce(
@@ -123,6 +124,26 @@ export default function PosPage() {
     document.body.classList.toggle("pos-focus-mode", focusMode);
     return () => document.body.classList.remove("pos-focus-mode");
   }, [focusMode]);
+
+  useEffect(() => {
+    document.body.classList.add("pos-route-mode");
+    return () => document.body.classList.remove("pos-route-mode");
+  }, []);
+
+  useEffect(() => {
+    const grid = productGridRef.current;
+    if (!grid || typeof ResizeObserver === "undefined") return;
+    const measure = () => {
+      const gap = 8;
+      const columns = Math.max(1, Math.floor((grid.clientWidth + gap) / 112));
+      const rows = Math.max(1, Math.floor((grid.clientHeight + gap) / 132));
+      setPageSize(Math.max(4, Math.min(30, columns * rows)));
+    };
+    const observer = new ResizeObserver(measure);
+    observer.observe(grid);
+    measure();
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     void (async () => {
@@ -242,7 +263,7 @@ export default function PosPage() {
     return () => window.clearTimeout(timer);
   }, [organizationId, branchId, query, page, pageSize]);
 
-  useEffect(() => setPage(1), [branchId, query, focusMode]);
+  useEffect(() => setPage(1), [branchId, query, focusMode, pageSize]);
 
   function add(product: PosProduct) {
     if (
@@ -503,7 +524,7 @@ export default function PosPage() {
               </span>
               <span className="scanner-hint">⌁ Scan barcode + Enter</span>
             </div>
-            <div className="product-grid">
+            <div className="product-grid" ref={productGridRef}>
               {products.map((product) => {
                 const out =
                   product.trackInventory &&
@@ -534,15 +555,6 @@ export default function PosPage() {
                       </span>
                     )}
                     <strong>{product.name}</strong>
-                    <span>{product.variantName ?? product.sku ?? "Base"}</span>
-                    <b>{formatMinorCurrency(product.priceMinor)}</b>
-                    {product.trackInventory && (
-                      <small>
-                        {out
-                          ? "OUT OF STOCK"
-                          : `Available: ${product.availableQuantity}`}
-                      </small>
-                    )}
                   </button>
                 );
               })}
@@ -572,78 +584,81 @@ export default function PosPage() {
           </div>
           <div className="card pos-cart">
             <h2>Cart</h2>
-            {appointmentId && (
-              <p className="notice">
-                Appointment services are preloaded at their booked prices. You
-                may add retail products before payment.
-              </p>
-            )}
-            {cart.length === 0 && (
-              <p className="muted">Scan or select a product.</p>
-            )}
-            {cart.map((line) => (
-              <div
-                className="cart-line"
-                key={`${line.productId}:${line.variantId ?? "base"}`}
-              >
-                <span>
-                  <strong>{line.name}</strong>
-                  <small>{line.variantName ?? line.sku ?? ""}</small>
-                </span>
-                <input
-                  aria-label={`Quantity for ${line.name}`}
-                  value={line.quantity}
-                  onChange={(event) =>
-                    setCart((rows) =>
-                      rows.map((row) =>
-                        row === line
-                          ? { ...row, quantity: event.target.value }
-                          : row,
-                      ),
-                    )
-                  }
-                />
-                {line.type === "SERVICE" && (
-                  <select
-                    aria-label={`Staff for ${line.name}`}
-                    value={line.staffProfileId ?? ""}
+            <div className="pos-cart-lines">
+              {appointmentId && (
+                <p className="notice">
+                  Appointment services are preloaded at their booked prices. You
+                  may add retail products before payment.
+                </p>
+              )}
+              {cart.length === 0 && (
+                <p className="muted">Scan or select a product.</p>
+              )}
+              {cart.map((line) => (
+                <div
+                  className="cart-line"
+                  key={`${line.productId}:${line.variantId ?? "base"}`}
+                >
+                  <span>
+                    <strong>{line.name}</strong>
+                    <small>{line.variantName ?? line.sku ?? ""}</small>
+                  </span>
+                  <input
+                    aria-label={`Quantity for ${line.name}`}
+                    value={line.quantity}
                     onChange={(event) =>
                       setCart((rows) =>
                         rows.map((row) =>
                           row === line
-                            ? {
-                                ...row,
-                                staffProfileId: event.target.value || undefined,
-                              }
+                            ? { ...row, quantity: event.target.value }
                             : row,
                         ),
                       )
                     }
-                  >
-                    <option value="">No staff</option>
-                    {line.availableStaff?.map((staff) => (
-                      <option key={staff.id} value={staff.id}>
-                        {staff.displayName}
-                      </option>
-                    ))}
-                  </select>
-                )}
-                <b>
-                  {formatMinorCurrency(
-                    Math.round(line.priceMinor * Number(line.quantity || 0)),
+                  />
+                  {line.type === "SERVICE" && (
+                    <select
+                      aria-label={`Staff for ${line.name}`}
+                      value={line.staffProfileId ?? ""}
+                      onChange={(event) =>
+                        setCart((rows) =>
+                          rows.map((row) =>
+                            row === line
+                              ? {
+                                  ...row,
+                                  staffProfileId:
+                                    event.target.value || undefined,
+                                }
+                              : row,
+                          ),
+                        )
+                      }
+                    >
+                      <option value="">No staff</option>
+                      {line.availableStaff?.map((staff) => (
+                        <option key={staff.id} value={staff.id}>
+                          {staff.displayName}
+                        </option>
+                      ))}
+                    </select>
                   )}
-                </b>
-                <button
-                  className="danger"
-                  disabled={line.appointmentLine}
-                  onClick={() =>
-                    setCart((rows) => rows.filter((row) => row !== line))
-                  }
-                >
-                  ×
-                </button>
-              </div>
-            ))}
+                  <b>
+                    {formatMinorCurrency(
+                      Math.round(line.priceMinor * Number(line.quantity || 0)),
+                    )}
+                  </b>
+                  <button
+                    className="danger"
+                    disabled={line.appointmentLine}
+                    onClick={() =>
+                      setCart((rows) => rows.filter((row) => row !== line))
+                    }
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
             {canDiscount && (
               <div className="discount-row">
                 <select
