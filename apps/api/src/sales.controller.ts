@@ -94,11 +94,16 @@ export class SalesController {
 
   @RequirePermission("receipt.print")
   @Get("sales/:saleId/receipt")
-  receipt(@Param("saleId") saleId: string, @Req() request: RequestContext) {
+  receipt(
+    @Param("saleId") saleId: string,
+    @Query("mode") mode: string | undefined,
+    @Req() request: RequestContext,
+  ) {
     return this.sales.receipt(
       request.tenant!,
       request.user!.id,
       assertUuid(saleId, "saleId"),
+      mode === "initial",
     );
   }
 

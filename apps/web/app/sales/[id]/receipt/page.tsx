@@ -1,6 +1,6 @@
 "use client";
 import { useParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api, selectedOrganization } from "../../../lib/api";
 import { formatMinorCurrency } from "../../../lib/catalogue";
 import type { Sale } from "../../../lib/sales";
@@ -9,12 +9,16 @@ export default function ReceiptPage() {
   const organizationId = selectedOrganization();
   const [sale, setSale] = useState<Sale>();
   const [message, setMessage] = useState("");
+  const autoPrintStarted = useRef(false);
   useEffect(() => {
     if (!organizationId) {
       window.location.assign("/login");
       return;
     }
-    void api<Sale>(`/organizations/${organizationId}/sales/${id}/receipt`)
+    const mode = new URLSearchParams(window.location.search).get("mode");
+    void api<Sale>(
+      `/organizations/${organizationId}/sales/${id}/receipt${mode ? `?mode=${encodeURIComponent(mode)}` : ""}`,
+    )
       .then(setSale)
       .catch((error) =>
         setMessage(
@@ -22,6 +26,14 @@ export default function ReceiptPage() {
         ),
       );
   }, [organizationId, id]);
+  useEffect(() => {
+    if (!sale || autoPrintStarted.current) return;
+    if (new URLSearchParams(window.location.search).get("autoprint") !== "1")
+      return;
+    autoPrintStarted.current = true;
+    const timer = window.setTimeout(() => window.print(), 350);
+    return () => window.clearTimeout(timer);
+  }, [sale]);
   if (!sale)
     return (
       <main className="receipt-page">

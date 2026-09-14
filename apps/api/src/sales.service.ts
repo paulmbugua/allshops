@@ -806,7 +806,12 @@ export class SalesService {
     return this.saleDetail(prisma, tenant, saleId);
   }
 
-  async receipt(tenant: TenantContext, userId: string, saleId: string) {
+  async receipt(
+    tenant: TenantContext,
+    userId: string,
+    saleId: string,
+    initialPrint = false,
+  ) {
     const detail = await this.saleDetail(prisma, tenant, saleId);
     if (detail.status !== "COMPLETED")
       throw new ConflictException({
@@ -817,7 +822,7 @@ export class SalesService {
       data: {
         organizationId: tenant.organizationId,
         userId,
-        action: "RECEIPT_REPRINTED",
+        action: initialPrint ? "RECEIPT_PRINTED" : "RECEIPT_REPRINTED",
         entityType: "Sale",
         entityId: detail.id,
         afterJson: { invoiceNumber: detail.invoiceNumber },

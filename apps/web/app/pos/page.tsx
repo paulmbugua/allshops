@@ -1,9 +1,15 @@
 "use client";
-import { useEffect, useMemo, useState, type KeyboardEvent } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent,
+} from "react";
 import { AppShell } from "../components/app-shell";
 import { api, selectedOrganization, type CurrentUser } from "../lib/api";
 import { formatMinorCurrency } from "../lib/catalogue";
-import type { Paged, PosProduct } from "../lib/sales";
+import type { Paged, PosProduct, Sale } from "../lib/sales";
 import type { Appointment } from "../lib/phase5";
 import {
   cachedPosProductByBarcode,
@@ -33,6 +39,8 @@ type TenderMode = "CASH" | "LOCAL_CARD";
 export default function PosPage() {
   const organizationId = selectedOrganization();
   const [products, setProducts] = useState<PosProduct[]>([]);
+  const [productTotal, setProductTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [branchId, setBranchId] = useState("");
   const [query, setQuery] = useState("");
@@ -49,6 +57,16 @@ export default function PosPage() {
   const [cashTender, setCashTender] = useState("");
   const [localBank, setLocalBank] = useState("QNB");
   const [terminalReference, setTerminalReference] = useState("");
+  const [autoPrint, setAutoPrint] = useState(true);
+  const [focusMode, setFocusMode] = useState(false);
+  const [completedSale, setCompletedSale] = useState<Sale>();
+  const [printJob, setPrintJob] = useState<{
+    saleId: string;
+    mode: "initial" | "reprint";
+    nonce: number;
+  }>();
+  const searchRef = useRef<HTMLInputElement>(null);
+  const pageSize = focusMode ? 30 : 18;
   const subtotal = useMemo(
     () =>
       cart.reduce(
@@ -65,7 +83,46 @@ export default function PosPage() {
         ? Math.round((subtotal * Number(discountValue || 0)) / 100)
         : 0;
   const total = Math.max(0, subtotal - discount);
+  const enteredCashMinor = cashTender.trim()
+    ? Math.round(Number(cashTender) * 100)
+    : total;
+  const validCash = Number.isFinite(enteredCashMinor) && enteredCashMinor >= 0;
+  const changeDue = validCash ? Math.max(0, enteredCashMinor - total) : 0;
+  const cashShortfall = validCash
+    ? Math.max(0, total - enteredCashMinor)
+    : total;
   const customer = customers.find((row) => row.id === customerId);
+
+  const quickCash = useMemo(() => {
+    const qar = total / 100;
+    return Array.from(
+      new Set([
+        qar,
+        Math.ceil(qar / 5) * 5,
+        Math.ceil(qar / 10) * 10,
+        Math.ceil(qar / 50) * 50,
+        Math.ceil(qar / 100) * 100,
+      ]),
+    )
+      .filter((value) => value >= qar && value > 0)
+      .slice(0, 4);
+  }, [total]);
+
+  useEffect(() => {
+    setAutoPrint(
+      window.localStorage.getItem("allshops-pos-auto-print") !== "false",
+    );
+    const onFullscreen = () => {
+      if (!document.fullscreenElement) setFocusMode(false);
+    };
+    document.addEventListener("fullscreenchange", onFullscreen);
+    return () => document.removeEventListener("fullscreenchange", onFullscreen);
+  }, []);
+
+  useEffect(() => {
+    document.body.classList.toggle("pos-focus-mode", focusMode);
+    return () => document.body.classList.remove("pos-focus-mode");
+  }, [focusMode]);
 
   useEffect(() => {
     void (async () => {
@@ -155,21 +212,24 @@ export default function PosPage() {
     if (!organizationId || !branchId) return;
     const timer = window.setTimeout(() => {
       void api<Paged<PosProduct>>(
-        `/organizations/${organizationId}/pos/products?branchId=${branchId}&pageSize=40&search=${encodeURIComponent(query)}`,
+        `/organizations/${organizationId}/pos/products?branchId=${branchId}&page=${page}&pageSize=${pageSize}&search=${encodeURIComponent(query)}`,
       )
-        .then((result) => setProducts(result.items))
+        .then((result) => {
+          setProducts(result.items);
+          setProductTotal(result.total);
+        })
         .catch(async (error) => {
           const cached = await cachedPosProducts(branchId);
           const normalized = query.trim().toLowerCase();
-          setProducts(
-            cached.filter((product) =>
-              [product.name, product.sku, product.barcode]
-                .filter(Boolean)
-                .some((value) =>
-                  String(value).toLowerCase().includes(normalized),
-                ),
-            ),
+          const matches = cached.filter((product) =>
+            [product.name, product.sku, product.barcode]
+              .filter(Boolean)
+              .some((value) =>
+                String(value).toLowerCase().includes(normalized),
+              ),
           );
+          setProductTotal(matches.length);
+          setProducts(matches.slice((page - 1) * pageSize, page * pageSize));
           setMessage(
             cached.length
               ? "Offline catalogue — prices and stock are cached snapshots."
@@ -180,7 +240,9 @@ export default function PosPage() {
         });
     }, 250);
     return () => window.clearTimeout(timer);
-  }, [organizationId, branchId, query]);
+  }, [organizationId, branchId, query, page, pageSize]);
+
+  useEffect(() => setPage(1), [branchId, query, focusMode]);
 
   function add(product: PosProduct) {
     if (
@@ -202,6 +264,7 @@ export default function PosPage() {
           : row,
       );
     });
+    window.setTimeout(() => searchRef.current?.focus(), 0);
   }
   async function scan(event: KeyboardEvent<HTMLInputElement>) {
     if (event.key !== "Enter") return;
@@ -308,7 +371,7 @@ export default function PosPage() {
               amountMinor: total,
               reference: `LOCAL:${localBank}:${terminalReference.trim() || "NO-REFERENCE"}`,
             };
-      const sale = await api<{ id: string }>(
+      const sale = await api<Sale>(
         appointmentId
           ? `/organizations/${organizationId}/appointments/${appointmentId}/checkout`
           : `/organizations/${organizationId}/sales/checkout`,
@@ -322,7 +385,15 @@ export default function PosPage() {
           ),
         },
       );
-      window.location.assign(`/sales/${sale.id}`);
+      setCompletedSale(sale);
+      setCart([]);
+      setCashTender("");
+      setTerminalReference("");
+      setDiscountType("");
+      setDiscountValue("");
+      if (autoPrint) {
+        setPrintJob({ saleId: sale.id, mode: "initial", nonce: Date.now() });
+      }
     } catch (error) {
       setMessage(
         error instanceof Error
@@ -332,6 +403,28 @@ export default function PosPage() {
     } finally {
       setBusy(false);
     }
+  }
+  function toggleAutoPrint() {
+    const next = !autoPrint;
+    setAutoPrint(next);
+    window.localStorage.setItem("allshops-pos-auto-print", String(next));
+  }
+  async function toggleFocusMode() {
+    if (focusMode) {
+      if (document.fullscreenElement)
+        await document.exitFullscreen().catch(() => undefined);
+      setFocusMode(false);
+      return;
+    }
+    setFocusMode(true);
+    await document.documentElement.requestFullscreen?.().catch(() => undefined);
+  }
+  function newSale() {
+    setCompletedSale(undefined);
+    setPrintJob(undefined);
+    setAppointmentId("");
+    setCustomerId("");
+    window.setTimeout(() => searchRef.current?.focus(), 0);
   }
   async function hold() {
     if (!organizationId || !cart.length || appointmentId) return;
@@ -354,286 +447,446 @@ export default function PosPage() {
   }
   return (
     <AppShell title="Point of Sale">
-      <section className="pos-layout">
-        <div className="card pos-products">
-          <div className="toolbar">
-            <select
-              aria-label="Active branch"
-              value={branchId}
-              onChange={(event) => changeBranch(event.target.value)}
-            >
-              {branches.map((branch) => (
-                <option key={branch.id} value={branch.id}>
-                  {branch.name}
-                </option>
-              ))}
-            </select>
+      <section className="pos-workspace">
+        <header className="pos-command-bar">
+          <div className="pos-brand-block">
+            <span className="pos-live-dot" />
+            <span>
+              <strong>Live register</strong>
+              <small>Scanner ready</small>
+            </span>
+          </div>
+          <select
+            aria-label="Active branch"
+            value={branchId}
+            onChange={(event) => changeBranch(event.target.value)}
+          >
+            {branches.map((branch) => (
+              <option key={branch.id} value={branch.id}>
+                {branch.name}
+              </option>
+            ))}
+          </select>
+          <label className="pos-auto-print">
             <input
-              autoFocus
-              aria-label="Search or scan barcode"
-              placeholder="Search name, SKU, barcode — Enter to scan"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              onKeyDown={scan}
+              type="checkbox"
+              checked={autoPrint}
+              onChange={toggleAutoPrint}
             />
-          </div>
-          <div className="product-grid">
-            {products.map((product) => {
-              const out =
-                product.trackInventory &&
-                !product.allowNegativeStock &&
-                Number(product.availableQuantity ?? 0) <= 0;
-              return (
-                <button
-                  className="product-tile"
-                  disabled={out}
-                  key={`${product.productId}:${product.variantId ?? "base"}`}
-                  onClick={() => add(product)}
-                >
-                  {product.imageUrl && (
-                    // API-hosted product images are normalized and cached as WebP.
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      className="product-tile-image"
-                      src={product.imageUrl}
-                      alt=""
-                      loading="lazy"
-                    />
-                  )}
-                  <strong>{product.name}</strong>
-                  <span>{product.variantName ?? product.sku ?? "Base"}</span>
-                  <b>{formatMinorCurrency(product.priceMinor)}</b>
-                  {product.trackInventory && (
-                    <small>
-                      {out
-                        ? "OUT OF STOCK"
-                        : `Available: ${product.availableQuantity}`}
-                    </small>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-        <div className="card pos-cart">
-          <h2>Cart</h2>
-          {appointmentId && (
-            <p className="notice">
-              Appointment services are preloaded at their booked prices. You may
-              add retail products before payment.
-            </p>
-          )}
-          {cart.length === 0 && (
-            <p className="muted">Scan or select a product.</p>
-          )}
-          {cart.map((line) => (
-            <div
-              className="cart-line"
-              key={`${line.productId}:${line.variantId ?? "base"}`}
-            >
-              <span>
-                <strong>{line.name}</strong>
-                <small>{line.variantName ?? line.sku ?? ""}</small>
-              </span>
+            Auto-print receipt
+          </label>
+          <button
+            type="button"
+            className="secondary"
+            onClick={() => void toggleFocusMode()}
+          >
+            {focusMode ? "Exit full screen" : "Full screen"}
+          </button>
+        </header>
+        <section className="pos-layout">
+          <div className="card pos-products">
+            <div className="toolbar">
               <input
-                aria-label={`Quantity for ${line.name}`}
-                value={line.quantity}
-                onChange={(event) =>
-                  setCart((rows) =>
-                    rows.map((row) =>
-                      row === line
-                        ? { ...row, quantity: event.target.value }
-                        : row,
-                    ),
-                  )
-                }
+                ref={searchRef}
+                autoFocus
+                aria-label="Search or scan barcode"
+                placeholder="Search name, SKU, barcode — Enter to scan"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                onKeyDown={scan}
               />
-              {line.type === "SERVICE" && (
-                <select
-                  aria-label={`Staff for ${line.name}`}
-                  value={line.staffProfileId ?? ""}
+            </div>
+            <div className="pos-section-heading">
+              <span>
+                <strong>{query ? "Search results" : "Main products"}</strong>
+                <small>{productTotal} products available</small>
+              </span>
+              <span className="scanner-hint">⌁ Scan barcode + Enter</span>
+            </div>
+            <div className="product-grid">
+              {products.map((product) => {
+                const out =
+                  product.trackInventory &&
+                  !product.allowNegativeStock &&
+                  Number(product.availableQuantity ?? 0) <= 0;
+                return (
+                  <button
+                    className="product-tile"
+                    disabled={out}
+                    key={`${product.productId}:${product.variantId ?? "base"}`}
+                    onClick={() => add(product)}
+                  >
+                    {product.imageUrl ? (
+                      // API-hosted product images are normalized and cached as WebP.
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        className="product-tile-image"
+                        src={product.imageUrl}
+                        alt=""
+                        loading="lazy"
+                      />
+                    ) : (
+                      <span
+                        className="product-tile-fallback"
+                        aria-hidden="true"
+                      >
+                        {product.name.slice(0, 2).toUpperCase()}
+                      </span>
+                    )}
+                    <strong>{product.name}</strong>
+                    <span>{product.variantName ?? product.sku ?? "Base"}</span>
+                    <b>{formatMinorCurrency(product.priceMinor)}</b>
+                    {product.trackInventory && (
+                      <small>
+                        {out
+                          ? "OUT OF STOCK"
+                          : `Available: ${product.availableQuantity}`}
+                      </small>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+            {productTotal > pageSize && (
+              <nav className="pos-pagination" aria-label="Product pages">
+                <button
+                  className="secondary"
+                  disabled={page === 1}
+                  onClick={() => setPage((value) => value - 1)}
+                >
+                  ← Previous
+                </button>
+                <span>
+                  Page <strong>{page}</strong> of{" "}
+                  {Math.ceil(productTotal / pageSize)}
+                </span>
+                <button
+                  className="secondary"
+                  disabled={page >= Math.ceil(productTotal / pageSize)}
+                  onClick={() => setPage((value) => value + 1)}
+                >
+                  Next →
+                </button>
+              </nav>
+            )}
+          </div>
+          <div className="card pos-cart">
+            <h2>Cart</h2>
+            {appointmentId && (
+              <p className="notice">
+                Appointment services are preloaded at their booked prices. You
+                may add retail products before payment.
+              </p>
+            )}
+            {cart.length === 0 && (
+              <p className="muted">Scan or select a product.</p>
+            )}
+            {cart.map((line) => (
+              <div
+                className="cart-line"
+                key={`${line.productId}:${line.variantId ?? "base"}`}
+              >
+                <span>
+                  <strong>{line.name}</strong>
+                  <small>{line.variantName ?? line.sku ?? ""}</small>
+                </span>
+                <input
+                  aria-label={`Quantity for ${line.name}`}
+                  value={line.quantity}
                   onChange={(event) =>
                     setCart((rows) =>
                       rows.map((row) =>
                         row === line
-                          ? {
-                              ...row,
-                              staffProfileId: event.target.value || undefined,
-                            }
+                          ? { ...row, quantity: event.target.value }
                           : row,
                       ),
                     )
                   }
-                >
-                  <option value="">No staff</option>
-                  {line.availableStaff?.map((staff) => (
-                    <option key={staff.id} value={staff.id}>
-                      {staff.displayName}
-                    </option>
-                  ))}
-                </select>
-              )}
-              <b>
-                {formatMinorCurrency(
-                  Math.round(line.priceMinor * Number(line.quantity || 0)),
-                )}
-              </b>
-              <button
-                className="danger"
-                disabled={line.appointmentLine}
-                onClick={() =>
-                  setCart((rows) => rows.filter((row) => row !== line))
-                }
-              >
-                ×
-              </button>
-            </div>
-          ))}
-          {canDiscount && (
-            <div className="discount-row">
-              <select
-                aria-label="Discount type"
-                value={discountType}
-                onChange={(event) => setDiscountType(event.target.value)}
-              >
-                <option value="">No discount</option>
-                <option value="FIXED">Fixed QAR</option>
-                <option value="PERCENTAGE">Percentage</option>
-              </select>
-              <input
-                aria-label="Discount value"
-                type="number"
-                min="0"
-                max={discountType === "PERCENTAGE" ? 100 : undefined}
-                value={discountValue}
-                onChange={(event) => setDiscountValue(event.target.value)}
-              />
-            </div>
-          )}
-          <div className="totals">
-            <span>
-              Subtotal <b>{formatMinorCurrency(subtotal)}</b>
-            </span>
-            <span>
-              Discount <b>− {formatMinorCurrency(discount)}</b>
-            </span>
-            <span>
-              Tax <b>{formatMinorCurrency(0)}</b>
-            </span>
-            <strong>
-              Total <b>{formatMinorCurrency(total)}</b>
-            </strong>
-          </div>
-          <h3>Payment</h3>
-          <label>
-            Customer (optional)
-            <select
-              value={customerId}
-              onChange={(event) => setCustomerId(event.target.value)}
-            >
-              <option value="">Walk-in customer</option>
-              {customers.map((row) => (
-                <option key={row.id} value={row.id}>
-                  {row.name}
-                  {row.phone ? ` · ${row.phone}` : ""}
-                </option>
-              ))}
-            </select>
-          </label>
-          {customer && (
-            <p className="muted">
-              Outstanding {formatMinorCurrency(customer.balanceMinor ?? 0)}
-              {customer.creditLimitMinor == null
-                ? " · No credit limit"
-                : ` · Limit ${formatMinorCurrency(customer.creditLimitMinor)}`}
-            </p>
-          )}
-          <div className="payment-choice-grid">
-            {(
-              [
-                ["CASH", "Cash", "Record cash and calculate change."],
-                [
-                  "LOCAL_CARD",
-                  "Local bank card",
-                  "Record approval from your own terminal.",
-                ],
-              ] as const
-            ).map(([value, title, description]) => (
-              <button
-                type="button"
-                className={
-                  tenderMode === value ? "product-tile active" : "product-tile"
-                }
-                key={value}
-                onClick={() => setTenderMode(value)}
-              >
-                <strong>{title}</strong>
-                <small>{description}</small>
-              </button>
-            ))}
-          </div>
-          {tenderMode === "CASH" && (
-            <label>
-              Cash received (QAR)
-              <input
-                type="number"
-                min={total / 100}
-                step="0.01"
-                placeholder={(total / 100).toFixed(2)}
-                value={cashTender}
-                onChange={(event) => setCashTender(event.target.value)}
-              />
-            </label>
-          )}
-          {tenderMode === "LOCAL_CARD" && (
-            <div className="payment-row">
-              <label>
-                Acquiring bank / terminal
-                <select
-                  value={localBank}
-                  onChange={(event) => setLocalBank(event.target.value)}
-                >
-                  <option>QNB</option>
-                  <option>Doha Bank</option>
-                  <option>Commercial Bank</option>
-                  <option>QIB</option>
-                  <option>Dukhan Bank</option>
-                  <option>Ahlibank</option>
-                  <option>Other local terminal</option>
-                </select>
-              </label>
-              <label>
-                Terminal reference (optional)
-                <input
-                  maxLength={80}
-                  value={terminalReference}
-                  onChange={(event) => setTerminalReference(event.target.value)}
                 />
-              </label>
+                {line.type === "SERVICE" && (
+                  <select
+                    aria-label={`Staff for ${line.name}`}
+                    value={line.staffProfileId ?? ""}
+                    onChange={(event) =>
+                      setCart((rows) =>
+                        rows.map((row) =>
+                          row === line
+                            ? {
+                                ...row,
+                                staffProfileId: event.target.value || undefined,
+                              }
+                            : row,
+                        ),
+                      )
+                    }
+                  >
+                    <option value="">No staff</option>
+                    {line.availableStaff?.map((staff) => (
+                      <option key={staff.id} value={staff.id}>
+                        {staff.displayName}
+                      </option>
+                    ))}
+                  </select>
+                )}
+                <b>
+                  {formatMinorCurrency(
+                    Math.round(line.priceMinor * Number(line.quantity || 0)),
+                  )}
+                </b>
+                <button
+                  className="danger"
+                  disabled={line.appointmentLine}
+                  onClick={() =>
+                    setCart((rows) => rows.filter((row) => row !== line))
+                  }
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+            {canDiscount && (
+              <div className="discount-row">
+                <select
+                  aria-label="Discount type"
+                  value={discountType}
+                  onChange={(event) => setDiscountType(event.target.value)}
+                >
+                  <option value="">No discount</option>
+                  <option value="FIXED">Fixed QAR</option>
+                  <option value="PERCENTAGE">Percentage</option>
+                </select>
+                <input
+                  aria-label="Discount value"
+                  type="number"
+                  min="0"
+                  max={discountType === "PERCENTAGE" ? 100 : undefined}
+                  value={discountValue}
+                  onChange={(event) => setDiscountValue(event.target.value)}
+                />
+              </div>
+            )}
+            <div className="totals">
+              <span>
+                Subtotal <b>{formatMinorCurrency(subtotal)}</b>
+              </span>
+              <span>
+                Discount <b>− {formatMinorCurrency(discount)}</b>
+              </span>
+              <span>
+                Tax <b>{formatMinorCurrency(0)}</b>
+              </span>
+              <strong>
+                Total <b>{formatMinorCurrency(total)}</b>
+              </strong>
             </div>
-          )}
-          <div className="actions">
-            <button
-              className="secondary"
-              disabled={busy || !cart.length}
-              onClick={() => void hold()}
-            >
-              Hold
-            </button>
-            <button
-              disabled={busy || !cart.length}
-              onClick={() => void checkout()}
-            >
-              {busy
-                ? "Processing…"
-                : tenderMode === "CASH"
-                  ? "Complete cash sale"
-                  : "Record local card sale"}
-            </button>
+            <h3>Payment</h3>
+            <label>
+              Customer (optional)
+              <select
+                value={customerId}
+                onChange={(event) => setCustomerId(event.target.value)}
+              >
+                <option value="">Walk-in customer</option>
+                {customers.map((row) => (
+                  <option key={row.id} value={row.id}>
+                    {row.name}
+                    {row.phone ? ` · ${row.phone}` : ""}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {customer && (
+              <p className="muted">
+                Outstanding {formatMinorCurrency(customer.balanceMinor ?? 0)}
+                {customer.creditLimitMinor == null
+                  ? " · No credit limit"
+                  : ` · Limit ${formatMinorCurrency(customer.creditLimitMinor)}`}
+              </p>
+            )}
+            <div className="payment-choice-grid">
+              {(
+                [
+                  ["CASH", "Cash", "Record cash and calculate change."],
+                  [
+                    "LOCAL_CARD",
+                    "Local bank card",
+                    "Record approval from your own terminal.",
+                  ],
+                ] as const
+              ).map(([value, title, description]) => (
+                <button
+                  type="button"
+                  className={
+                    tenderMode === value
+                      ? "product-tile active"
+                      : "product-tile"
+                  }
+                  key={value}
+                  onClick={() => setTenderMode(value)}
+                >
+                  <strong>{title}</strong>
+                  <small>{description}</small>
+                </button>
+              ))}
+            </div>
+            {tenderMode === "CASH" && (
+              <div className="cash-panel">
+                <label>
+                  Cash received (QAR)
+                  <input
+                    type="number"
+                    min={total / 100}
+                    step="0.01"
+                    placeholder={(total / 100).toFixed(2)}
+                    value={cashTender}
+                    onChange={(event) => setCashTender(event.target.value)}
+                  />
+                </label>
+                <div className="quick-cash" aria-label="Quick cash amounts">
+                  {quickCash.map((value) => (
+                    <button
+                      type="button"
+                      className="secondary"
+                      key={value}
+                      onClick={() => setCashTender(value.toFixed(2))}
+                    >
+                      {value === total / 100
+                        ? "Exact"
+                        : `${value.toFixed(2)} QAR`}
+                    </button>
+                  ))}
+                </div>
+                <div
+                  className={
+                    cashShortfall > 0 ? "cash-change short" : "cash-change"
+                  }
+                >
+                  <span>{cashShortfall > 0 ? "Still due" : "Change due"}</span>
+                  <strong>
+                    {formatMinorCurrency(
+                      cashShortfall > 0 ? cashShortfall : changeDue,
+                    )}
+                  </strong>
+                </div>
+              </div>
+            )}
+            {tenderMode === "LOCAL_CARD" && (
+              <div className="payment-row">
+                <label>
+                  Acquiring bank / terminal
+                  <select
+                    value={localBank}
+                    onChange={(event) => setLocalBank(event.target.value)}
+                  >
+                    <option>QNB</option>
+                    <option>Doha Bank</option>
+                    <option>Commercial Bank</option>
+                    <option>QIB</option>
+                    <option>Dukhan Bank</option>
+                    <option>Ahlibank</option>
+                    <option>Other local terminal</option>
+                  </select>
+                </label>
+                <label>
+                  Terminal reference (optional)
+                  <input
+                    maxLength={80}
+                    value={terminalReference}
+                    onChange={(event) =>
+                      setTerminalReference(event.target.value)
+                    }
+                  />
+                </label>
+              </div>
+            )}
+            <div className="actions">
+              <button
+                className="secondary"
+                disabled={busy || !cart.length}
+                onClick={() => void hold()}
+              >
+                Hold
+              </button>
+              <button
+                disabled={
+                  busy ||
+                  !cart.length ||
+                  (tenderMode === "CASH" && (!validCash || cashShortfall > 0))
+                }
+                onClick={() => void checkout()}
+              >
+                {busy
+                  ? "Processing…"
+                  : tenderMode === "CASH"
+                    ? "Complete cash sale"
+                    : "Record local card sale"}
+              </button>
+            </div>
+            {message && <p className="notice">{message}</p>}
           </div>
-          {message && <p className="notice">{message}</p>}
-        </div>
+        </section>
       </section>
+      {printJob && (
+        <iframe
+          className="receipt-print-frame"
+          title="Receipt print job"
+          src={`/sales/${printJob.saleId}/receipt?autoprint=1&mode=${printJob.mode}&job=${printJob.nonce}`}
+        />
+      )}
+      {completedSale && (
+        <div
+          className="pos-success-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="sale-complete-title"
+        >
+          <div className="pos-success-card">
+            <span className="sale-check">✓</span>
+            <p className="eyebrow">Payment approved</p>
+            <h2 id="sale-complete-title">Sale complete</h2>
+            <p className="muted">{completedSale.invoiceNumber}</p>
+            <div className="sale-complete-numbers">
+              <span>
+                Total <b>{formatMinorCurrency(completedSale.totalMinor)}</b>
+              </span>
+              {tenderMode === "CASH" && (
+                <span>
+                  Cash received{" "}
+                  <b>
+                    {formatMinorCurrency(
+                      completedSale.paidMinor + completedSale.changeMinor,
+                    )}
+                  </b>
+                </span>
+              )}
+              <strong>
+                Change due{" "}
+                <b>{formatMinorCurrency(completedSale.changeMinor)}</b>
+              </strong>
+            </div>
+            <p className="muted">
+              {autoPrint
+                ? "Receipt sent to the printer."
+                : "Automatic receipt printing is off."}
+            </p>
+            <div className="actions">
+              <button
+                className="secondary"
+                onClick={() =>
+                  setPrintJob({
+                    saleId: completedSale.id,
+                    mode: "reprint",
+                    nonce: Date.now(),
+                  })
+                }
+              >
+                Print again
+              </button>
+              <button onClick={newSale}>New sale</button>
+            </div>
+          </div>
+        </div>
+      )}
     </AppShell>
   );
 }
