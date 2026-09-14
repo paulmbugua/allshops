@@ -30,6 +30,13 @@ api.ekazi.co.ke {
 	encode zstd gzip
 	@metrics path /api/v1/metrics
 	respond @metrics 404
-	header Cache-Control "no-store"
-	reverse_proxy 127.0.0.1:4000
+	@productImages path /api/v1/product-images/*
+	handle @productImages {
+		header Cache-Control "public, max-age=31536000, immutable"
+		reverse_proxy 127.0.0.1:4000
+	}
+	handle {
+		header Cache-Control "no-store"
+		reverse_proxy 127.0.0.1:4000
+	}
 }

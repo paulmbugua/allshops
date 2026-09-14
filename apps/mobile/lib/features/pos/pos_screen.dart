@@ -118,6 +118,7 @@ class _PosScreenState extends ConsumerState<PosScreen> {
           'variantName': null,
           'sku': product['sku'],
           'barcode': product['barcode'],
+          'imageUrl': product['imageUrl'],
           'type': product['type'],
           'priceMinor': product['priceMinor'],
           'trackInventory': product['trackInventory'],
@@ -133,6 +134,7 @@ class _PosScreenState extends ConsumerState<PosScreen> {
             'variantName': variant['name'],
             'sku': variant['sku'],
             'barcode': variant['barcode'],
+            'imageUrl': product['imageUrl'],
             'type': product['type'],
             'priceMinor': variant['priceMinor'] ?? product['priceMinor'],
             'trackInventory': product['trackInventory'],
@@ -559,15 +561,35 @@ class _PosScreenState extends ConsumerState<PosScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              CircleAvatar(
-                                backgroundColor: Colors.white70,
-                                child: Text(
-                                  p.name.characters.first.toUpperCase(),
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w900,
+                              if (p.imageUrl != null)
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: Image.network(
+                                    p.imageUrl!,
+                                    width: 52,
+                                    height: 52,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, _, _) => CircleAvatar(
+                                      backgroundColor: Colors.white70,
+                                      child: Text(
+                                        p.name.characters.first.toUpperCase(),
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w900,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                )
+                              else
+                                CircleAvatar(
+                                  backgroundColor: Colors.white70,
+                                  child: Text(
+                                    p.name.characters.first.toUpperCase(),
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w900,
+                                    ),
                                   ),
                                 ),
-                              ),
                               const Spacer(),
                               Text(
                                 p.name,

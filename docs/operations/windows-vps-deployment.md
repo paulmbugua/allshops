@@ -116,4 +116,5 @@ powershell -ExecutionPolicy Bypass -File ops\windows\Deploy.ps1
 
 Never use `prisma migrate dev` or `prisma db push` on the VPS. Copy backups to
 encrypted off-host storage; a backup left only on the same VPS is not disaster
-recovery.
+recovery. Product uploads are stored under `C:\AllShops\data\product-images`;
+include that directory in the encrypted off-host backup alongside PostgreSQL.

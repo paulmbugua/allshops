@@ -252,6 +252,7 @@ export class SalesService {
           variantName: null,
           sku: product.sku,
           barcode: product.barcode,
+          imageUrl: product.imageUrl,
           type: product.type,
           priceMinor: product.priceMinor,
           ...(mayReadCost ? { costMinor: product.costMinor } : {}),
@@ -280,6 +281,7 @@ export class SalesService {
           variantName: variant.name,
           sku: variant.sku ?? product.sku,
           barcode: variant.barcode ?? product.barcode,
+          imageUrl: product.imageUrl,
           type: product.type,
           priceMinor: variant.priceMinor ?? product.priceMinor,
           ...(mayReadCost

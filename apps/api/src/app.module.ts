@@ -43,6 +43,11 @@ import { OperationalRateLimitGuard } from "./operational-rate-limit.guard.js";
 import { SystemController } from "./system.controller.js";
 import { PilotController, SupportController } from "./pilot.controller.js";
 import { PilotService } from "./pilot.service.js";
+import {
+  ProductImagesController,
+  ProductImageUploadsController,
+} from "./product-images.controller.js";
+import { ProductImagesService } from "./product-images.service.js";
 
 @Module({
   controllers: [
@@ -65,6 +70,8 @@ import { PilotService } from "./pilot.service.js";
     PaystackController,
     PilotController,
     SupportController,
+    ProductImageUploadsController,
+    ProductImagesController,
   ],
   providers: [
     HealthService,
@@ -86,6 +93,7 @@ import { PilotService } from "./pilot.service.js";
     PaystackService,
     OperationalRateLimitGuard,
     PilotService,
+    ProductImagesService,
     { provide: APP_GUARD, useClass: AuthGuard },
     { provide: APP_GUARD, useClass: PermissionGuard },
     { provide: APP_GUARD, useClass: SubscriptionGuard },

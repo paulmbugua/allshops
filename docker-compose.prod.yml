@@ -15,6 +15,8 @@ x-app-environment: &app-environment
   GIT_SHA: ${GIT_SHA:-unknown}
   BUILD_TIME: ${BUILD_TIME:-unknown}
   LOG_LEVEL: ${LOG_LEVEL:-info}
+  PRODUCT_IMAGE_DIRECTORY: ${PRODUCT_IMAGE_DIRECTORY:-/data/product-images}
+  PRODUCT_IMAGE_MAX_BYTES: ${PRODUCT_IMAGE_MAX_BYTES:-5242880}
 
 x-logging: &logging
   driver: json-file
@@ -100,6 +102,8 @@ services:
       redis:
         condition: service_healthy
     restart: unless-stopped
+    volumes:
+      - product_images:/data/product-images
     healthcheck:
       test:
         [
@@ -222,3 +226,4 @@ volumes:
   redis_data:
   caddy_data:
   caddy_config:
+  product_images:

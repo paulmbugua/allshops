@@ -31,6 +31,13 @@ const environmentSchema = z
       .string()
       .regex(/^\d+(kb|mb)$/i)
       .default("1mb"),
+    PRODUCT_IMAGE_DIRECTORY: z.string().min(1).default("var/product-images"),
+    PRODUCT_IMAGE_MAX_BYTES: z.coerce
+      .number()
+      .int()
+      .min(1024)
+      .max(5 * 1024 * 1024)
+      .default(5 * 1024 * 1024),
     REQUEST_TIMEOUT_MS: z.coerce
       .number()
       .int()

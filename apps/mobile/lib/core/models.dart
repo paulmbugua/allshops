@@ -58,6 +58,7 @@ class PosProduct {
     this.variantName,
     this.sku,
     this.barcode,
+    this.imageUrl,
     required this.type,
     required this.priceMinor,
     required this.trackInventory,
@@ -70,6 +71,7 @@ class PosProduct {
   final String? variantName;
   final String? sku;
   final String? barcode;
+  final String? imageUrl;
   final String type;
   final int priceMinor;
   final bool trackInventory;
@@ -82,6 +84,7 @@ class PosProduct {
     variantName: json['variantName'] as String?,
     sku: json['sku'] as String?,
     barcode: json['barcode'] as String?,
+    imageUrl: json['imageUrl'] as String?,
     type: json['type'] as String,
     priceMinor: json['priceMinor'] as int,
     trackInventory: json['trackInventory'] as bool? ?? false,
@@ -96,6 +99,7 @@ class PosProduct {
     'variantName': variantName,
     'sku': sku,
     'barcode': barcode,
+    'imageUrl': imageUrl,
     'type': type,
     'priceMinor': priceMinor,
     'trackInventory': trackInventory,

@@ -8,7 +8,10 @@ import {
 import { Reflector } from "@nestjs/core";
 import { prisma } from "@allshops/database";
 
-import { REQUIRED_PERMISSIONS } from "./permissions.decorator.js";
+import {
+  REQUIRED_ANY_PERMISSIONS,
+  REQUIRED_PERMISSIONS,
+} from "./permissions.decorator.js";
 import type { RequestContext } from "./security.types.js";
 
 @Injectable()
@@ -21,7 +24,12 @@ export class PermissionGuard implements CanActivate {
         context.getHandler(),
         context.getClass(),
       ]) ?? [];
-    if (required.length === 0) {
+    const requiredAny =
+      this.reflector.getAllAndOverride<string[]>(REQUIRED_ANY_PERMISSIONS, [
+        context.getHandler(),
+        context.getClass(),
+      ]) ?? [];
+    if (required.length === 0 && requiredAny.length === 0) {
       return true;
     }
 
@@ -61,7 +69,11 @@ export class PermissionGuard implements CanActivate {
     const permissions = membership.role.permissions.map(
       ({ permission }) => permission.code,
     );
-    if (!required.every((permission) => permissions.includes(permission))) {
+    if (
+      !required.every((permission) => permissions.includes(permission)) ||
+      (requiredAny.length > 0 &&
+        !requiredAny.some((permission) => permissions.includes(permission)))
+    ) {
       throw this.forbidden();
     }
     request.tenant = {

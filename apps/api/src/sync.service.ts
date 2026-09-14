@@ -207,6 +207,7 @@ export class SyncService {
             arabicName: true,
             sku: true,
             barcode: true,
+            imageUrl: true,
             type: true,
             priceMinor: true,
             trackInventory: true,

@@ -390,6 +390,16 @@ export default function PosPage() {
                   key={`${product.productId}:${product.variantId ?? "base"}`}
                   onClick={() => add(product)}
                 >
+                  {product.imageUrl && (
+                    // API-hosted product images are normalized and cached as WebP.
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      className="product-tile-image"
+                      src={product.imageUrl}
+                      alt=""
+                      loading="lazy"
+                    />
+                  )}
                   <strong>{product.name}</strong>
                   <span>{product.variantName ?? product.sku ?? "Base"}</span>
                   <b>{formatMinorCurrency(product.priceMinor)}</b>

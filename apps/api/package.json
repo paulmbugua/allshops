@@ -22,6 +22,7 @@
     "ioredis": "^5.7.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
+    "sharp": "0.35.4",
     "zod": "^3.25.76"
   },
   "devDependencies": {

@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState, type ChangeEvent, type FormEvent } from "react";
 import {
   decimalCurrencyToMinor,
   type Brand,
@@ -24,7 +24,19 @@ export function ProductForm({
   const [tracking, setTracking] = useState(initial?.trackInventory ?? true);
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState(initial?.imageUrl ?? "");
+  const [currentImageUrl, setCurrentImageUrl] = useState(
+    initial?.imageUrl ?? null,
+  );
+  const [removeImage, setRemoveImage] = useState(false);
   const organizationId = selectedOrganization();
+  useEffect(
+    () => () => {
+      if (imagePreview.startsWith("blob:")) URL.revokeObjectURL(imagePreview);
+    },
+    [imagePreview],
+  );
   useEffect(() => {
     if (!organizationId) return;
     void Promise.all([
@@ -51,6 +63,22 @@ export function ProductForm({
         ),
       );
   }, [organizationId]);
+  function selectImage(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0] ?? null;
+    if (!file) return;
+    if (
+      !["image/jpeg", "image/png", "image/webp"].includes(file.type) ||
+      file.size > 5 * 1024 * 1024
+    ) {
+      event.target.value = "";
+      setMessage("Choose a JPEG, PNG, or WebP image up to 5 MB.");
+      return;
+    }
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
+    setRemoveImage(false);
+    setMessage("");
+  }
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!organizationId) return;
@@ -58,6 +86,16 @@ export function ProductForm({
     setSaving(true);
     setMessage("");
     try {
+      let imageUrl = removeImage ? null : currentImageUrl;
+      if (imageFile) {
+        const upload = new FormData();
+        upload.append("image", imageFile);
+        const uploaded = await api<{ imageUrl: string }>(
+          `/organizations/${organizationId}/product-images`,
+          { method: "POST", body: upload },
+        );
+        imageUrl = uploaded.imageUrl;
+      }
       const body = {
         name: data.get("name"),
         arabicName: data.get("arabicName") || null,
@@ -76,13 +114,17 @@ export function ProductForm({
           tracking && data.get("minimumStock")
             ? data.get("minimumStock")
             : null,
-        imageUrl: data.get("imageUrl") || null,
+        imageUrl,
         isActive: data.get("isActive") === "on",
       };
       const product = await api<Product>(
         `/organizations/${organizationId}/products${initial ? `/${initial.id}` : ""}`,
         { method: initial ? "PATCH" : "POST", body: JSON.stringify(body) },
       );
+      setImageFile(null);
+      setCurrentImageUrl(product.imageUrl ?? null);
+      setImagePreview(product.imageUrl ?? "");
+      setRemoveImage(false);
       setMessage("Product saved.");
       onSaved(product);
     } catch (error) {
@@ -194,14 +236,45 @@ export function ProductForm({
             defaultValue={initial?.minimumStock ?? ""}
           />
         </label>
-        <label>
-          Image URL
-          <input
-            name="imageUrl"
-            type="url"
-            defaultValue={initial?.imageUrl ?? ""}
-          />
-        </label>
+        <div className="product-image-field">
+          <span>Product image</span>
+          <div className="product-image-picker">
+            {imagePreview ? (
+              // Blob previews and API-hosted immutable images are already optimized.
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={imagePreview} alt="Product preview" />
+            ) : (
+              <div className="product-image-placeholder" aria-hidden="true">
+                📦
+              </div>
+            )}
+            <div>
+              <label className="file-picker-button">
+                {imagePreview ? "Change image" : "Choose image"}
+                <input
+                  name="productImage"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={selectImage}
+                />
+              </label>
+              <small>JPEG, PNG or WebP · maximum 5 MB</small>
+              {imagePreview && (
+                <button
+                  className="image-remove-button"
+                  type="button"
+                  onClick={() => {
+                    setImageFile(null);
+                    setImagePreview("");
+                    setRemoveImage(true);
+                  }}
+                >
+                  Remove image
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
       <label>
         Description
