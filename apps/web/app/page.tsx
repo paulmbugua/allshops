@@ -1,4 +1,6 @@
 import Link from "next/link";
+/* This project-owned editorial image is pre-compressed WebP. */
+/* eslint-disable @next/next/no-img-element */
 
 const features = [
   {
@@ -87,7 +89,13 @@ export default function HomePage() {
           </div>
         </div>
         <div className="hero-visual">
-          <div className="hero-sun" />
+          <div className="qatar-hero-frame">
+            <img
+              src="/images/qatar-commerce-hero.webp"
+              alt="Qatari retail professionals using a modern point of sale"
+            />
+            <span className="qatar-hero-caption">Designed around Qatar</span>
+          </div>
           <div className="receipt-float">
             <small>TODAY&apos;S SALES</small>
             <strong>QAR 12,840</strong>

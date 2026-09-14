@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../app.dart';
 import '../../core/models.dart';
-import '../auth/login_screen.dart';
+import '../auth/welcome_screen.dart';
 import '../modules/module_config.dart';
 import '../modules/module_screen.dart';
 import '../modules/workspace_screen.dart';
@@ -88,7 +88,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     await ref.read(apiProvider).logout();
     if (mounted) {
       Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const LoginScreen()),
+        MaterialPageRoute(
+          builder: (_) =>
+              WelcomeScreen(shopName: widget.membership.organizationName),
+        ),
         (_) => false,
       );
     }

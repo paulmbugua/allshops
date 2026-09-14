@@ -5,6 +5,8 @@ abstract final class AllShopsTheme {
   static const ink = Color(0xFF172C2B);
   static const mint = Color(0xFF35B77D);
   static const sun = Color(0xFFFFCF5C);
+  static const qatarMaroon = Color(0xFF6D1738);
+  static const qatarSand = Color(0xFFF3DFC1);
   static const canvas = Color(0xFFF7F9F6);
   static ThemeData get light => ThemeData(
     useMaterial3: true,

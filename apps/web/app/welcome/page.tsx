@@ -57,6 +57,11 @@ export default function ShopWelcomePage() {
   } as CSSProperties;
   return (
     <main className="shop-welcome" style={theme}>
+      <img
+        className="shop-cultural-photo"
+        src="/images/qatar-commerce-hero.webp"
+        alt="Qatari professionals in a contemporary shop"
+      />
       <div className="shop-orb shop-orb-one" />
       <div className="shop-orb shop-orb-two" />
       <nav className="shop-welcome-nav">

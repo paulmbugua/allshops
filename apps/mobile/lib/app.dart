@@ -4,7 +4,7 @@ import 'core/api_client.dart';
 import 'core/app_logger.dart';
 import 'core/offline_store.dart';
 import 'core/theme.dart';
-import 'features/auth/login_screen.dart';
+import 'features/auth/welcome_screen.dart';
 import 'features/home/home_screen.dart';
 import 'core/models.dart';
 
@@ -72,7 +72,9 @@ class _SessionGateState extends ConsumerState<SessionGate> {
         return const Scaffold(body: Center(child: CircularProgressIndicator()));
       }
       final user = snapshot.data;
-      if (user == null || user.memberships.isEmpty) return const LoginScreen();
+      if (user == null || user.memberships.isEmpty) {
+        return const WelcomeScreen();
+      }
       return HomeScreen(user: user, membership: user.memberships.first);
     },
   );

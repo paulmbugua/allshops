@@ -40,6 +40,8 @@ dependency_overrides:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/culture/qatar-shop-welcome.webp
 
 flutter_launcher_icons:
   android: true
