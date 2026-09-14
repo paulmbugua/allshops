@@ -13,6 +13,13 @@ $checks = [ordered]@{
   Pnpm = Get-ToolVersion 'pnpm.cmd' '--version'
 }
 
+$dotnet = 'C:\Program Files\dotnet\dotnet.exe'
+$checks.DotNet10Runtime = if (Test-Path -LiteralPath $dotnet) {
+  $matchingRuntime = @(& $dotnet --list-runtimes 2>$null) |
+    Where-Object { $_ -match '^Microsoft\.NETCore\.App 10\.' }
+  if ($matchingRuntime) { $matchingRuntime -join ', ' } else { 'MISSING' }
+} else { 'MISSING' }
+
 $psql = Get-Command psql.exe -ErrorAction SilentlyContinue
 if (-not $psql) {
   $psql = Get-ChildItem 'C:\Program Files\PostgreSQL\*\bin\psql.exe' -ErrorAction SilentlyContinue |
@@ -35,4 +42,5 @@ $checks.HttpsPort443 = (Test-NetConnection 127.0.0.1 -Port 443 -InformationLevel
 [pscustomobject]$checks | Format-List
 
 if (-not $psql) { Write-Warning 'PostgreSQL exists but its client was not found. Locate the PostgreSQL installation before deployment.' }
+if ($checks.DotNet10Runtime -eq 'MISSING') { Write-Warning '.NET Runtime 10 is required by the Windows Garnet service; Install-Garnet.ps1 can install it.' }
 if (-not $checks.RedisPort6379) { Write-Warning 'A Redis-compatible service is required before AllShops can start.' }

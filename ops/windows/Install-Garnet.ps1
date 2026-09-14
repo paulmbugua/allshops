@@ -57,6 +57,28 @@ New-Item -ItemType Directory -Force -Path $temporary | Out-Null
 try {
   $archive = Join-Path $temporary $asset
   [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+
+  $dotnet = 'C:\Program Files\dotnet\dotnet.exe'
+  $runtimeInstalled = $false
+  if (Test-Path -LiteralPath $dotnet) {
+    $runtimeInstalled = @(& $dotnet --list-runtimes) -match '^Microsoft\.NETCore\.App 10\.'
+  }
+  if (-not $runtimeInstalled) {
+    Write-Host 'Installing the Microsoft .NET 10 runtime required by Garnet.'
+    $dotnetInstaller = Join-Path $temporary 'dotnet-install.ps1'
+    Invoke-WebRequest -UseBasicParsing -Uri 'https://dot.net/v1/dotnet-install.ps1' -OutFile $dotnetInstaller
+    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $dotnetInstaller `
+      -Runtime dotnet `
+      -Channel 10.0 `
+      -Architecture x64 `
+      -InstallDir 'C:\Program Files\dotnet' `
+      -NoPath
+    if ($LASTEXITCODE -ne 0) { throw 'The Microsoft .NET 10 runtime installation failed.' }
+    $runtimeInstalled = (Test-Path -LiteralPath $dotnet) -and
+      (@(& $dotnet --list-runtimes) -match '^Microsoft\.NETCore\.App 10\.')
+    if (-not $runtimeInstalled) { throw 'Microsoft .NET Runtime 10 was not detected after installation.' }
+  }
+
   Invoke-WebRequest -UseBasicParsing -Uri $download -OutFile $archive
   $actualHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $archive).Hash.ToLowerInvariant()
   if ($actualHash -ne $expectedHashes[$Version]) {
@@ -74,9 +96,10 @@ try {
     & $nssm remove AllShopsGarnet confirm | Out-Null
   }
 
-  $listeners = @(Get-NetTCPConnection -LocalPort $redisUri.Port -State Listen -ErrorAction SilentlyContinue)
-  foreach ($listener in $listeners) {
-    $process = Get-Process -Id $listener.OwningProcess -ErrorAction SilentlyContinue
+  $listenerProcessIds = @(Get-NetTCPConnection -LocalPort $redisUri.Port -State Listen -ErrorAction SilentlyContinue |
+      Select-Object -ExpandProperty OwningProcess -Unique)
+  foreach ($listenerProcessId in $listenerProcessIds) {
+    $process = Get-Process -Id $listenerProcessId -ErrorAction SilentlyContinue
     if ($process -and $process.ProcessName -eq 'redis-server') {
       Write-Host "Stopping legacy Redis process $($process.Id)."
       Stop-Process -Id $process.Id -Force

@@ -10,6 +10,8 @@ Node.js, NSSM-managed application services, and Caddy for automatic HTTPS.
   may be used only after the complete build and smoke test pass on the VPS.
 - PostgreSQL 17 with its `bin` directory available, or discoverable below
   `C:\Program Files\PostgreSQL`.
+- Microsoft .NET Runtime 10 for Garnet. `Install-Garnet.ps1` installs it from
+  Microsoft's official installer when it is absent.
 - Redis-compatible storage on `127.0.0.1:6379`. The included installer uses the
   stable Microsoft Garnet 1.1 release on Windows, enables password
   authentication and append-only recovery, and verifies the Redis commands
