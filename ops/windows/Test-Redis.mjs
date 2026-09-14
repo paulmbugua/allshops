@@ -36,7 +36,6 @@ try {
   await redis.hset(`${keyPrefix}:hash`, "status", "ready");
   await redis.lpush(`${keyPrefix}:list`, "ready");
   await redis.zadd(`${keyPrefix}:sorted`, 1, "ready");
-  await redis.xadd(`${keyPrefix}:stream`, "*", "status", "ready");
 
   const scripted = await redis.eval(
     "return redis.call('GET', KEYS[1])",
@@ -48,7 +47,7 @@ try {
   }
 
   console.log(
-    "Redis protocol preflight passed: PING, strings, hashes, lists, sorted sets, streams, and Lua.",
+    "Redis protocol preflight passed: PING, strings, hashes, lists, sorted sets, and Lua.",
   );
 } finally {
   try {

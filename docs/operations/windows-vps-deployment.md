@@ -73,7 +73,7 @@ uses a bounded 256 MB main cache instead of Garnet's server-sized default,
 installs an automatic Windows service, and runs a protocol preflight. Garnet is
 not a universal Redis replacement; the preflight deliberately covers the data
 types and scripting AllShops is prepared to use. Expand that test before adding
-new queue primitives.
+new queue primitives, especially Redis Streams commands.
 
 Ensure Cloudflare proxied `A` records for `allshops.ekazi.co.ke` and
 `api.ekazi.co.ke` point to the VPS. Use Full (strict) SSL mode and bypass cache
