@@ -117,6 +117,22 @@ Complete login, Paystack subscription checkout, branch authorization, one test
 sale, receipt, report totals, and offline sync verification before onboarding a
 merchant.
 
+## Google Play reviewer
+
+Provision or rotate the isolated reviewer account after a deployment. The
+command prompts securely for the password and never writes it to Git or the
+production environment file:
+
+```powershell
+Set-Location C:\AllShops\app
+powershell -ExecutionPolicy Bypass -File ops\windows\Provision-PlayReviewer.ps1 -Email reviewer@gmail.com
+```
+
+The operation is idempotent. It verifies the account, revokes old login
+sessions, creates a dedicated review organization and branch, and gives that
+organization a long-lived Growth entitlement. It never grants platform-admin
+access or access to another merchant's data.
+
 ## Updates
 
 ```powershell
