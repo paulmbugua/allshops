@@ -233,6 +233,7 @@ export class SalesService {
         orderBy: { name: "asc" },
         include: {
           unit: { select: { symbol: true } },
+          brand: { select: { name: true } },
           variants: { where: { isActive: true }, orderBy: { name: "asc" } },
           inventoryBalances: { where: { locationId: location.id } },
           staffServices: {
@@ -261,6 +262,7 @@ export class SalesService {
           productId: product.id,
           variantId: null,
           name: product.name,
+          brandName: product.brand?.name ?? null,
           variantName: null,
           sku: product.sku,
           barcode: product.barcode,
@@ -290,6 +292,7 @@ export class SalesService {
           productId: product.id,
           variantId: variant.id,
           name: product.name,
+          brandName: product.brand?.name ?? null,
           variantName: variant.name,
           sku: variant.sku ?? product.sku,
           barcode: variant.barcode ?? product.barcode,

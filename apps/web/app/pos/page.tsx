@@ -530,31 +530,53 @@ export default function PosPage() {
                   product.trackInventory &&
                   !product.allowNegativeStock &&
                   Number(product.availableQuantity ?? 0) <= 0;
+                const identity = Array.from(
+                  new Set(
+                    [
+                      product.brandName,
+                      product.variantName,
+                      product.sku,
+                    ].filter((value): value is string =>
+                      Boolean(value?.trim()),
+                    ),
+                  ),
+                )
+                  .slice(0, 2)
+                  .join(" · ");
                 return (
                   <button
                     className="product-tile"
                     disabled={out}
                     key={`${product.productId}:${product.variantId ?? "base"}`}
                     onClick={() => add(product)}
+                    title={`${product.name}${identity ? ` — ${identity}` : ""} — ${formatMinorCurrency(product.priceMinor)}`}
                   >
-                    {product.imageUrl ? (
-                      // API-hosted product images are normalized and cached as WebP.
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        className="product-tile-image"
-                        src={product.imageUrl}
-                        alt=""
-                        loading="lazy"
-                      />
-                    ) : (
-                      <span
-                        className="product-tile-fallback"
-                        aria-hidden="true"
-                      >
-                        {product.name.slice(0, 2).toUpperCase()}
-                      </span>
-                    )}
-                    <strong>{product.name}</strong>
+                    <span className="product-tile-media">
+                      {product.imageUrl ? (
+                        // API-hosted product images are normalized and cached as WebP.
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          className="product-tile-image"
+                          src={product.imageUrl}
+                          alt=""
+                          loading="lazy"
+                        />
+                      ) : (
+                        <span
+                          className="product-tile-fallback"
+                          aria-hidden="true"
+                        >
+                          {product.name.slice(0, 2).toUpperCase()}
+                        </span>
+                      )}
+                      <b className="product-tile-price">
+                        {formatMinorCurrency(product.priceMinor)}
+                      </b>
+                    </span>
+                    <span className="product-tile-copy">
+                      <strong>{product.name}</strong>
+                      <small>{identity || "Standard item"}</small>
+                    </span>
                   </button>
                 );
               })}
@@ -569,7 +591,9 @@ export default function PosPage() {
                   ← Previous
                 </button>
                 <span>
-                  Page <strong>{page}</strong> of{" "}
+                  <strong>{(page - 1) * pageSize + 1}</strong>–
+                  <strong>{Math.min(page * pageSize, productTotal)}</strong> of{" "}
+                  {productTotal} · Page {page}/
                   {Math.ceil(productTotal / pageSize)}
                 </span>
                 <button

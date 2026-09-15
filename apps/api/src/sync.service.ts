@@ -208,6 +208,7 @@ export class SyncService {
             sku: true,
             barcode: true,
             imageUrl: true,
+            brand: { select: { name: true } },
             type: true,
             priceMinor: true,
             trackInventory: true,

@@ -20,10 +20,16 @@ class _PosScreenState extends ConsumerState<PosScreen> {
   final query = TextEditingController();
   final cash = TextEditingController();
   final terminalReference = TextEditingController();
+  final productScroll = ScrollController();
   List<PosProduct> products = [];
   final Map<String, CartLine> cart = {};
   bool loading = true;
   bool busy = false;
+  bool loadingMoreProducts = false;
+  bool hasMoreProducts = true;
+  int productPage = 1;
+  int productTotal = 0;
+  static const productPageSize = 40;
   String tender = 'CASH';
   String bank = 'QNB';
   String? message;
@@ -40,6 +46,7 @@ class _PosScreenState extends ConsumerState<PosScreen> {
   void initState() {
     super.initState();
     query.addListener(search);
+    productScroll.addListener(_loadMoreProducts);
     Future.microtask(initialize);
   }
 
@@ -48,6 +55,7 @@ class _PosScreenState extends ConsumerState<PosScreen> {
     query.dispose();
     cash.dispose();
     terminalReference.dispose();
+    productScroll.dispose();
     super.dispose();
   }
 
@@ -210,6 +218,9 @@ class _PosScreenState extends ConsumerState<PosScreen> {
           'productId': product['id'],
           'variantId': null,
           'name': product['name'],
+          'brandName': product['brand'] is Map
+              ? product['brand']['name']
+              : null,
           'variantName': null,
           'sku': product['sku'],
           'barcode': product['barcode'],
@@ -226,6 +237,9 @@ class _PosScreenState extends ConsumerState<PosScreen> {
             'productId': product['id'],
             'variantId': variant['id'],
             'name': product['name'],
+            'brandName': product['brand'] is Map
+                ? product['brand']['name']
+                : null,
             'variantName': variant['name'],
             'sku': variant['sku'],
             'barcode': variant['barcode'],
@@ -262,29 +276,71 @@ class _PosScreenState extends ConsumerState<PosScreen> {
         .toString();
   }
 
-  Future<void> search() async {
+  void _loadMoreProducts() {
+    if (!productScroll.hasClients ||
+        productScroll.position.extentAfter > 320 ||
+        loading ||
+        loadingMoreProducts ||
+        !hasMoreProducts) {
+      return;
+    }
+    search(append: true);
+  }
+
+  Future<void> search({bool append = false}) async {
     if (branchId == null) return;
-    setState(() => loading = true);
+    final requestedPage = append ? productPage + 1 : 1;
+    final requestedQuery = query.text;
+    if (append) {
+      setState(() => loadingMoreProducts = true);
+    } else {
+      setState(() {
+        loading = true;
+        hasMoreProducts = true;
+      });
+    }
     try {
       final data = await ref
           .read(apiProvider)
           .get<Map<String, dynamic>>(
             '/organizations/$organizationId/pos/products',
-            query: {'branchId': branchId, 'pageSize': 80, 'search': query.text},
+            query: {
+              'branchId': branchId,
+              'page': requestedPage,
+              'pageSize': productPageSize,
+              'search': requestedQuery,
+            },
           );
-      products = (data['items'] as List<dynamic>)
+      if (!mounted || requestedQuery != query.text) return;
+      final nextProducts = (data['items'] as List<dynamic>)
           .map((row) => PosProduct.fromJson(row as Map<String, dynamic>))
           .toList();
+      productTotal = (data['total'] as num?)?.toInt() ?? nextProducts.length;
+      productPage = requestedPage;
+      hasMoreProducts = requestedPage * productPageSize < productTotal;
+      products = append ? [...products, ...nextProducts] : nextProducts;
     } catch (_) {
+      if (append) return;
       products =
-          (await ref.read(offlineStoreProvider).products(branchId!, query.text))
+          (await ref
+                  .read(offlineStoreProvider)
+                  .products(branchId!, requestedQuery))
               .map(PosProduct.fromJson)
               .toList();
+      productPage = 1;
+      productTotal = products.length;
+      hasMoreProducts = false;
       message = products.isEmpty
           ? 'No offline catalogue is available.'
           : 'Offline catalogue · prices and stock are cached.';
+    } finally {
+      if (mounted) {
+        setState(() {
+          loading = false;
+          loadingMoreProducts = false;
+        });
+      }
     }
-    if (mounted) setState(() => loading = false);
   }
 
   void add(PosProduct product) {
@@ -353,6 +409,19 @@ class _PosScreenState extends ConsumerState<PosScreen> {
 
   Future<void> checkout() async {
     if (cart.isEmpty || branchId == null) return;
+    if (tender == 'CASH') {
+      final enteredMinor = cash.text.trim().isEmpty
+          ? totalMinor
+          : ((double.tryParse(cash.text.trim()) ?? -1) * 100).round();
+      if (enteredMinor < totalMinor) {
+        setState(() {
+          message = enteredMinor < 0
+              ? 'Enter a valid cash amount before completing the sale.'
+              : 'Cash received is ${(totalMinor - enteredMinor) / 100} QAR short.';
+        });
+        return;
+      }
+    }
     setState(() {
       busy = true;
       message = null;
@@ -438,6 +507,12 @@ class _PosScreenState extends ConsumerState<PosScreen> {
       message = durablySaved
           ? 'Payment is saved safely on this device. Reconnect and tap sync. ${error.toString()}'
           : 'Could not save this payment. Do not collect payment yet. ${error.toString()}';
+    }
+    if (cart.isEmpty) {
+      cash.clear();
+      terminalReference.clear();
+      tender = 'CASH';
+      bank = 'QNB';
     }
     if (mounted) setState(() => busy = false);
   }
@@ -696,90 +771,57 @@ class _PosScreenState extends ConsumerState<PosScreen> {
         Expanded(
           child: loading
               ? const Center(child: CircularProgressIndicator())
-              : GridView.builder(
-                  padding: const EdgeInsets.all(18),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    childAspectRatio: 1.05,
-                    mainAxisSpacing: 12,
-                    crossAxisSpacing: 12,
-                  ),
-                  itemCount: products.length,
-                  itemBuilder: (_, i) {
-                    final p = products[i];
-                    return InkWell(
-                      onTap: () => add(p),
-                      borderRadius: BorderRadius.circular(22),
-                      child: Card(
-                        color: i % 3 == 1
-                            ? const Color(0xFFFFF4D6)
-                            : i % 3 == 2
-                            ? const Color(0xFFE7F6EF)
-                            : Colors.white,
-                        child: Padding(
-                          padding: const EdgeInsets.all(15),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              if (p.imageUrl != null)
-                                ClipRRect(
-                                  borderRadius: BorderRadius.circular(12),
-                                  child: Image.network(
-                                    p.imageUrl!,
-                                    width: 52,
-                                    height: 52,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (_, _, _) => CircleAvatar(
-                                      backgroundColor: Colors.white70,
-                                      child: Text(
-                                        p.name.characters.first.toUpperCase(),
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.w900,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                )
-                              else
-                                CircleAvatar(
-                                  backgroundColor: Colors.white70,
-                                  child: Text(
-                                    p.name.characters.first.toUpperCase(),
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w900,
-                                    ),
-                                  ),
-                                ),
-                              const Spacer(),
-                              Text(
-                                p.name,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w900,
-                                ),
-                              ),
-                              Text(
-                                '${(p.priceMinor / 100).toStringAsFixed(2)} QAR',
-                                style: const TextStyle(
-                                  color: Color(0xFFF35F45),
-                                  fontWeight: FontWeight.w900,
-                                ),
-                              ),
-                              if (p.trackInventory)
-                                Text(
-                                  '${p.availableQuantity ?? '0'} available',
-                                  style: const TextStyle(
-                                    color: Colors.blueGrey,
-                                    fontSize: 10,
-                                  ),
-                                ),
-                            ],
+              : RefreshIndicator(
+                  onRefresh: search,
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final columns = constraints.maxWidth >= 900
+                          ? 6
+                          : constraints.maxWidth >= 600
+                          ? 4
+                          : constraints.maxWidth >= 360
+                          ? 3
+                          : 2;
+                      const spacing = 10.0;
+                      final tileWidth =
+                          (constraints.maxWidth -
+                              36 -
+                              spacing * (columns - 1)) /
+                          columns;
+                      final tileHeight = (tileWidth * 1.18).clamp(142.0, 190.0);
+                      return Scrollbar(
+                        controller: productScroll,
+                        child: GridView.builder(
+                          controller: productScroll,
+                          physics: const AlwaysScrollableScrollPhysics(
+                            parent: BouncingScrollPhysics(),
                           ),
+                          padding: const EdgeInsets.fromLTRB(18, 14, 18, 90),
+                          gridDelegate:
+                              SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: columns,
+                                mainAxisExtent: tileHeight,
+                                mainAxisSpacing: spacing,
+                                crossAxisSpacing: spacing,
+                              ),
+                          itemCount:
+                              products.length + (loadingMoreProducts ? 1 : 0),
+                          itemBuilder: (_, i) {
+                            if (i == products.length) {
+                              return const Center(
+                                child: CircularProgressIndicator(),
+                              );
+                            }
+                            return _ProductTile(
+                              product: products[i],
+                              accentIndex: i,
+                              onTap: () => add(products[i]),
+                            );
+                          },
                         ),
-                      ),
-                    );
-                  },
+                      );
+                    },
+                  ),
                 ),
         ),
         if (cart.isNotEmpty)
@@ -861,7 +903,7 @@ class _CartSheet extends StatelessWidget {
   );
 }
 
-class _CheckoutSheet extends StatelessWidget {
+class _CheckoutSheet extends StatefulWidget {
   const _CheckoutSheet({
     required this.cart,
     required this.tender,
@@ -881,7 +923,92 @@ class _CheckoutSheet extends StatelessWidget {
   final bool busy;
   final int totalMinor;
   final ValueChanged<String> onTender, onBank, onRemove;
-  final VoidCallback onCheckout;
+  final Future<void> Function() onCheckout;
+
+  @override
+  State<_CheckoutSheet> createState() => _CheckoutSheetState();
+}
+
+class _CheckoutSheetState extends State<_CheckoutSheet> {
+  final paymentPanelKey = GlobalKey();
+  late String tender;
+  late String bank;
+  bool processing = false;
+
+  Map<String, CartLine> get cart => widget.cart;
+  TextEditingController get cash => widget.cash;
+  TextEditingController get reference => widget.reference;
+  bool get busy => widget.busy || processing;
+  int get totalMinor =>
+      cart.values.fold(0, (sum, line) => sum + line.totalMinor);
+
+  int? get cashReceivedMinor {
+    if (cash.text.trim().isEmpty) return null;
+    final value = double.tryParse(cash.text.trim());
+    return value == null ? -1 : (value * 100).round();
+  }
+
+  int get changeMinor => cashReceivedMinor == null
+      ? 0
+      : (cashReceivedMinor! - totalMinor).clamp(0, 1 << 31);
+  int get shortfallMinor => cashReceivedMinor == null
+      ? 0
+      : (totalMinor - cashReceivedMinor!).clamp(0, 1 << 31);
+
+  @override
+  void initState() {
+    super.initState();
+    tender = widget.tender;
+    bank = widget.bank;
+    cash.addListener(_amountChanged);
+  }
+
+  @override
+  void dispose() {
+    cash.removeListener(_amountChanged);
+    super.dispose();
+  }
+
+  void _amountChanged() {
+    if (mounted) setState(() {});
+  }
+
+  void onTender(String value) {
+    setState(() => tender = value);
+    widget.onTender(value);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final target = paymentPanelKey.currentContext;
+      if (target != null) {
+        Scrollable.ensureVisible(
+          target,
+          duration: const Duration(milliseconds: 240),
+          curve: Curves.easeOutCubic,
+          alignment: .72,
+        );
+      }
+    });
+  }
+
+  void onBank(String value) {
+    setState(() => bank = value);
+    widget.onBank(value);
+  }
+
+  void onRemove(String key) {
+    widget.onRemove(key);
+    setState(() {});
+    if (cart.isEmpty) Navigator.pop(context);
+  }
+
+  Future<void> onCheckout() async {
+    if (busy || shortfallMinor > 0 || cashReceivedMinor == -1) return;
+    setState(() => processing = true);
+    await widget.onCheckout();
+    if (!mounted) return;
+    setState(() => processing = false);
+    if (cart.isEmpty) Navigator.pop(context);
+  }
+
   @override
   Widget build(BuildContext context) => SafeArea(
     child: Padding(
@@ -961,47 +1088,122 @@ class _CheckoutSheet extends StatelessWidget {
               onSelectionChanged: (v) => onTender(v.first),
             ),
             const SizedBox(height: 14),
-            if (tender == 'CASH')
-              TextField(
-                controller: cash,
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 180),
+              child: Container(
+                key: paymentPanelKey,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF1F7F4),
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: const Color(0xFFD9E8E1)),
                 ),
-                decoration: const InputDecoration(
-                  labelText: 'Cash received (QAR)',
-                ),
-              )
-            else ...[
-              DropdownButtonFormField<String>(
-                initialValue: bank,
-                items:
-                    const [
-                          'QNB',
-                          'Doha Bank',
-                          'Commercial Bank',
-                          'QIB',
-                          'Dukhan Bank',
-                          'Ahlibank',
-                          'Other local terminal',
-                        ]
-                        .map((v) => DropdownMenuItem(value: v, child: Text(v)))
-                        .toList(),
-                onChanged: (v) => onBank(v!),
-                decoration: const InputDecoration(
-                  labelText: 'Acquiring bank / terminal',
-                ),
+                child: tender == 'CASH'
+                    ? Column(
+                        key: const ValueKey('cash-panel'),
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          TextField(
+                            controller: cash,
+                            autofocus: true,
+                            keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
+                            decoration: const InputDecoration(
+                              labelText: 'Cash received (QAR)',
+                              prefixText: 'QAR ',
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          Wrap(
+                            spacing: 7,
+                            runSpacing: 7,
+                            children: _quickCashAmounts(totalMinor)
+                                .map(
+                                  (amount) => ActionChip(
+                                    label: Text(
+                                      amount == totalMinor
+                                          ? 'Exact'
+                                          : '${amount / 100} QAR',
+                                    ),
+                                    onPressed: () {
+                                      cash.text = (amount / 100)
+                                          .toStringAsFixed(
+                                            amount % 100 == 0 ? 0 : 2,
+                                          );
+                                      cash.selection = TextSelection.collapsed(
+                                        offset: cash.text.length,
+                                      );
+                                    },
+                                  ),
+                                )
+                                .toList(),
+                          ),
+                          const SizedBox(height: 10),
+                          _CashResult(
+                            receivedMinor: cashReceivedMinor,
+                            totalMinor: totalMinor,
+                            changeMinor: changeMinor,
+                            shortfallMinor: shortfallMinor,
+                          ),
+                        ],
+                      )
+                    : Column(
+                        key: const ValueKey('card-panel'),
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          DropdownButtonFormField<String>(
+                            initialValue: bank,
+                            items:
+                                const [
+                                      'QNB',
+                                      'Doha Bank',
+                                      'Commercial Bank',
+                                      'QIB',
+                                      'Dukhan Bank',
+                                      'Ahlibank',
+                                      'Other local terminal',
+                                    ]
+                                    .map(
+                                      (v) => DropdownMenuItem(
+                                        value: v,
+                                        child: Text(v),
+                                      ),
+                                    )
+                                    .toList(),
+                            onChanged: (v) => onBank(v!),
+                            decoration: const InputDecoration(
+                              labelText: 'Acquiring bank / terminal',
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          TextField(
+                            controller: reference,
+                            decoration: const InputDecoration(
+                              labelText: 'Terminal reference (optional)',
+                            ),
+                          ),
+                          const SizedBox(height: 9),
+                          Text(
+                            'Record exactly ${(totalMinor / 100).toStringAsFixed(2)} QAR after the terminal approves the card.',
+                            style: const TextStyle(
+                              color: Color(0xFF536C64),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
               ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: reference,
-                decoration: const InputDecoration(
-                  labelText: 'Terminal reference (optional)',
-                ),
-              ),
-            ],
+            ),
             const SizedBox(height: 18),
             ElevatedButton(
-              onPressed: busy ? null : onCheckout,
+              onPressed:
+                  busy ||
+                      (tender == 'CASH' &&
+                          (shortfallMinor > 0 || cashReceivedMinor == -1))
+                  ? null
+                  : onCheckout,
               child: Text(
                 busy
                     ? 'Processing…'
@@ -1011,6 +1213,245 @@ class _CheckoutSheet extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    ),
+  );
+}
+
+List<int> _quickCashAmounts(int totalMinor) {
+  int roundUp(int stepMinor) =>
+      ((totalMinor + stepMinor - 1) ~/ stepMinor) * stepMinor;
+  return <int>{
+    totalMinor,
+    roundUp(500),
+    roundUp(1000),
+    roundUp(5000),
+    roundUp(10000),
+  }.where((amount) => amount > 0).take(4).toList(growable: false);
+}
+
+class _CashResult extends StatelessWidget {
+  const _CashResult({
+    required this.receivedMinor,
+    required this.totalMinor,
+    required this.changeMinor,
+    required this.shortfallMinor,
+  });
+
+  final int? receivedMinor;
+  final int totalMinor;
+  final int changeMinor;
+  final int shortfallMinor;
+
+  @override
+  Widget build(BuildContext context) {
+    final invalid = receivedMinor == -1;
+    final ready = receivedMinor != null && !invalid && shortfallMinor == 0;
+    final color = invalid || shortfallMinor > 0
+        ? const Color(0xFFB44736)
+        : const Color(0xFF16705A);
+    final label = invalid
+        ? 'Enter a valid amount'
+        : receivedMinor == null
+        ? 'Enter cash received to calculate change'
+        : shortfallMinor > 0
+        ? 'Short by ${(shortfallMinor / 100).toStringAsFixed(2)} QAR'
+        : 'Change due ${(changeMinor / 100).toStringAsFixed(2)} QAR';
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: .1),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            ready ? Icons.check_circle_outline : Icons.calculate_outlined,
+            color: color,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(color: color, fontWeight: FontWeight.w900),
+            ),
+          ),
+          if (receivedMinor != null && !invalid)
+            Text(
+              'Total ${(totalMinor / 100).toStringAsFixed(2)}',
+              style: const TextStyle(fontSize: 10, color: Colors.blueGrey),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProductTile extends StatelessWidget {
+  const _ProductTile({
+    required this.product,
+    required this.accentIndex,
+    required this.onTap,
+  });
+
+  final PosProduct product;
+  final int accentIndex;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final outOfStock =
+        product.trackInventory &&
+        !product.allowNegativeStock &&
+        (double.tryParse(product.availableQuantity ?? '0') ?? 0) <= 0;
+    final identityParts = <String>{
+      if (product.brandName?.trim().isNotEmpty == true)
+        product.brandName!.trim(),
+      if (product.variantName?.trim().isNotEmpty == true)
+        product.variantName!.trim(),
+      if (product.sku?.trim().isNotEmpty == true) product.sku!.trim(),
+    }.take(2).toList(growable: false);
+    final identity = identityParts.isEmpty
+        ? 'Standard item'
+        : identityParts.join(' · ');
+    final fallbackColors = switch (accentIndex % 3) {
+      1 => const [Color(0xFFFFE7A3), Color(0xFFFFC94C)],
+      2 => const [Color(0xFFCDEEDF), Color(0xFF83D0AE)],
+      _ => const [Color(0xFFFFDDD4), Color(0xFFFFAD96)],
+    };
+    final initial = product.name.trim().isEmpty
+        ? '•'
+        : product.name.trim().characters.first.toUpperCase();
+
+    return Semantics(
+      button: true,
+      enabled: !outOfStock,
+      label:
+          '${product.name}, $identity, ${(product.priceMinor / 100).toStringAsFixed(2)} QAR',
+      child: Opacity(
+        opacity: outOfStock ? .48 : 1,
+        child: Card(
+          margin: EdgeInsets.zero,
+          clipBehavior: Clip.antiAlias,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+            side: const BorderSide(color: Color(0xFFE1EAE6)),
+          ),
+          child: InkWell(
+            onTap: outOfStock ? null : onTap,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      if (product.imageUrl != null &&
+                          product.imageUrl!.trim().isNotEmpty)
+                        Image.network(
+                          product.imageUrl!,
+                          fit: BoxFit.cover,
+                          alignment: Alignment.center,
+                          filterQuality: FilterQuality.medium,
+                          errorBuilder: (_, _, _) => _ProductFallback(
+                            initial: initial,
+                            colors: fallbackColors,
+                          ),
+                        )
+                      else
+                        _ProductFallback(
+                          initial: initial,
+                          colors: fallbackColors,
+                        ),
+                      Positioned(
+                        right: 6,
+                        bottom: 6,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 7,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xE617302A),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: Colors.white30),
+                          ),
+                          child: Text(
+                            '${(product.priceMinor / 100).toStringAsFixed(2)} QAR',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 9,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(8, 6, 8, 7),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        product.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Color(0xFF173B34),
+                          fontSize: 12,
+                          height: 1.05,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        identity,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Color(0xFF6B7E78),
+                          fontSize: 9,
+                          height: 1.05,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ProductFallback extends StatelessWidget {
+  const _ProductFallback({required this.initial, required this.colors});
+  final String initial;
+  final List<Color> colors;
+
+  @override
+  Widget build(BuildContext context) => DecoratedBox(
+    decoration: BoxDecoration(
+      gradient: LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: colors,
+      ),
+    ),
+    child: Center(
+      child: Text(
+        initial,
+        style: const TextStyle(
+          color: Color(0xFF7A392C),
+          fontSize: 28,
+          fontWeight: FontWeight.w900,
         ),
       ),
     ),

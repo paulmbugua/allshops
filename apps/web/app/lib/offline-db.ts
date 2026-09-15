@@ -306,6 +306,11 @@ export async function cachedPosProducts(branchId: string) {
       productId,
       variantId,
       name: String(row.productId ? row.productName : row.name),
+      brandName:
+        (row.brandName as string | null | undefined) ??
+        (row.brand && typeof row.brand === "object"
+          ? String((row.brand as Record<string, unknown>).name ?? "") || null
+          : null),
       variantName: row.productId ? String(row.name) : null,
       sku: (row.sku as string | null | undefined) ?? null,
       barcode: (row.barcode as string | null | undefined) ?? null,
@@ -354,6 +359,12 @@ export async function cachedPosProductByBarcode(
           productId,
           variantId,
           name: String(row.productId ? row.productName : row.name),
+          brandName:
+            (row.brandName as string | null | undefined) ??
+            (row.brand && typeof row.brand === "object"
+              ? String((row.brand as Record<string, unknown>).name ?? "") ||
+                null
+              : null),
           variantName: row.productId ? String(row.name) : null,
           sku: (row.sku as string | null | undefined) ?? null,
           barcode: (row.barcode as string | null | undefined) ?? null,

@@ -73,6 +73,7 @@ class PosProduct {
     required this.productId,
     this.variantId,
     required this.name,
+    this.brandName,
     this.variantName,
     this.sku,
     this.barcode,
@@ -86,6 +87,7 @@ class PosProduct {
   final String productId;
   final String? variantId;
   final String name;
+  final String? brandName;
   final String? variantName;
   final String? sku;
   final String? barcode;
@@ -99,6 +101,7 @@ class PosProduct {
     productId: json['productId'] as String,
     variantId: json['variantId'] as String?,
     name: json['name'] as String,
+    brandName: json['brandName'] as String?,
     variantName: json['variantName'] as String?,
     sku: json['sku'] as String?,
     barcode: json['barcode'] as String?,
@@ -114,6 +117,7 @@ class PosProduct {
     'productId': productId,
     'variantId': variantId,
     'name': name,
+    'brandName': brandName,
     'variantName': variantName,
     'sku': sku,
     'barcode': barcode,
