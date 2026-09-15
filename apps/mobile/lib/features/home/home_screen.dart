@@ -4,6 +4,7 @@ import '../../app.dart';
 import '../../core/models.dart';
 import '../appointments/appointments_screen.dart';
 import '../auth/welcome_screen.dart';
+import '../business/business_details_screen.dart';
 import '../modules/module_config.dart';
 import '../modules/module_screen.dart';
 import '../modules/workspace_screen.dart';
@@ -116,6 +117,7 @@ class DashboardTab extends StatelessWidget {
   final VoidCallback? onOpenPos;
   final VoidCallback onLogout;
   static const paths = [
+    'business-details',
     'products',
     'sales',
     'customers',
@@ -363,6 +365,8 @@ class DashboardTab extends StatelessWidget {
                           ? ReconciliationScreen(membership: membership)
                           : item.path == 'users'
                           ? UsersScreen(membership: membership)
+                          : item.path == 'business-details'
+                          ? BusinessDetailsScreen(membership: membership)
                           : ModuleScreen(
                               membership: membership,
                               title: item.title,
@@ -396,8 +400,8 @@ class DashboardTab extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(height: 2),
-                          const Text(
-                            'Open workspace',
+                          Text(
+                            tr(context, 'Open workspace', 'فتح مساحة العمل'),
                             style: TextStyle(
                               color: Colors.blueGrey,
                               fontSize: 10,

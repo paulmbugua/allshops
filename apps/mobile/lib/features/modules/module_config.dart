@@ -87,6 +87,14 @@ class ModuleConfig {
 }
 
 final moduleConfigs = <String, ModuleConfig>{
+  'business-details': const ModuleConfig(
+    title: 'Business details',
+    path: 'business-details',
+    icon: Icons.storefront_rounded,
+    color: Color(0xFF6D1738),
+    detail: false,
+    searchable: false,
+  ),
   'products': const ModuleConfig(
     title: 'Products',
     path: 'products',
@@ -677,6 +685,7 @@ String? moduleReadPermission(String path) {
   }
   if (path.startsWith('inventory')) return 'inventory.read';
   return <String, String>{
+    'business-details': 'organization.read',
     'products': 'catalogue.read',
     'categories': 'catalogue.read',
     'brands': 'catalogue.read',

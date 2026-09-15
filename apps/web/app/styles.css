@@ -3168,3 +3168,297 @@ html[dir="rtl"] textarea {
   font-weight: 750;
   line-height: 1.08;
 }
+
+/* Flutter-parity responsive shell: phone bottom navigation, tablet canvas and
+   the same maroon/sand/emerald visual language as apps/mobile. */
+@media (max-width: 1100px) {
+  :root {
+    --mobile-maroon: #6d1738;
+    --mobile-ink: #172c2b;
+    --mobile-sand: #f3dfc1;
+    --mobile-coral: #f35f45;
+    --mobile-mint: #35b77d;
+  }
+  body {
+    background: #f8f5f1;
+  }
+  body::before {
+    background:
+      radial-gradient(circle at 100% 0, rgb(109 23 56 / 10%), transparent 25rem),
+      radial-gradient(circle at 0 100%, rgb(243 95 69 / 9%), transparent 22rem),
+      #f8f5f1;
+  }
+  .app-layout,
+  html[dir="rtl"] .app-layout {
+    display: block;
+    min-height: 100dvh;
+    padding-bottom: 5.75rem;
+  }
+  .app-layout > aside,
+  html[dir="rtl"] .app-layout > aside {
+    position: fixed;
+    z-index: 80;
+    right: max(0.75rem, env(safe-area-inset-right));
+    bottom: max(0.65rem, env(safe-area-inset-bottom));
+    left: max(0.75rem, env(safe-area-inset-left));
+    display: flex;
+    width: auto;
+    min-height: 4.4rem;
+    padding: 0.5rem 0.65rem;
+    border: 1px solid rgb(255 255 255 / 16%);
+    border-radius: 1.6rem;
+    background: rgb(23 44 43 / 96%);
+    box-shadow: 0 1rem 2.5rem rgb(23 44 43 / 24%);
+    backdrop-filter: blur(18px);
+  }
+  .app-layout > aside > .brand,
+  .app-layout > aside nav small {
+    display: none;
+  }
+  .app-layout > aside nav {
+    display: flex;
+    overflow-x: auto;
+    align-items: center;
+    order: 0;
+    width: auto;
+    min-width: 0;
+    flex: 1;
+    flex-wrap: nowrap;
+    gap: 0.3rem;
+    scrollbar-width: none;
+    scroll-snap-type: x proximity;
+  }
+  .app-layout > aside nav::-webkit-scrollbar {
+    display: none;
+  }
+  .app-layout > aside nav a,
+  .app-layout > aside .link-button {
+    display: grid;
+    min-width: 6.25rem;
+    min-height: 3.35rem;
+    margin: 0;
+    place-items: center;
+    padding: 0.5rem 0.7rem;
+    border-radius: 1.15rem;
+    color: #eaf4ef;
+    font-size: 0.72rem;
+    font-weight: 850;
+    line-height: 1.15;
+    text-align: center;
+    scroll-snap-align: center;
+    white-space: nowrap;
+  }
+  .app-layout > aside nav a:first-of-type {
+    background: var(--mobile-sand);
+    color: var(--mobile-maroon);
+  }
+  .app-layout > aside .link-button {
+    min-width: 4rem;
+    color: #ffcfca;
+    font-size: 0;
+  }
+  .app-layout > aside .link-button::before {
+    content: "↪";
+    font-size: 1.35rem;
+  }
+  html[dir="rtl"] .app-layout > aside .link-button::before {
+    content: "↩";
+  }
+  .workspace,
+  html[dir="rtl"] .workspace {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    padding: clamp(1rem, 3vw, 2rem);
+  }
+  .workspace > header {
+    position: sticky;
+    z-index: 35;
+    top: 0.65rem;
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    margin-bottom: 1rem;
+    padding: 0.7rem 0.85rem;
+    border: 1px solid rgb(109 23 56 / 9%);
+    border-radius: 1.35rem;
+    background: rgb(255 255 255 / 88%);
+    box-shadow: 0 0.75rem 2rem rgb(109 23 56 / 8%);
+    backdrop-filter: blur(18px);
+  }
+  .workspace > header h1 {
+    overflow: hidden;
+    margin: 0;
+    color: var(--mobile-ink);
+    font-size: clamp(1.15rem, 3.5vw, 1.7rem);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .workspace > .card,
+  .workspace > section,
+  .workspace form.card,
+  .card {
+    border-color: rgb(109 23 56 / 8%);
+    border-radius: 1.4rem;
+    box-shadow: 0 0.6rem 1.8rem rgb(109 23 56 / 7%);
+  }
+  input,
+  select,
+  textarea {
+    min-height: 3.25rem;
+    border-color: rgb(109 23 56 / 12%);
+    border-radius: 1rem;
+    background: #fff;
+  }
+  button,
+  .button-link {
+    min-height: 3.2rem;
+    border-radius: 999px;
+  }
+  .app-language-toggle {
+    flex: 0 0 auto;
+    border-color: rgb(109 23 56 / 14%);
+    background: #fff8ef;
+  }
+  .app-language-toggle button.active {
+    background: var(--mobile-maroon);
+  }
+  .context-grid div,
+  .calculation {
+    border-radius: 1.15rem;
+    background: color-mix(in srgb, var(--mobile-sand) 35%, white);
+  }
+  .table-row,
+  .data-row {
+    border-radius: 1.15rem;
+  }
+  .toolbar {
+    align-items: stretch;
+  }
+  .toolbar input,
+  .toolbar select {
+    max-width: none;
+  }
+  html[dir="rtl"] .workspace > header,
+  html[dir="rtl"] .toolbar,
+  html[dir="rtl"] .actions,
+  html[dir="rtl"] .filters {
+    direction: rtl;
+  }
+}
+
+@media (min-width: 761px) and (max-width: 1100px) {
+  .workspace > header,
+  .workspace > section {
+    width: min(100%, 60rem);
+  }
+  .context-grid,
+  .diagnostic-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .workspace {
+    padding: 0.75rem 0.75rem 1.25rem;
+  }
+  .workspace > header {
+    top: 0.4rem;
+  }
+  .workspace > header .offline-status {
+    max-width: 2.5rem;
+    overflow: hidden;
+  }
+  .workspace > .card,
+  .workspace > section,
+  .workspace form.card,
+  .card {
+    padding: 1.15rem;
+  }
+  .form-grid,
+  .context-grid {
+    grid-template-columns: 1fr;
+  }
+  .actions > *,
+  .toolbar > *,
+  .toolbar form,
+  .filters > * {
+    min-width: 0;
+    flex: 1 1 100%;
+  }
+  .member-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+  .pos-layout,
+  body.pos-focus-mode .pos-layout {
+    gap: 0.65rem;
+  }
+  .pos-products,
+  .pos-cart {
+    border-radius: 1.4rem;
+  }
+}
+
+/* Authentication adopts the Flutter welcome/login proportions on phones and
+   tablets while retaining the same accessible HTML forms. */
+.auth-page:not(.receipt-page) {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 12% 10%, rgb(255 207 92 / 30%), transparent 24rem),
+    radial-gradient(circle at 90% 90%, rgb(243 95 69 / 20%), transparent 25rem),
+    linear-gradient(145deg, #6d1738 0 34%, #172c2b 34% 100%);
+}
+.auth-page:not(.receipt-page)::before {
+  position: absolute;
+  inset: 1.2rem;
+  border: 1px solid rgb(243 223 193 / 18%);
+  border-radius: 2rem;
+  content: "";
+  pointer-events: none;
+}
+.auth-page:not(.receipt-page) > .card {
+  position: relative;
+  z-index: 1;
+  border: 1px solid rgb(255 255 255 / 55%);
+  border-radius: 1.75rem;
+  background: rgb(255 252 247 / 96%);
+  box-shadow: 0 2rem 5rem rgb(0 0 0 / 24%);
+}
+.auth-page:not(.receipt-page) > .card::before {
+  display: grid;
+  width: 3.4rem;
+  height: 3.4rem;
+  margin-bottom: 1.2rem;
+  place-items: center;
+  border-radius: 1.1rem;
+  background: #f35f45;
+  color: white;
+  content: "✦";
+  font-size: 1.55rem;
+  font-weight: 900;
+  box-shadow: 0 0.7rem 1.5rem rgb(243 95 69 / 24%);
+}
+html[dir="rtl"] .auth-page {
+  direction: rtl;
+}
+@media (max-width: 600px) {
+  .auth-page {
+    align-items: end;
+    padding: 0.7rem;
+  }
+  .auth-page:not(.receipt-page)::before {
+    inset: 0.6rem;
+    border-radius: 1.75rem;
+  }
+  .auth-page:not(.receipt-page) > .card {
+    max-height: calc(100dvh - 1.4rem);
+    overflow-y: auto;
+    border-radius: 1.8rem;
+    padding: 1.35rem;
+  }
+}

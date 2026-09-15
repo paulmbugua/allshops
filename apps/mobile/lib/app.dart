@@ -86,6 +86,11 @@ const _arabicLabels = <String, String>{
   'Payment method': 'طريقة الدفع',
   'Date': 'التاريخ',
   'Description': 'الوصف',
+  'Business details': 'بيانات المنشأة',
+  'Open workspace': 'فتح مساحة العمل',
+  'Display language': 'لغة العرض',
+  'Save changes': 'حفظ التغييرات',
+  'Required': 'مطلوب',
 };
 
 String translateLabel(BuildContext context, String english) =>
