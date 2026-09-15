@@ -74,7 +74,12 @@ export default function ShopWelcomePage() {
 
   if (!shop) {
     return (
-      <main className="shop-welcome-empty" lang={locale} dir={direction}>
+      <main
+        className="shop-welcome-empty"
+        lang={locale}
+        dir={direction}
+        data-manual-locale
+      >
         <LanguageToggle locale={locale} onChange={setLocale} inverse />
         <div>
           <span className="welcome-spark">✦</span>
@@ -95,7 +100,13 @@ export default function ShopWelcomePage() {
     locale === "ar" ? displayName : (shop.welcomeHeadline ?? shop.name);
   const arrow = locale === "ar" ? "←" : "→";
   return (
-    <main className="shop-welcome" style={theme} lang={locale} dir={direction}>
+    <main
+      className="shop-welcome"
+      style={theme}
+      lang={locale}
+      dir={direction}
+      data-manual-locale
+    >
       <img
         className="shop-cultural-photo"
         src="/images/qatar-commerce-hero.webp"

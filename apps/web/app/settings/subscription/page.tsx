@@ -235,6 +235,10 @@ export default function SubscriptionPage() {
                   <span className="plan-code">{plan.code}</span>
                   <h3>{plan.name}</h3>
                   <p>{plan.description ?? planDescription(plan.code)}</p>
+                  <div className="plan-best-for">
+                    <small>BEST FOR</small>
+                    <strong>{planAudience(plan.code)}</strong>
+                  </div>
                   <div className="plan-price">
                     <strong>
                       {plan.currency} {price.toLocaleString()}
@@ -258,6 +262,17 @@ export default function SubscriptionPage() {
                         </li>
                       ))}
                   </ul>
+                  <div className="plan-outcomes">
+                    {planOutcomes(plan.code).map((outcome) => (
+                      <div key={outcome.title}>
+                        <span aria-hidden>{outcome.icon}</span>
+                        <p>
+                          <strong>{outcome.title}</strong>
+                          <small>{outcome.detail}</small>
+                        </p>
+                      </div>
+                    ))}
+                  </div>
                   <button
                     onClick={() => void select(plan.code)}
                     disabled={current || !can("billing.manage")}
@@ -328,6 +343,51 @@ function planDescription(code: string) {
       } as Record<string, string>
     )[code] ?? "Flexible tools for your business."
   );
+}
+function planAudience(code: string) {
+  return (
+    (
+      {
+        STARTER: "Independent shops and first-time POS teams",
+        BUSINESS: "Busy stores, salons and service businesses",
+        GROWTH: "Multi-branch businesses that need resilient operations",
+      } as Record<string, string>
+    )[code] ?? "Growing Qatar businesses"
+  );
+}
+function planOutcomes(code: string) {
+  const common = [
+    {
+      icon: "◉",
+      title: "Secure cloud workspace",
+      detail: "Role-based access, automatic updates and protected business data.",
+    },
+    {
+      icon: "ع",
+      title: "English and Arabic",
+      detail: "Switch language across web and mobile with RTL support.",
+    },
+  ];
+  const specific = (
+    {
+      STARTER: {
+        icon: "✦",
+        title: "Simple daily selling",
+        detail: "Products, checkout, customers, stock and essential reports.",
+      },
+      BUSINESS: {
+        icon: "◆",
+        title: "Complete operations",
+        detail: "Purchasing, expenses, credit, profit, staff and appointments.",
+      },
+      GROWTH: {
+        icon: "↻",
+        title: "Scale without disruption",
+        detail: "Offline POS, multi-branch control and deeper performance insight.",
+      },
+    } as Record<string, { icon: string; title: string; detail: string }>
+  )[code];
+  return specific ? [specific, ...common] : common;
 }
 function featureLabel(code: string) {
   return (

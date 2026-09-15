@@ -156,7 +156,12 @@ export default function HomePage() {
   const arrow = locale === "ar" ? "↖" : "↗";
   const forward = locale === "ar" ? "←" : "→";
   return (
-    <main className="landing-page" lang={locale} dir={direction}>
+    <main
+      className="landing-page"
+      lang={locale}
+      dir={direction}
+      data-manual-locale
+    >
       <nav className="landing-nav">
         <Link href="/" className="landing-brand">
           <span>✦</span> AllShops

@@ -1504,6 +1504,7 @@ nav a:hover {
   border-radius: 1.25rem;
   background: rgb(255 255 255 / 92%);
   box-shadow: 0 0.8rem 2.5rem rgb(18 52 43 / 7%);
+  color: #172c2b;
 }
 .subscription-plan.featured {
   border: 2px solid #ef654c;
@@ -1545,12 +1546,31 @@ nav a:hover {
 .subscription-plan h3 {
   margin: 0.3rem 0;
   font-size: 1.45rem;
+  color: #172c2b;
 }
 .subscription-plan > p {
   min-height: 3.5rem;
-  color: #61766f;
+  color: #405a52;
   font-size: 0.85rem;
   line-height: 1.5;
+}
+.plan-best-for {
+  display: grid;
+  gap: 0.2rem;
+  margin: 0.15rem 0 0.9rem;
+  padding: 0.75rem 0.85rem;
+  border-left: 0.25rem solid #f35f45;
+  border-radius: 0.7rem;
+  background: #fff4ec;
+  color: #172c2b;
+}
+.plan-best-for small {
+  color: #8b3650;
+  font-size: 0.62rem;
+}
+.plan-best-for strong {
+  font-size: 0.8rem;
+  line-height: 1.35;
 }
 .plan-price {
   display: flex;
@@ -1592,8 +1612,70 @@ nav a:hover {
   list-style: none;
 }
 .plan-features li {
-  color: #425b53;
+  color: #29463e;
   font-size: 0.78rem;
+}
+.plan-outcomes {
+  display: grid;
+  gap: 0.55rem;
+  margin: 0 0 1.1rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid #dce8e3;
+}
+.plan-outcomes > div {
+  display: grid;
+  grid-template-columns: 2rem 1fr;
+  align-items: start;
+  gap: 0.65rem;
+}
+.plan-outcomes > div > span {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  border-radius: 0.65rem;
+  background: #e7f5ef;
+  color: #116448;
+  font-weight: 950;
+}
+.plan-outcomes p,
+.plan-outcomes strong,
+.plan-outcomes small {
+  color: #233f37;
+}
+.plan-outcomes p {
+  margin: 0;
+}
+.plan-outcomes strong,
+.plan-outcomes small {
+  display: block;
+}
+.plan-outcomes strong {
+  font-size: 0.78rem;
+}
+.plan-outcomes small {
+  margin-top: 0.15rem;
+  font-size: 0.67rem;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.subscription-plan button {
+  background: #6d1738;
+  color: #fff;
+}
+.subscription-plan button:disabled {
+  background: #d9e4df;
+  color: #36564d;
+  opacity: 1;
+}
+.subscription-plan.featured {
+  background: linear-gradient(160deg, #fffdf9, #fff2e8);
+}
+html[dir="rtl"] .plan-best-for {
+  border-right: 0.25rem solid #f35f45;
+  border-left: 0;
 }
 .plan-features li::before {
   content: "✓";

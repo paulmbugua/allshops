@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  Logger,
   UnauthorizedException,
 } from "@nestjs/common";
 import { prisma } from "@allshops/database";
@@ -29,6 +30,8 @@ const passwordOptions = {
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly tokens: TokenService,
     private readonly mail: MailService,
@@ -126,7 +129,11 @@ export class AuthService {
           token: reset.token,
           expiresAt: reset.expiresAt,
         })
-        .catch(() => undefined);
+        .catch((error: unknown) => {
+          this.logger.warn(
+            `Password reset email delivery failed for user ${user.id}: ${this.mailError(error)}`,
+          );
+        });
       await prisma.auditLog.create({
         data: {
           userId: user.id,
@@ -162,7 +169,11 @@ export class AuthService {
           token: activation.token,
           expiresAt: activation.expiresAt,
         })
-        .catch(() => undefined);
+        .catch((error: unknown) => {
+          this.logger.warn(
+            `Account activation email delivery failed for user ${user.id}: ${this.mailError(error)}`,
+          );
+        });
     }
     return {
       accepted: true,
@@ -196,6 +207,11 @@ export class AuthService {
       .then((result) => result.status)
       .catch(() => "FAILED" as const);
     return { status };
+  }
+
+  private mailError(error: unknown) {
+    if (error instanceof Error) return error.message;
+    return "Unknown SMTP error";
   }
 
   async resetPassword(input: ResetPasswordInput, request: RequestContext) {

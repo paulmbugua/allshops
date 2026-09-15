@@ -7,6 +7,9 @@ const apiConnectSource = /^https?:\/\//.test(publicApiUrl)
   : "";
 const productionCspSuffix =
   process.env.NODE_ENV === "production" ? "; upgrade-insecure-requests" : "";
+const scriptPolicy = process.env.NODE_ENV === "production"
+  ? "script-src 'self' 'unsafe-inline'"
+  : "script-src 'self' 'unsafe-inline' 'unsafe-eval'";
 
 const nextConfig: NextConfig = {
   // Windows without Developer Mode cannot create Next's standalone symlink tree.
@@ -33,7 +36,7 @@ const nextConfig: NextConfig = {
           },
           {
             key: "Content-Security-Policy",
-            value: `default-src 'self'; base-uri 'self'; frame-ancestors 'none'; object-src 'none'; form-action 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self'${apiConnectSource ? ` ${apiConnectSource}` : ""}; worker-src 'self' blob:; manifest-src 'self'${productionCspSuffix}`,
+            value: `default-src 'self'; base-uri 'self'; frame-ancestors 'none'; object-src 'none'; form-action 'self'; ${scriptPolicy}; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self'${apiConnectSource ? ` ${apiConnectSource}` : ""}; worker-src 'self' blob:; manifest-src 'self'${productionCspSuffix}`,
           },
         ],
       },

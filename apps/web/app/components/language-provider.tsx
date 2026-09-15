@@ -133,8 +133,7 @@ const translations: Record<string, string> = {
   Phone: "الهاتف",
   "Complete setup": "إكمال الإعداد",
   "Creating workspace…": "جارٍ إنشاء مساحة العمل…",
-  "Currency: QAR · Timezone: Asia/Qatar":
-    "العملة: ر.ق · المنطقة الزمنية: قطر",
+  "Currency: QAR · Timezone: Asia/Qatar": "العملة: ر.ق · المنطقة الزمنية: قطر",
   "The branch ID is generated automatically from its name.":
     "يتم إنشاء رمز الفرع تلقائياً من اسمه.",
   "Shop identity": "هوية المتجر",
@@ -207,8 +206,8 @@ const translations: Record<string, string> = {
   "Daily branch cash-up": "تسوية الفرع اليومية",
   "Submit end-of-day cash-up": "إرسال تسوية نهاية اليوم",
   "Expected cash": "النقد المتوقع",
-  "Counted": "المبلغ المعدود",
-  "Variance": "الفرق",
+  Counted: "المبلغ المعدود",
+  Variance: "الفرق",
   "Gross profit": "إجمالي الربح",
   "Net sales": "صافي المبيعات",
   "Total sales": "إجمالي المبيعات",
@@ -248,6 +247,40 @@ const translations: Record<string, string> = {
   Inactive: "غير نشط",
   Paid: "مدفوع",
   Outstanding: "مستحق",
+  "Plans built for Qatar businesses": "باقات مصممة لأعمال قطر",
+  "Choose the way your business grows": "اختر الطريقة المناسبة لنمو أعمالك",
+  "Every plan includes secure cloud access, Arabic-ready experiences and automatic updates.":
+    "تشمل كل باقة وصولاً سحابياً آمناً وتجربة عربية وتحديثات تلقائية.",
+  Monthly: "شهري",
+  Annual: "سنوي",
+  "2 months free": "شهران مجاناً",
+  "Most popular": "الأكثر طلباً",
+  "BEST FOR": "الأنسب لـ",
+  "Independent shops and first-time POS teams":
+    "المتاجر المستقلة وفرق نقاط البيع الجديدة",
+  "Busy stores, salons and service businesses":
+    "المتاجر النشطة والصالونات وشركات الخدمات",
+  "Multi-branch businesses that need resilient operations":
+    "الأعمال متعددة الفروع التي تحتاج تشغيلاً موثوقاً",
+  "Growing Qatar businesses": "الأعمال القطرية النامية",
+  "Simple daily selling": "بيع يومي بسيط",
+  "Products, checkout, customers, stock and essential reports.":
+    "المنتجات والدفع والعملاء والمخزون والتقارير الأساسية.",
+  "Complete operations": "تشغيل متكامل",
+  "Purchasing, expenses, credit, profit, staff and appointments.":
+    "المشتريات والمصروفات والائتمان والأرباح والموظفون والمواعيد.",
+  "Scale without disruption": "توسع دون انقطاع",
+  "Offline POS, multi-branch control and deeper performance insight.":
+    "نقاط بيع دون اتصال وتحكم متعدد الفروع ورؤية أعمق للأداء.",
+  "Secure cloud workspace": "مساحة عمل سحابية آمنة",
+  "Role-based access, automatic updates and protected business data.":
+    "صلاحيات حسب الدور وتحديثات تلقائية وحماية لبيانات المنشأة.",
+  "English and Arabic": "الإنجليزية والعربية",
+  "Switch language across web and mobile with RTL support.":
+    "بدّل اللغة في الويب والجوال مع دعم اتجاه الكتابة من اليمين.",
+  "Current plan": "الباقة الحالية",
+  "Owner approval required": "موافقة المالك مطلوبة",
+  Unlimited: "غير محدود",
 };
 
 const dynamicTranslations: Array<[RegExp, (...parts: string[]) => string]> = [
@@ -255,7 +288,10 @@ const dynamicTranslations: Array<[RegExp, (...parts: string[]) => string]> = [
   [/^New (.+)$/i, (value) => `${translations[value] ?? value} جديد`],
   [/^Select (.+)$/i, (value) => `اختر ${translations[value] ?? value}`],
   [/^Add (.+)$/i, (value) => `إضافة ${translations[value] ?? value}`],
-  [/^Loading (.+)…$/i, (value) => `جارٍ تحميل ${translations[value] ?? value}…`],
+  [
+    /^Loading (.+)…$/i,
+    (value) => `جارٍ تحميل ${translations[value] ?? value}…`,
+  ],
   [/^Page (\d+) of (\d+)$/i, (page, total) => `الصفحة ${page} من ${total}`],
   [/^(\d+) items?$/i, (count) => `${count} عنصر`],
 ];
@@ -287,20 +323,29 @@ function LocalizedDocument({ language }: { language: Language }) {
       while (walker.nextNode()) textNodes.push(walker.currentNode as Text);
       for (const node of textNodes) {
         const parent = node.parentElement;
-        if (!parent || parent.closest("script, style, [data-no-translate]")) continue;
+        if (
+          !parent ||
+          parent.closest(
+            "script, style, [data-no-translate], [data-manual-locale]",
+          )
+        )
+          continue;
         if (!originals.has(node)) originals.set(node, node.data);
         const original = originals.get(node) ?? node.data;
-        const localized = language === "ar" ? translateText(original) : original;
+        const localized =
+          language === "ar" ? translateText(original) : original;
         if (node.data !== localized) {
           localizedMutations.add(node);
           node.data = localized;
         }
       }
-      const elements = root.nodeType === Node.ELEMENT_NODE
-        ? [root as Element, ...(root as Element).querySelectorAll("*")]
-        : [];
+      const elements =
+        root.nodeType === Node.ELEMENT_NODE
+          ? [root as Element, ...(root as Element).querySelectorAll("*")]
+          : [];
       for (const element of elements) {
-        if (element.closest("[data-no-translate]")) continue;
+        if (element.closest("[data-no-translate], [data-manual-locale]"))
+          continue;
         let saved = attributeOriginals.get(element);
         if (!saved) {
           saved = new Map();
@@ -359,7 +404,8 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       if (next === "ar" || next === "en") setLanguageState(next);
     };
     window.addEventListener(DISPLAY_LANGUAGE_EVENT, syncLanguage);
-    return () => window.removeEventListener(DISPLAY_LANGUAGE_EVENT, syncLanguage);
+    return () =>
+      window.removeEventListener(DISPLAY_LANGUAGE_EVENT, syncLanguage);
   }, []);
   useEffect(() => {
     document.documentElement.lang = language;
@@ -375,8 +421,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
           new CustomEvent(DISPLAY_LANGUAGE_EVENT, { detail: next }),
         );
       },
-      t: (english) =>
-        language === "ar" ? translateText(english) : english,
+      t: (english) => (language === "ar" ? translateText(english) : english),
     }),
     [language],
   );

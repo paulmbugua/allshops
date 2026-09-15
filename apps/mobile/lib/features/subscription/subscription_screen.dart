@@ -559,7 +559,41 @@ class _PlanCard extends StatelessWidget {
           ),
           Text(
             plan['description']?.toString() ?? _planDescription(code),
-            style: const TextStyle(color: Colors.blueGrey, height: 1.4),
+            style: const TextStyle(color: Color(0xFF405A52), height: 1.4),
+          ),
+          const SizedBox(height: 12),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFF1E8),
+              borderRadius: BorderRadius.circular(14),
+              border: const Border(
+                left: BorderSide(color: Color(0xFFF35F45), width: 4),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'BEST FOR',
+                  style: TextStyle(
+                    color: Color(0xFF8B3650),
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  _planAudience(code),
+                  style: const TextStyle(
+                    color: Color(0xFF172C2B),
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 12),
           Text.rich(
@@ -612,6 +646,53 @@ class _PlanCard extends StatelessWidget {
                     child: Text(
                       _featureLabel(feature['featureCode']?.toString() ?? ''),
                       style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const Divider(height: 26),
+          ..._planOutcomes(code).map(
+            (outcome) => Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 34,
+                    height: 34,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE5F5EE),
+                      borderRadius: BorderRadius.circular(11),
+                    ),
+                    child: Icon(
+                      outcome.icon,
+                      size: 18,
+                      color: const Color(0xFF17664C),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          outcome.title,
+                          style: const TextStyle(
+                            color: Color(0xFF172C2B),
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        Text(
+                          outcome.detail,
+                          style: const TextStyle(
+                            color: Color(0xFF526A62),
+                            fontSize: 12,
+                            height: 1.35,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -672,6 +753,51 @@ String _planDescription(String code) =>
       'GROWTH': 'Multi-branch control, offline selling and deeper insight.',
     }[code] ??
     'Flexible tools for your business.';
+
+String _planAudience(String code) =>
+    const {
+      'STARTER': 'Independent shops and first-time POS teams',
+      'BUSINESS': 'Busy stores, salons and service businesses',
+      'GROWTH': 'Multi-branch businesses that need resilient operations',
+    }[code] ??
+    'Growing Qatar businesses';
+
+class _PlanOutcome {
+  const _PlanOutcome(this.icon, this.title, this.detail);
+  final IconData icon;
+  final String title;
+  final String detail;
+}
+
+List<_PlanOutcome> _planOutcomes(String code) => [
+  switch (code) {
+    'STARTER' => const _PlanOutcome(
+      Icons.point_of_sale_rounded,
+      'Simple daily selling',
+      'Products, checkout, customers, stock and essential reports.',
+    ),
+    'BUSINESS' => const _PlanOutcome(
+      Icons.storefront_rounded,
+      'Complete operations',
+      'Purchasing, expenses, credit, profit, staff and appointments.',
+    ),
+    _ => const _PlanOutcome(
+      Icons.sync_rounded,
+      'Scale without disruption',
+      'Offline POS, multi-branch control and deeper performance insight.',
+    ),
+  },
+  const _PlanOutcome(
+    Icons.verified_user_rounded,
+    'Secure cloud workspace',
+    'Role-based access, automatic updates and protected business data.',
+  ),
+  const _PlanOutcome(
+    Icons.translate_rounded,
+    'English and Arabic',
+    'Switch language across web and mobile with RTL support.',
+  ),
+];
 
 String _featureLabel(String code) =>
     const {
