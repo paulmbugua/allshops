@@ -8,6 +8,7 @@ import '../modules/module_config.dart';
 import '../modules/module_screen.dart';
 import '../modules/workspace_screen.dart';
 import '../pos/pos_screen.dart';
+import '../purchases/purchases_screen.dart';
 import '../subscription/subscription_screen.dart';
 import '../support/support_screen.dart';
 
@@ -320,6 +321,8 @@ class DashboardTab extends StatelessWidget {
                           ? SupportScreen(membership: membership)
                           : item.path == 'appointments'
                           ? AppointmentsScreen(membership: membership)
+                          : item.path == 'purchases'
+                          ? PurchasesScreen(membership: membership)
                           : ModuleScreen(
                               membership: membership,
                               title: item.title,
