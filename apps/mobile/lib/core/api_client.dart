@@ -219,6 +219,28 @@ class ApiClient {
     await _ready;
     return (await _dio.patch<T>(path, data: data)).data as T;
   }
+
+  Future<Map<String, dynamic>> uploadImage(
+    String path, {
+    required String filePath,
+    required String filename,
+  }) async {
+    await _ready;
+    final extension = filename.split('.').last.toLowerCase();
+    final contentType = switch (extension) {
+      'png' => 'image/png',
+      'webp' => 'image/webp',
+      _ => 'image/jpeg',
+    };
+    final form = FormData.fromMap({
+      'image': await MultipartFile.fromFile(
+        filePath,
+        filename: filename,
+        contentType: DioMediaType.parse(contentType),
+      ),
+    });
+    return (await _dio.post<Map<String, dynamic>>(path, data: form)).data!;
+  }
 }
 
 String apiErrorMessage(Object error) {

@@ -1,5 +1,8 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../app.dart';
 import '../../core/api_client.dart';
 import '../../core/models.dart';
@@ -541,6 +544,7 @@ class _CreateSheetState extends ConsumerState<_CreateSheet> {
   bool busy = false;
   bool loadingOptions = false;
   String? error;
+  XFile? pickedImage;
   @override
   void initState() {
     super.initState();
@@ -651,6 +655,74 @@ class _CreateSheetState extends ConsumerState<_CreateSheet> {
     ),
   );
   Widget _field(FormFieldSpec field) {
+    if (field.kind == FieldKind.image) {
+      final existing = values[field.key]?.toString();
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              field.label,
+              style: const TextStyle(fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 8),
+            Container(
+              height: 170,
+              width: double.infinity,
+              clipBehavior: Clip.antiAlias,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF1F7F5),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: const Color(0xFFD8E7E1)),
+              ),
+              child: pickedImage != null
+                  ? Image.file(File(pickedImage!.path), fit: BoxFit.cover)
+                  : existing != null && existing.isNotEmpty
+                  ? Image.network(
+                      existing,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, _, _) => const _ImagePlaceholder(),
+                    )
+                  : const _ImagePlaceholder(),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: busy
+                        ? null
+                        : () => _pickImage(ImageSource.gallery),
+                    icon: const Icon(Icons.photo_library_outlined),
+                    label: Text(
+                      existing == null && pickedImage == null
+                          ? 'Choose photo'
+                          : 'Replace',
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: busy
+                        ? null
+                        : () => _pickImage(ImageSource.camera),
+                    icon: const Icon(Icons.photo_camera_outlined),
+                    label: const Text('Camera'),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 5),
+            const Text(
+              'JPEG, PNG or WebP up to 5 MB. The server optimizes it for fast POS tiles.',
+              style: TextStyle(fontSize: 11, color: Colors.blueGrey),
+            ),
+          ],
+        ),
+      );
+    }
     if (field.kind == FieldKind.toggle) {
       return SwitchListTile(
         contentPadding: EdgeInsets.zero,
@@ -757,6 +829,25 @@ class _CreateSheetState extends ConsumerState<_CreateSheet> {
     );
   }
 
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final image = await ImagePicker().pickImage(
+        source: source,
+        maxWidth: 1600,
+        maxHeight: 1600,
+        imageQuality: 88,
+        requestFullMetadata: false,
+      );
+      if (image != null && mounted) setState(() => pickedImage = image);
+    } catch (caught) {
+      if (mounted) {
+        setState(
+          () => error = 'Unable to open images: ${apiErrorMessage(caught)}',
+        );
+      }
+    }
+  }
+
   String? _initialText(FormFieldSpec field) {
     final value = values[field.key];
     if (field.kind == FieldKind.money && value is num) {
@@ -778,6 +869,16 @@ class _CreateSheetState extends ConsumerState<_CreateSheet> {
     });
     try {
       final payload = Map<String, dynamic>.from(values);
+      if (pickedImage != null) {
+        final upload = await ref
+            .read(apiProvider)
+            .uploadImage(
+              '/organizations/${widget.organizationId}/product-images',
+              filePath: pickedImage!.path,
+              filename: pickedImage!.name,
+            );
+        payload['imageUrl'] = upload['imageUrl'];
+      }
       final primaryBranchId = payload.remove('primaryBranchId') as String?;
       if (widget.editing) {
         await ref.read(apiProvider).patch<dynamic>(widget.base, data: payload);
@@ -811,6 +912,28 @@ class _CreateSheetState extends ConsumerState<_CreateSheet> {
       }
     }
   }
+}
+
+class _ImagePlaceholder extends StatelessWidget {
+  const _ImagePlaceholder();
+  @override
+  Widget build(BuildContext context) => const Center(
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          Icons.add_photo_alternate_outlined,
+          size: 42,
+          color: Color(0xFF6C8780),
+        ),
+        SizedBox(height: 7),
+        Text(
+          'Add a clear product photo',
+          style: TextStyle(color: Colors.blueGrey, fontWeight: FontWeight.w700),
+        ),
+      ],
+    ),
+  );
 }
 
 String recordTitle(Map<String, dynamic> row, String fallback) =>

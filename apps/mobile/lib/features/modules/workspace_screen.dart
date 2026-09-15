@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/models.dart';
+import '../inventory/inventory_screen.dart';
 import 'module_config.dart';
 import 'module_screen.dart';
 
@@ -66,11 +67,24 @@ class WorkspaceScreen extends StatelessWidget {
                     onTap: () => Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => ModuleScreen(
-                          membership: membership,
-                          title: config.title,
-                          path: config.path,
-                        ),
+                        builder: (_) {
+                          final inventoryTab = switch (config.path) {
+                            'inventory' => 0,
+                            'inventory/movements' => 1,
+                            'inventory/transfers' => 2,
+                            _ => null,
+                          };
+                          return inventoryTab == null
+                              ? ModuleScreen(
+                                  membership: membership,
+                                  title: config.title,
+                                  path: config.path,
+                                )
+                              : InventoryScreen(
+                                  membership: membership,
+                                  initialTab: inventoryTab,
+                                );
+                        },
                       ),
                     ),
                     child: Padding(

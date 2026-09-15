@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../app.dart';
 import '../../core/models.dart';
+import '../appointments/appointments_screen.dart';
 import '../auth/welcome_screen.dart';
 import '../modules/module_config.dart';
 import '../modules/module_screen.dart';
@@ -317,6 +318,8 @@ class DashboardTab extends StatelessWidget {
                           ? SubscriptionScreen(membership: membership)
                           : item.path == 'support/diagnostics'
                           ? SupportScreen(membership: membership)
+                          : item.path == 'appointments'
+                          ? AppointmentsScreen(membership: membership)
                           : ModuleScreen(
                               membership: membership,
                               title: item.title,

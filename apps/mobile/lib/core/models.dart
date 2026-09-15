@@ -22,7 +22,8 @@ class Membership {
     permissions: (json['permissions'] as List<dynamic>? ?? const [])
         .map((value) => value.toString())
         .toList(growable: false),
-    employeeNumber: json['employeeNumber'] as String,
+    employeeNumber:
+        json['employeeNumber']?.toString() ?? json['id']?.toString() ?? '',
     branchId: json['branchId'] as String?,
     branchName: json['branchName'] as String?,
   );

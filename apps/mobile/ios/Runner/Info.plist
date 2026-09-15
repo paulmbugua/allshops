@@ -27,7 +27,9 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>Scan product barcodes at the point of sale.</string>
+	<string>Scan product barcodes and take product photos in AllShops POS.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Select product images to display in your AllShops catalogue and point of sale.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

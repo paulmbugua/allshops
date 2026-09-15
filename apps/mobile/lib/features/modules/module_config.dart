@@ -10,6 +10,7 @@ enum FieldKind {
   choice,
   toggle,
   reference,
+  image,
 }
 
 class FormFieldSpec {
@@ -96,6 +97,7 @@ final moduleConfigs = <String, ModuleConfig>{
     createFields: [
       FormFieldSpec('name', 'Product name', required: true),
       FormFieldSpec('arabicName', 'Arabic name'),
+      FormFieldSpec('imageUrl', 'Product image', kind: FieldKind.image),
       FormFieldSpec(
         'type',
         'Product type',
