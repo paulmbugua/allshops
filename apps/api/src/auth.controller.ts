@@ -10,9 +10,12 @@ import {
 } from "@nestjs/common";
 import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
 import {
+  accountTokenSchema,
   acceptInviteSchema,
+  forgotPasswordSchema,
   loginSchema,
   registerSchema,
+  resetPasswordSchema,
 } from "@allshops/contracts";
 
 import { AuthRateLimitGuard } from "./auth-rate-limit.guard.js";
@@ -63,6 +66,44 @@ export class AuthController {
       request,
     );
     return this.withCookie(response, result);
+  }
+
+  @Public()
+  @Post("activate-account")
+  async activateAccount(
+    @Body() body: unknown,
+    @Req() request: RequestContext,
+    @Res({ passthrough: true }) response: ResponseContext,
+  ) {
+    const result = await this.auth.activateAccount(
+      parseInput(accountTokenSchema, body),
+      request,
+    );
+    return this.withCookie(response, result);
+  }
+
+  @Public()
+  @Post("forgot-password")
+  forgotPassword(@Body() body: unknown, @Req() request: RequestContext) {
+    return this.auth.forgotPassword(
+      parseInput(forgotPasswordSchema, body),
+      request,
+    );
+  }
+
+  @Public()
+  @Post("resend-activation")
+  resendActivation(@Body() body: unknown) {
+    return this.auth.resendActivation(parseInput(forgotPasswordSchema, body));
+  }
+
+  @Public()
+  @Post("reset-password")
+  resetPassword(@Body() body: unknown, @Req() request: RequestContext) {
+    return this.auth.resetPassword(
+      parseInput(resetPasswordSchema, body),
+      request,
+    );
   }
 
   @Public()

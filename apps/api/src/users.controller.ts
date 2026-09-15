@@ -37,6 +37,18 @@ export class UsersController {
       assertUuid(membershipId, "membershipId"),
     );
   }
+  @RequirePermission("user.update")
+  @Post(":membershipId/send-password-reset")
+  sendPasswordReset(
+    @Param("membershipId") membershipId: string,
+    @Req() request: RequestContext,
+  ) {
+    return this.users.sendPasswordReset(
+      request.tenant!,
+      request.user!.id,
+      assertUuid(membershipId, "membershipId"),
+    );
+  }
   @RequirePermission("user.update", "role.assign")
   @Patch(":membershipId")
   update(

@@ -36,6 +36,16 @@ enum UserStatus {
   SUSPENDED
 }
 
+enum AccountTokenType {
+  EMAIL_ACTIVATION
+  PASSWORD_RESET
+}
+
+enum ReconciliationStatus {
+  SUBMITTED
+  APPROVED
+}
+
 enum MembershipStatus {
   ACTIVE
   INVITED
@@ -321,6 +331,7 @@ model Organization {
   onboardingSteps     OrganizationOnboardingStep[]
   supportIssues       SupportIssue[]
   pilotFeedback       PilotFeedback[]
+  cashierReconciliations CashierReconciliation[]
 
   @@index([status])
   @@map("organizations")
@@ -357,6 +368,7 @@ model Branch {
   commissions       Commission[]
   paystackPayments  PaystackPaymentIntent[]
   supportIssues     SupportIssue[]
+  cashierReconciliations CashierReconciliation[]
 
   @@unique([organizationId, code])
   @@index([organizationId, isActive])
@@ -380,6 +392,7 @@ model User {
   memberships               OrganizationUser[]
   invitations               Invitation[]                 @relation("InvitationUser")
   sentInvitations           Invitation[]                 @relation("InvitationInviter")
+  accountTokens             AccountToken[]
   sessions                  AuthSession[]
   devices                   Device[]
   auditLogs                 AuditLog[]
@@ -403,6 +416,9 @@ model User {
   subscriptionEventsCreated SubscriptionEvent[]          @relation("SubscriptionEventCreator")
   billingRecordsConfirmed   BillingRecord[]              @relation("BillingRecordConfirmer")
   paystackPaymentsCreated   PaystackPaymentIntent[]
+  cashierReconciliations    CashierReconciliation[]       @relation("CashierReconciliationCashier")
+  reconciliationsSubmitted  CashierReconciliation[]       @relation("CashierReconciliationSubmitter")
+  reconciliationsApproved   CashierReconciliation[]       @relation("CashierReconciliationApprover")
   pilotsOwned               PilotOrganization[]          @relation("PilotSupportOwner")
   onboardingStepsCompleted  OrganizationOnboardingStep[] @relation("OnboardingCompletedBy")
   supportIssuesReported     SupportIssue[]               @relation("SupportIssueReporter")
@@ -410,6 +426,22 @@ model User {
 
   @@index([status])
   @@map("users")
+}
+
+model AccountToken {
+  id        String           @id @default(uuid()) @db.Uuid
+  userId    String           @db.Uuid
+  type      AccountTokenType
+  tokenHash String           @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type, usedAt])
+  @@index([expiresAt])
+  @@map("account_tokens")
 }
 
 model PilotOrganization {
@@ -1252,6 +1284,40 @@ model Payment {
   @@index([organizationId, method, status, recordedAt])
   @@index([saleId, status])
   @@map("payments")
+}
+
+model CashierReconciliation {
+  id                 String               @id @default(uuid()) @db.Uuid
+  organizationId     String               @db.Uuid
+  branchId           String               @db.Uuid
+  cashierId          String               @db.Uuid
+  businessDate       DateTime             @db.Date
+  transactionCount   Int
+  totalSalesMinor    Int
+  expectedCashMinor  Int
+  cardSalesMinor     Int
+  creditSalesMinor   Int
+  countedCashMinor   Int
+  varianceMinor      Int
+  notes              String?
+  status             ReconciliationStatus @default(SUBMITTED)
+  submittedBy        String               @db.Uuid
+  submittedAt        DateTime             @default(now())
+  approvedBy         String?              @db.Uuid
+  approvedAt         DateTime?
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  branch       Branch       @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  cashier      User         @relation("CashierReconciliationCashier", fields: [cashierId], references: [id], onDelete: Restrict)
+  submitter    User         @relation("CashierReconciliationSubmitter", fields: [submittedBy], references: [id], onDelete: Restrict)
+  approver     User?        @relation("CashierReconciliationApprover", fields: [approvedBy], references: [id], onDelete: SetNull)
+
+  @@unique([organizationId, branchId, cashierId, businessDate])
+  @@index([organizationId, businessDate, status])
+  @@index([branchId, businessDate])
+  @@map("cashier_reconciliations")
 }
 
 model PaystackPaymentIntent {

@@ -430,6 +430,40 @@ export class UsersService {
     };
   }
 
+  async sendPasswordReset(
+    tenant: TenantContext,
+    requestedBy: string,
+    membershipId: string,
+  ) {
+    const membership = await prisma.organizationUser.findFirst({
+      where: {
+        id: membershipId,
+        organizationId: tenant.organizationId,
+        ...(tenant.branchId ? { branchId: tenant.branchId } : {}),
+      },
+      select: { id: true, userId: true },
+    });
+    if (!membership)
+      throw new NotFoundException({
+        code: "MEMBERSHIP_NOT_FOUND",
+        message: "Organization user not found.",
+      });
+    const delivery = await this.auth.sendPasswordResetForUser(
+      membership.userId,
+    );
+    await prisma.auditLog.create({
+      data: {
+        organizationId: tenant.organizationId,
+        userId: requestedBy,
+        action: "USER_PASSWORD_RESET_SENT",
+        entityType: "OrganizationUser",
+        entityId: membership.id,
+        afterJson: { delivery: delivery.status },
+      },
+    });
+    return { emailDelivery: delivery.status };
+  }
+
   private async role(organizationId: string, roleId: string) {
     const role = await prisma.role.findFirst({
       where: { id: roleId, OR: [{ organizationId: null }, { organizationId }] },

@@ -9,8 +9,10 @@ import '../modules/module_screen.dart';
 import '../modules/workspace_screen.dart';
 import '../pos/pos_screen.dart';
 import '../purchases/purchases_screen.dart';
+import '../reconciliation/reconciliation_screen.dart';
 import '../subscription/subscription_screen.dart';
 import '../support/support_screen.dart';
+import '../users/users_screen.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key, required this.user, required this.membership});
@@ -54,26 +56,26 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ),
     ];
     final destinations = <NavigationDestination>[
-      const NavigationDestination(
+      NavigationDestination(
         icon: Icon(Icons.space_dashboard_outlined),
         selectedIcon: Icon(Icons.space_dashboard_rounded),
-        label: 'Home',
+        label: tr(context, 'Home', 'الرئيسية'),
       ),
       if (canUsePos)
-        const NavigationDestination(
+        NavigationDestination(
           icon: Icon(Icons.point_of_sale_outlined),
           selectedIcon: Icon(Icons.point_of_sale_rounded),
-          label: 'POS',
+          label: tr(context, 'POS', 'نقطة البيع'),
         ),
       if (widget.membership.hasPermission('inventory.read'))
-        const NavigationDestination(
+        NavigationDestination(
           icon: Icon(Icons.inventory_2_outlined),
-          label: 'Stock',
+          label: tr(context, 'Stock', 'المخزون'),
         ),
       if (widget.membership.hasPermission('report.dashboard'))
-        const NavigationDestination(
+        NavigationDestination(
           icon: Icon(Icons.insights_outlined),
-          label: 'Reports',
+          label: tr(context, 'Reports', 'التقارير'),
         ),
     ];
     final selectedIndex = index.clamp(0, pages.length - 1);
@@ -133,12 +135,17 @@ class DashboardTab extends StatelessWidget {
     'sync/conflicts',
     'pilot-readiness',
     'support/diagnostics',
+    'reconciliation',
   ];
 
   @override
   Widget build(BuildContext context) {
     final allowedPaths = paths
         .where((path) {
+          if (path == 'reconciliation') {
+            return membership.hasPermission('reconciliation.submit') ||
+                membership.hasPermission('reconciliation.read_all');
+          }
           final permission = moduleReadPermission(path);
           return permission == null || membership.hasPermission(permission);
         })
@@ -168,6 +175,11 @@ class DashboardTab extends StatelessWidget {
                   PopupMenuButton<String>(
                     onSelected: (value) {
                       if (value == 'logout') onLogout();
+                      if (value == 'language-en' || value == 'language-ar') {
+                        AppLanguageScope.of(
+                          context,
+                        ).setLanguage(value.endsWith('ar') ? 'ar' : 'en');
+                      }
                     },
                     itemBuilder: (_) => [
                       PopupMenuItem(
@@ -189,6 +201,22 @@ class DashboardTab extends StatelessWidget {
                         ),
                       ),
                       const PopupMenuDivider(),
+                      PopupMenuItem(
+                        value: AppLanguageScope.of(context).isArabic
+                            ? 'language-en'
+                            : 'language-ar',
+                        child: Row(
+                          children: [
+                            const Icon(Icons.language_rounded),
+                            const SizedBox(width: 10),
+                            Text(
+                              AppLanguageScope.of(context).isArabic
+                                  ? 'English'
+                                  : 'العربية',
+                            ),
+                          ],
+                        ),
+                      ),
                       const PopupMenuItem(
                         value: 'logout',
                         child: Row(
@@ -222,7 +250,7 @@ class DashboardTab extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Good day, ${user.name.split(' ').first}',
+                    '${tr(context, 'Good day', 'مرحباً')}، ${user.name.split(' ').first}',
                     style: const TextStyle(
                       fontSize: 13,
                       color: Colors.blueGrey,
@@ -257,12 +285,16 @@ class DashboardTab extends StatelessWidget {
                     ),
                     child: Row(
                       children: [
-                        const Expanded(
+                        Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Ready to sell?',
+                                tr(
+                                  context,
+                                  'Ready to sell?',
+                                  'هل أنت مستعد للبيع؟',
+                                ),
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontSize: 24,
@@ -271,7 +303,11 @@ class DashboardTab extends StatelessWidget {
                               ),
                               SizedBox(height: 6),
                               Text(
-                                'Fast checkout. Cash or local card. Offline-safe.',
+                                tr(
+                                  context,
+                                  'Fast checkout. Cash or local card. Offline-safe.',
+                                  'دفع سريع نقداً أو بالبطاقة المحلية، مع دعم العمل دون اتصال.',
+                                ),
                                 style: TextStyle(
                                   color: Color(0xFFAEC5BD),
                                   height: 1.4,
@@ -296,11 +332,11 @@ class DashboardTab extends StatelessWidget {
               ),
             ),
           ),
-          const SliverPadding(
+          SliverPadding(
             padding: EdgeInsets.fromLTRB(20, 5, 20, 10),
             sliver: SliverToBoxAdapter(
               child: Text(
-                'Your workspace',
+                tr(context, 'Your workspace', 'مساحة عملك'),
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
               ),
             ),
@@ -323,6 +359,10 @@ class DashboardTab extends StatelessWidget {
                           ? AppointmentsScreen(membership: membership)
                           : item.path == 'purchases'
                           ? PurchasesScreen(membership: membership)
+                          : item.path == 'reconciliation'
+                          ? ReconciliationScreen(membership: membership)
+                          : item.path == 'users'
+                          ? UsersScreen(membership: membership)
                           : ModuleScreen(
                               membership: membership,
                               title: item.title,
@@ -347,7 +387,7 @@ class DashboardTab extends StatelessWidget {
                           ),
                           const Spacer(),
                           Text(
-                            item.title,
+                            translateLabel(context, item.title),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../app.dart';
 import '../../core/models.dart';
 import '../home/home_screen.dart';
+import 'forgot_password_screen.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -65,9 +66,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                 ),
                 const SizedBox(height: 28),
-                const Text(
-                  'Welcome back',
-                  style: TextStyle(
+                Text(
+                  tr(context, 'Welcome back', 'مرحباً بعودتك'),
+                  style: const TextStyle(
                     fontSize: 40,
                     fontWeight: FontWeight.w900,
                     letterSpacing: -1.8,
@@ -75,7 +76,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Sign in to open your AllShops workspace.',
+                  tr(
+                    context,
+                    'Sign in to open your AllShops workspace.',
+                    'سجّل الدخول لفتح مساحة عمل AllShops.',
+                  ),
                   style: TextStyle(
                     color: Colors.blueGrey.shade500,
                     fontSize: 16,
@@ -86,9 +91,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   controller: email,
                   keyboardType: TextInputType.emailAddress,
                   textInputAction: TextInputAction.next,
-                  decoration: const InputDecoration(
-                    labelText: 'Email address',
-                    prefixIcon: Icon(Icons.alternate_email_rounded),
+                  decoration: InputDecoration(
+                    labelText: tr(
+                      context,
+                      'Email address',
+                      'البريد الإلكتروني',
+                    ),
+                    prefixIcon: const Icon(Icons.alternate_email_rounded),
                   ),
                 ),
                 const SizedBox(height: 14),
@@ -96,9 +105,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   controller: password,
                   obscureText: true,
                   onSubmitted: (_) => submit(),
-                  decoration: const InputDecoration(
-                    labelText: 'Password',
-                    prefixIcon: Icon(Icons.lock_outline_rounded),
+                  decoration: InputDecoration(
+                    labelText: tr(context, 'Password', 'كلمة المرور'),
+                    prefixIcon: const Icon(Icons.lock_outline_rounded),
+                  ),
+                ),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const ForgotPasswordScreen(),
+                      ),
+                    ),
+                    child: Text(
+                      tr(context, 'Forgot password?', 'هل نسيت كلمة المرور؟'),
+                    ),
                   ),
                 ),
                 if (error != null)
@@ -114,11 +136,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 const SizedBox(height: 22),
                 ElevatedButton(
                   onPressed: busy ? null : submit,
-                  child: Text(busy ? 'Signing in…' : 'Sign in securely'),
+                  child: Text(
+                    busy
+                        ? tr(context, 'Signing in…', 'جارٍ تسجيل الدخول…')
+                        : tr(context, 'Sign in securely', 'تسجيل دخول آمن'),
+                  ),
                 ),
                 const SizedBox(height: 24),
-                const Text(
-                  'Your access follows the same roles, branch restrictions and subscription controls as AllShops Web.',
+                Text(
+                  tr(
+                    context,
+                    'Your access follows the same roles, branch restrictions and subscription controls as AllShops Web.',
+                    'تتبع صلاحياتك الأدوار وقيود الفروع وضوابط الاشتراك نفسها في الويب.',
+                  ),
                   textAlign: TextAlign.center,
                   style: TextStyle(color: Colors.blueGrey, fontSize: 12),
                 ),

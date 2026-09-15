@@ -630,6 +630,14 @@ final moduleConfigs = <String, ModuleConfig>{
     detail: false,
     searchable: false,
   ),
+  'reconciliation': const ModuleConfig(
+    title: 'End-of-day cash-up',
+    path: 'reconciliation',
+    icon: Icons.price_check_outlined,
+    color: Color(0xFF8F2347),
+    detail: false,
+    searchable: false,
+  ),
   'support/diagnostics': const ModuleConfig(
     title: 'Support diagnostics',
     path: 'support/diagnostics',
@@ -692,6 +700,7 @@ String? moduleReadPermission(String path) {
     'sync/conflicts': 'sync.conflict.read',
     'pilot-readiness': 'organization.read',
     'support/diagnostics': 'organization.read',
+    'reconciliation': 'reconciliation.submit',
   }[path];
 }
 

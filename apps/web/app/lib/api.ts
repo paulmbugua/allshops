@@ -26,6 +26,9 @@ export interface AuthResult {
   accessToken: string;
   expiresIn: number;
   user: CurrentUser;
+  activationRequired?: boolean;
+  activationToken?: string;
+  emailDelivery?: "SENT" | "FAILED" | "NOT_CONFIGURED";
 }
 export class ApiError extends Error {
   constructor(

@@ -11,23 +11,25 @@ abstract final class AllShopsTheme {
   static ThemeData get light => ThemeData(
     useMaterial3: true,
     colorScheme: ColorScheme.fromSeed(
-      seedColor: coral,
-      primary: coral,
+      seedColor: qatarMaroon,
+      primary: qatarMaroon,
       secondary: mint,
       surface: Colors.white,
     ),
-    scaffoldBackgroundColor: canvas,
+    scaffoldBackgroundColor: const Color(0xFFF8F5F1),
     appBarTheme: const AppBarTheme(
-      backgroundColor: Colors.transparent,
+      backgroundColor: Color(0xFFF8F5F1),
       elevation: 0,
       foregroundColor: ink,
     ),
-    cardTheme: const CardThemeData(
-      elevation: 0,
+    cardTheme: CardThemeData(
+      elevation: 1,
+      shadowColor: qatarMaroon.withValues(alpha: .08),
       color: Colors.white,
       margin: EdgeInsets.zero,
-      shape: RoundedRectangleBorder(
+      shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.all(Radius.circular(22)),
+        side: BorderSide(color: Color(0x14_6D1738)),
       ),
     ),
     inputDecorationTheme: InputDecorationTheme(
@@ -41,12 +43,32 @@ abstract final class AllShopsTheme {
     ),
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
-        backgroundColor: coral,
+        backgroundColor: qatarMaroon,
         foregroundColor: Colors.white,
         minimumSize: const Size(64, 54),
         shape: const StadiumBorder(),
         textStyle: const TextStyle(fontWeight: FontWeight.w800),
       ),
+    ),
+    floatingActionButtonTheme: const FloatingActionButtonThemeData(
+      backgroundColor: qatarMaroon,
+      foregroundColor: Colors.white,
+    ),
+    navigationBarTheme: NavigationBarThemeData(
+      backgroundColor: Colors.white,
+      indicatorColor: qatarSand,
+      labelTextStyle: WidgetStateProperty.resolveWith(
+        (states) => TextStyle(
+          color: states.contains(WidgetState.selected) ? qatarMaroon : ink,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    ),
+    chipTheme: ChipThemeData(
+      backgroundColor: qatarSand.withValues(alpha: .48),
+      selectedColor: qatarMaroon,
+      side: BorderSide.none,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
     ),
   );
 }

@@ -62,6 +62,11 @@ export default function LoginPage() {
           Email
           <input name="email" type="email" required autoComplete="email" />
         </label>
+        <p className="auth-assist">
+          <Link href="/forgot-password">Forgot password?</Link>
+          {" · "}
+          <Link href="/resend-activation">Resend activation</Link>
+        </p>
         <label>
           Password
           <input

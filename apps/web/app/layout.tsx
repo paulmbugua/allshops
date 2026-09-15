@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 
 import "./styles.css";
 import { PwaRegistration } from "./components/pwa-registration";
+import { LanguageProvider } from "./components/language-provider";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://allshops.ekazi.co.ke"),
@@ -26,7 +27,7 @@ export default function RootLayout({
     <html lang="en">
       <body>
         <PwaRegistration />
-        {children}
+        <LanguageProvider>{children}</LanguageProvider>
       </body>
     </html>
   );

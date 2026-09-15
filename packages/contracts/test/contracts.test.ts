@@ -6,6 +6,9 @@ import {
   createProductSchema,
   quantitySchema,
   decimalCurrencyToMinor,
+  forgotPasswordSchema,
+  resetPasswordSchema,
+  submitReconciliationSchema,
 } from "../src/index.js";
 
 const invalidOrganization = createOrganizationSchema.safeParse({
@@ -19,13 +22,12 @@ assert.equal(
 );
 
 const invalidBranch = createBranchSchema.safeParse({
-  name: "Doha Branch",
-  code: "lower case",
+  name: "D",
 });
 assert.equal(
   invalidBranch.success,
   false,
-  "malformed branch codes must be rejected",
+  "branch names must satisfy the public identity policy",
 );
 
 assert.equal(
@@ -54,4 +56,25 @@ assert.equal(
   "currency parsing avoids floating-point arithmetic",
 );
 
-console.log("Contracts tests passed (6 assertions).");
+assert.equal(
+  forgotPasswordSchema.safeParse({ email: "CASHIER@EXAMPLE.COM" }).success,
+  true,
+  "password recovery accepts and normalizes valid emails",
+);
+assert.equal(
+  resetPasswordSchema.safeParse({ token: "x".repeat(43), password: "short" })
+    .success,
+  false,
+  "password reset enforces the password policy",
+);
+assert.equal(
+  submitReconciliationSchema.safeParse({
+    date: "2026-09-15",
+    branchId: "30b1889f-4d8d-4fe2-afed-ec40c3bed533",
+    countedCashMinor: 125050,
+  }).success,
+  true,
+  "cashier reconciliation uses a Qatar business date and integer minor units",
+);
+
+console.log("Contracts tests passed (9 assertions).");

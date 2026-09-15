@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'core/api_client.dart';
 import 'core/app_logger.dart';
 import 'core/offline_store.dart';
@@ -12,17 +13,125 @@ import 'core/models.dart';
 final apiProvider = Provider<ApiClient>((ref) => ApiClient());
 final offlineStoreProvider = Provider<OfflineStore>((ref) => OfflineStore());
 
-class AllShopsApp extends StatelessWidget {
+class AppLanguageScope extends InheritedWidget {
+  const AppLanguageScope({
+    super.key,
+    required this.language,
+    required this.setLanguage,
+    required super.child,
+  });
+  final String language;
+  final ValueChanged<String> setLanguage;
+  bool get isArabic => language == 'ar';
+  static AppLanguageScope of(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<AppLanguageScope>()!;
+  @override
+  bool updateShouldNotify(AppLanguageScope oldWidget) =>
+      language != oldWidget.language;
+}
+
+String tr(BuildContext context, String english, String arabic) =>
+    AppLanguageScope.of(context).isArabic ? arabic : english;
+
+const _arabicLabels = <String, String>{
+  'Products': 'المنتجات',
+  'Sales': 'المبيعات',
+  'Customers': 'العملاء',
+  'Purchases': 'أوامر الشراء',
+  'Suppliers': 'الموردون',
+  'Expenses': 'المصروفات',
+  'Expense categories': 'فئات المصروفات',
+  'Appointments': 'المواعيد',
+  'Staff': 'الموظفون',
+  'Commissions': 'العمولات',
+  'Commission rules': 'قواعد العمولة',
+  'Branches': 'الفروع',
+  'Users': 'المستخدمون',
+  'Devices': 'الأجهزة',
+  'Subscription': 'الاشتراك',
+  'Billing': 'الفوترة',
+  'Sync conflicts': 'تعارضات المزامنة',
+  'Readiness': 'الجاهزية',
+  'Support diagnostics': 'الدعم والتشخيص',
+  'Current stock': 'المخزون الحالي',
+  'Transfers': 'التحويلات',
+  'Movements': 'الحركات',
+  'Categories': 'الفئات',
+  'Brands': 'العلامات التجارية',
+  'Units': 'الوحدات',
+  'End-of-day cash-up': 'تسوية نهاية اليوم',
+  'Reports': 'التقارير',
+  'Dashboard': 'لوحة المعلومات',
+  'Profit': 'الأرباح',
+  'Payments': 'المدفوعات',
+  'Inventory': 'المخزون',
+  'New': 'جديد',
+  'Search': 'بحث',
+  'Name': 'الاسم',
+  'Full name': 'الاسم الكامل',
+  'Email': 'البريد الإلكتروني',
+  'Phone': 'الهاتف',
+  'Address': 'العنوان',
+  'Role': 'الدور',
+  'Branch': 'الفرع',
+  'Status': 'الحالة',
+  'Notes': 'ملاحظات',
+  'Quantity': 'الكمية',
+  'Price': 'السعر',
+  'Cost': 'التكلفة',
+  'Product': 'المنتج',
+  'Category': 'الفئة',
+  'Brand': 'العلامة التجارية',
+  'Reference': 'المرجع',
+  'Payment method': 'طريقة الدفع',
+  'Date': 'التاريخ',
+  'Description': 'الوصف',
+};
+
+String translateLabel(BuildContext context, String english) =>
+    AppLanguageScope.of(context).isArabic
+    ? _arabicLabels[english] ?? english
+    : english;
+
+class AllShopsApp extends StatefulWidget {
   const AllShopsApp({super.key});
   @override
-  Widget build(BuildContext context) => MaterialApp(
-    title: 'AllShops POS',
-    debugShowCheckedModeBanner: false,
-    theme: AllShopsTheme.light,
-    supportedLocales: const [Locale('en'), Locale('ar')],
-    localizationsDelegates: GlobalMaterialLocalizations.delegates,
-    navigatorObservers: [AppNavigationObserver()],
-    home: const SessionGate(),
+  State<AllShopsApp> createState() => _AllShopsAppState();
+}
+
+class _AllShopsAppState extends State<AllShopsApp> {
+  static const storage = FlutterSecureStorage();
+  String language = 'en';
+  @override
+  void initState() {
+    super.initState();
+    storage.read(key: 'allshops_display_language').then((value) {
+      if (mounted && (value == 'en' || value == 'ar')) {
+        setState(() => language = value!);
+      }
+    });
+  }
+
+  void setLanguage(String value) {
+    if (value != 'en' && value != 'ar') return;
+    setState(() => language = value);
+    storage.write(key: 'allshops_display_language', value: value);
+  }
+
+  @override
+  Widget build(BuildContext context) => AppLanguageScope(
+    language: language,
+    setLanguage: setLanguage,
+    child: MaterialApp(
+      title: 'AllShops POS',
+      debugShowCheckedModeBanner: false,
+      theme: AllShopsTheme.light,
+      locale: Locale(language),
+      supportedLocales: const [Locale('en'), Locale('ar')],
+      localizationsDelegates: GlobalMaterialLocalizations.delegates,
+      navigatorObservers: [AppNavigationObserver()],
+      home: const SessionGate(),
+    ),
   );
 }
 

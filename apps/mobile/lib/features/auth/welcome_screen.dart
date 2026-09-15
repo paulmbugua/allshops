@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../core/theme.dart';
+import '../../app.dart';
 import 'login_screen.dart';
 
 class WelcomeScreen extends StatefulWidget {
@@ -35,6 +36,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   Future<void> _setLanguage(String value) async {
     if (value == language) return;
     setState(() => language = value);
+    AppLanguageScope.of(context).setLanguage(value);
     await _storage.write(key: _languageKey, value: value);
   }
 

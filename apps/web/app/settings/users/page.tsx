@@ -167,6 +167,28 @@ export default function UserSettingsPage() {
       );
     }
   }
+  async function sendPasswordReset(member: Member) {
+    if (!organizationId) return;
+    try {
+      const result = await api<{
+        emailDelivery: "SENT" | "FAILED" | "NOT_CONFIGURED";
+      }>(
+        `/organizations/${organizationId}/users/${member.id}/send-password-reset`,
+        { method: "POST" },
+      );
+      setMessage(
+        result.emailDelivery === "SENT"
+          ? `A password-reset link was emailed to ${member.user.email}.`
+          : "The reset was created, but email delivery failed. Check SMTP settings.",
+      );
+    } catch (caught) {
+      setMessage(
+        caught instanceof Error
+          ? caught.message
+          : "Unable to send password reset.",
+      );
+    }
+  }
   const canInvite =
     permissions.includes("user.invite") && permissions.includes("role.assign");
   const canUpdate =
@@ -250,6 +272,15 @@ export default function UserSettingsPage() {
                     onClick={() => void resend(member)}
                   >
                     Resend invite
+                  </button>
+                )}
+                {member.status === "ACTIVE" && canUpdate && (
+                  <button
+                    type="button"
+                    className="secondary"
+                    onClick={() => void sendPasswordReset(member)}
+                  >
+                    Send password reset
                   </button>
                 )}
               </div>

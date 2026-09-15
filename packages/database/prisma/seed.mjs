@@ -174,6 +174,12 @@ const permissions = [
   ["report.appointments", "View appointment reports"],
   ["report.commissions", "View commission reports"],
   ["report.export", "Export authorized reports"],
+  ["reconciliation.submit", "Submit own end-of-day cashier cash-up"],
+  [
+    "reconciliation.read_all",
+    "View branch or organization cash reconciliations",
+  ],
+  ["reconciliation.approve", "Approve submitted cashier reconciliations"],
   ["device.register", "Register the current POS device"],
   ["device.read", "View POS devices"],
   ["device.manage", "Manage and revoke POS devices"],
@@ -228,6 +234,7 @@ const cashierOperations = [
   "device.register",
   "sync.read",
   "sync.execute",
+  "reconciliation.submit",
 ];
 const phase4Management = [
   "supplier.read",
@@ -294,6 +301,8 @@ const operationalReports = [
   "report.appointments",
   "report.commissions",
   "report.export",
+  "reconciliation.read_all",
+  "reconciliation.approve",
 ];
 const syncManagement = [
   "device.register",
@@ -411,6 +420,8 @@ const rolePermissions = {
     "report.dashboard",
     "report.sales",
     "report.payments",
+    "reconciliation.read_all",
+    "reconciliation.approve",
     "staff.read",
     "staff_availability.read",
     "appointment.read",

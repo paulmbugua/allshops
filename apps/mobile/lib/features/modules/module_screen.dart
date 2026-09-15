@@ -54,7 +54,7 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(
       title: Text(
-        config.title,
+        translateLabel(context, config.title),
         style: const TextStyle(fontWeight: FontWeight.w900),
       ),
       actions: [
@@ -71,7 +71,7 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
             foregroundColor: Colors.white,
             onPressed: _create,
             icon: const Icon(Icons.add_rounded),
-            label: const Text('New'),
+            label: Text(tr(context, 'New', 'جديد')),
           ),
     body: FutureBuilder<dynamic>(
       future: data,

@@ -508,117 +508,132 @@ class _PlanCard extends StatelessWidget {
           ),
         ],
       ),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          Container(
-            width: 45,
-            height: 45,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: featured
-                  ? const Color(0xFFFFDED3)
-                  : const Color(0xFFE5F5EE),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Icon(
-              code == 'STARTER'
-                  ? Icons.bolt_rounded
-                  : code == 'BUSINESS'
-                  ? Icons.storefront_rounded
-                  : Icons.auto_graph_rounded,
-              color: featured
-                  ? const Color(0xFFF35F45)
-                  : const Color(0xFF278565),
-            ),
-          ),
-          const Spacer(),
-          if (featured)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFCF5C),
-                borderRadius: BorderRadius.circular(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 45,
+                height: 45,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: featured
+                      ? const Color(0xFFFFDED3)
+                      : const Color(0xFFE5F5EE),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(
+                  code == 'STARTER'
+                      ? Icons.bolt_rounded
+                      : code == 'BUSINESS'
+                      ? Icons.storefront_rounded
+                      : Icons.auto_graph_rounded,
+                  color: featured
+                      ? const Color(0xFFF35F45)
+                      : const Color(0xFF278565),
+                ),
               ),
-              child: const Text(
-                'MOST POPULAR',
-                style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900),
-              ),
-            ),
-        ]),
-        const SizedBox(height: 14),
-        Text(
-          plan['name']?.toString() ?? 'Plan',
-          style: const TextStyle(fontSize: 23, fontWeight: FontWeight.w900),
-        ),
-        Text(
-          plan['description']?.toString() ?? _planDescription(code),
-          style: const TextStyle(color: Colors.blueGrey, height: 1.4),
-        ),
-        const SizedBox(height: 12),
-        Text.rich(
-          TextSpan(children: [
-            TextSpan(
-              text:
-                  '${plan['currency'] ?? ''} ${amount.toStringAsFixed(amount.truncateToDouble() == amount ? 0 : 2)}',
-              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900),
-            ),
-            TextSpan(
-              text: interval == 'ANNUAL' ? ' / year' : ' / month',
-              style: const TextStyle(color: Colors.blueGrey),
-            ),
-          ]),
-        ),
-        const SizedBox(height: 12),
-        Wrap(
-          spacing: 7,
-          runSpacing: 7,
-          children: limits
-              .map(
-                (limit) => Chip(
-                  visualDensity: VisualDensity.compact,
-                  label: Text(
-                    '${limit['value'] ?? 'Unlimited'} ${_limitLabel(limit['limitCode']?.toString() ?? '')}',
-                    style: const TextStyle(fontSize: 11),
+              const Spacer(),
+              if (featured)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 9,
+                    vertical: 5,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFCF5C),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Text(
+                    'MOST POPULAR',
+                    style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900),
                   ),
                 ),
-              )
-              .toList(),
-        ),
-        const SizedBox(height: 12),
-        ...features.map(
-          (feature) => Padding(
-            padding: const EdgeInsets.only(bottom: 7),
-            child: Row(children: [
-              const Icon(
-                Icons.check_circle_rounded,
-                size: 17,
-                color: Color(0xFF2B9A6D),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  _featureLabel(feature['featureCode']?.toString() ?? ''),
-                  style: const TextStyle(fontWeight: FontWeight.w600),
-                ),
-              ),
-            ]),
+            ],
           ),
-        ),
-        const SizedBox(height: 10),
-        SizedBox(
-          width: double.infinity,
-          child: FilledButton(
-            onPressed: current || !canManage || busy ? null : onSelect,
-            child: Text(
-              current
-                  ? 'Current plan'
-                  : canManage
-                  ? 'Choose ${plan['name']}'
-                  : 'Owner approval required',
+          const SizedBox(height: 14),
+          Text(
+            plan['name']?.toString() ?? 'Plan',
+            style: const TextStyle(fontSize: 23, fontWeight: FontWeight.w900),
+          ),
+          Text(
+            plan['description']?.toString() ?? _planDescription(code),
+            style: const TextStyle(color: Colors.blueGrey, height: 1.4),
+          ),
+          const SizedBox(height: 12),
+          Text.rich(
+            TextSpan(
+              children: [
+                TextSpan(
+                  text:
+                      '${plan['currency'] ?? ''} ${amount.toStringAsFixed(amount.truncateToDouble() == amount ? 0 : 2)}',
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                TextSpan(
+                  text: interval == 'ANNUAL' ? ' / year' : ' / month',
+                  style: const TextStyle(color: Colors.blueGrey),
+                ),
+              ],
             ),
           ),
-        ),
-      ]),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 7,
+            runSpacing: 7,
+            children: limits
+                .map(
+                  (limit) => Chip(
+                    visualDensity: VisualDensity.compact,
+                    label: Text(
+                      '${limit['value'] ?? 'Unlimited'} ${_limitLabel(limit['limitCode']?.toString() ?? '')}',
+                      style: const TextStyle(fontSize: 11),
+                    ),
+                  ),
+                )
+                .toList(),
+          ),
+          const SizedBox(height: 12),
+          ...features.map(
+            (feature) => Padding(
+              padding: const EdgeInsets.only(bottom: 7),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.check_circle_rounded,
+                    size: 17,
+                    color: Color(0xFF2B9A6D),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _featureLabel(feature['featureCode']?.toString() ?? ''),
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton(
+              onPressed: current || !canManage || busy ? null : onSelect,
+              child: Text(
+                current
+                    ? 'Current plan'
+                    : canManage
+                    ? 'Choose ${plan['name']}'
+                    : 'Owner approval required',
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -649,32 +664,39 @@ String _label(String value) => value
     )
     .join(' ');
 
-String _planDescription(String code) => const {
-  'STARTER': 'A focused toolkit for a single counter and growing catalogue.',
-  'BUSINESS': 'Complete daily operations for established shops and teams.',
-  'GROWTH': 'Multi-branch control, offline selling and deeper insight.',
-}[code] ?? 'Flexible tools for your business.';
+String _planDescription(String code) =>
+    const {
+      'STARTER':
+          'A focused toolkit for a single counter and growing catalogue.',
+      'BUSINESS': 'Complete daily operations for established shops and teams.',
+      'GROWTH': 'Multi-branch control, offline selling and deeper insight.',
+    }[code] ??
+    'Flexible tools for your business.';
 
-String _featureLabel(String code) => const {
-  'pos': 'Modern POS checkout',
-  'inventory': 'Inventory control',
-  'customers': 'Customer records',
-  'reports': 'Core reporting',
-  'suppliers': 'Suppliers & purchasing',
-  'purchases': 'Purchase workflows',
-  'expenses': 'Expense tracking',
-  'customer_credit': 'Customer credit',
-  'reports_profit': 'Profit reporting',
-  'exports': 'Protected exports',
-  'appointments': 'Appointments',
-  'commissions': 'Staff commissions',
-  'offline_pos': 'Offline POS',
-  'multi_branch': 'Multi-branch operations',
-}[code] ?? _label(code);
+String _featureLabel(String code) =>
+    const {
+      'pos': 'Modern POS checkout',
+      'inventory': 'Inventory control',
+      'customers': 'Customer records',
+      'reports': 'Core reporting',
+      'suppliers': 'Suppliers & purchasing',
+      'purchases': 'Purchase workflows',
+      'expenses': 'Expense tracking',
+      'customer_credit': 'Customer credit',
+      'reports_profit': 'Profit reporting',
+      'exports': 'Protected exports',
+      'appointments': 'Appointments',
+      'commissions': 'Staff commissions',
+      'offline_pos': 'Offline POS',
+      'multi_branch': 'Multi-branch operations',
+    }[code] ??
+    _label(code);
 
-String _limitLabel(String code) => const {
-  'branches.max': 'branches',
-  'users.max': 'users',
-  'devices.max': 'POS devices',
-  'products.max': 'products',
-}[code] ?? code;
+String _limitLabel(String code) =>
+    const {
+      'branches.max': 'branches',
+      'users.max': 'users',
+      'devices.max': 'POS devices',
+      'products.max': 'products',
+    }[code] ??
+    code;

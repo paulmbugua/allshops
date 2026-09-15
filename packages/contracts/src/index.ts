@@ -96,6 +96,18 @@ export const acceptInviteSchema = z.object({
   name: z.string().trim().min(2).max(120).optional(),
 });
 
+export const accountTokenSchema = z.object({
+  token: z.string().min(32).max(2048),
+});
+
+export const forgotPasswordSchema = z.object({
+  email: z.string().trim().toLowerCase().email(),
+});
+
+export const resetPasswordSchema = accountTokenSchema.extend({
+  password: z.string().min(8).max(128),
+});
+
 export const updateMembershipSchema = z
   .object({
     roleId: z.string().uuid().optional(),
@@ -883,6 +895,16 @@ export const salesReportFilterSchema = reportDateRangeSchema.and(
     paymentMethod: paymentMethodSchema.optional(),
   }),
 );
+export const reconciliationDateSchema = z.object({
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  branchId: identifier.optional(),
+});
+export const submitReconciliationSchema = z.object({
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  branchId: identifier,
+  countedCashMinor: z.number().int().min(0).max(2_147_483_647),
+  notes: z.string().trim().max(1000).nullable().optional(),
+});
 export const inventoryReportFilterSchema = z.object({
   branchId: identifier.optional(),
   productId: identifier.optional(),
@@ -1061,6 +1083,9 @@ export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 export type InviteUserInput = z.infer<typeof inviteUserSchema>;
 export type AcceptInviteInput = z.infer<typeof acceptInviteSchema>;
+export type AccountTokenInput = z.infer<typeof accountTokenSchema>;
+export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
+export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
 export type UpdateMembershipInput = z.infer<typeof updateMembershipSchema>;
 export type CreateCategoryInput = z.infer<typeof createCategorySchema>;
 export type UpdateCategoryInput = z.infer<typeof updateCategorySchema>;
@@ -1160,6 +1185,10 @@ export type CommissionRuleListInput = z.infer<typeof commissionRuleListSchema>;
 export type CommissionListInput = z.infer<typeof commissionListSchema>;
 export type ReportDateRangeInput = z.infer<typeof reportDateRangeSchema>;
 export type SalesReportFilterInput = z.infer<typeof salesReportFilterSchema>;
+export type ReconciliationDateInput = z.infer<typeof reconciliationDateSchema>;
+export type SubmitReconciliationInput = z.infer<
+  typeof submitReconciliationSchema
+>;
 export type InventoryReportFilterInput = z.infer<
   typeof inventoryReportFilterSchema
 >;

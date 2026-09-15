@@ -28,6 +28,14 @@ const faqs: ScopedFaq[] = [
     platforms: ["WEB", "MOBILE"],
   },
   {
+    id: "password-recovery",
+    category: "Getting started",
+    question: "How do I activate my account or reset a forgotten password?",
+    answer:
+      "New account owners receive a one-time activation email. If it expires, use Resend activation on the web sign-in screen. For a forgotten password, choose Forgot password on web or mobile; the secure one-hour link changes the password for both apps and signs out older sessions.",
+    platforms: ["WEB", "MOBILE"],
+  },
+  {
     id: "pos-scan",
     category: "Point of sale",
     question: "How do I scan a product?",
@@ -104,6 +112,15 @@ const faqs: ScopedFaq[] = [
     anyPermission: ["report.dashboard", "report.sales"],
   },
   {
+    id: "cashier-reconciliation",
+    category: "Reports",
+    question: "How does end-of-day cashier reconciliation work?",
+    answer:
+      "Each cashier opens End-of-day cash-up, confirms the business date, counts physical cash and submits. AllShops compares it with collected cash after change. Supervisors and branch managers review individual variances and approve the branch roll-up; organization managers and owners can view consolidated totals.",
+    platforms: ["WEB", "MOBILE"],
+    anyPermission: ["reconciliation.submit", "reconciliation.read_all"],
+  },
+  {
     id: "invite-staff",
     category: "Team & access",
     question: "How do I create a staff login?",
@@ -158,5 +175,11 @@ export function supportFaqsFor(tenant: TenantContext): SupportFaq[] {
         (!faq.anyPermission ||
           faq.anyPermission.some((permission) => permissions.has(permission))),
     )
-    .map(({ anyPermission: _permission, roles: _roles, ...faq }) => faq);
+    .map(({ id, category, question, answer, platforms }) => ({
+      id,
+      category,
+      question,
+      answer,
+      platforms,
+    }));
 }

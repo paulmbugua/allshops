@@ -49,6 +49,8 @@ import {
 } from "./product-images.controller.js";
 import { ProductImagesService } from "./product-images.service.js";
 import { MailService } from "./mail.service.js";
+import { ReconciliationController } from "./reconciliation.controller.js";
+import { ReconciliationService } from "./reconciliation.service.js";
 
 @Module({
   controllers: [
@@ -73,6 +75,7 @@ import { MailService } from "./mail.service.js";
     SupportController,
     ProductImageUploadsController,
     ProductImagesController,
+    ReconciliationController,
   ],
   providers: [
     HealthService,
@@ -96,6 +99,7 @@ import { MailService } from "./mail.service.js";
     PilotService,
     ProductImagesService,
     MailService,
+    ReconciliationService,
     { provide: APP_GUARD, useClass: AuthGuard },
     { provide: APP_GUARD, useClass: PermissionGuard },
     { provide: APP_GUARD, useClass: SubscriptionGuard },

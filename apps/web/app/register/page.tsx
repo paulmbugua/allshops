@@ -5,6 +5,8 @@ import { api, setAccessToken, type AuthResult } from "../lib/api";
 export default function RegisterPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [created, setCreated] = useState(false);
+  const [emailDelivery, setEmailDelivery] = useState<string>();
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
@@ -24,7 +26,8 @@ export default function RegisterPage() {
         }),
       });
       setAccessToken(result.accessToken);
-      window.location.assign("/onboarding");
+      setEmailDelivery(result.emailDelivery);
+      setCreated(true);
     } catch (caught) {
       setError(
         caught instanceof Error ? caught.message : "Unable to register.",
@@ -35,45 +38,65 @@ export default function RegisterPage() {
   }
   return (
     <main className="auth-page">
-      <form className="card form" onSubmit={submit}>
-        <span className="eyebrow">Start your business workspace</span>
-        <h1>Create account</h1>
-        <label>
-          Name
-          <input name="name" required minLength={2} autoComplete="name" />
-        </label>
-        <label>
-          Email
-          <input name="email" type="email" required autoComplete="email" />
-        </label>
-        <label>
-          Password
-          <input
-            name="password"
-            type="password"
-            required
-            minLength={8}
-            autoComplete="new-password"
-          />
-        </label>
-        <label>
-          Confirm password
-          <input
-            name="confirmPassword"
-            type="password"
-            required
-            minLength={8}
-            autoComplete="new-password"
-          />
-        </label>
-        {error && <p className="error">{error}</p>}
-        <button disabled={loading}>
-          {loading ? "Creating…" : "Create account"}
-        </button>
-        <p>
-          Already registered? <Link href="/login">Sign in</Link>
-        </p>
-      </form>
+      {created ? (
+        <section className="card">
+          <span className="eyebrow">Check your inbox</span>
+          <h1>Activate your account</h1>
+          <p className={emailDelivery === "SENT" ? "notice" : "error"}>
+            {emailDelivery === "SENT"
+              ? "Your account was created and a secure activation email was sent. Verify your address, then continue setup."
+              : "Your account was created, but the activation email could not be delivered. Check the address and use Resend activation."}
+          </p>
+          {emailDelivery !== "SENT" && (
+            <p>
+              <Link href="/resend-activation">Resend activation email</Link>
+            </p>
+          )}
+          <Link className="button-link" href="/onboarding">
+            Continue setup
+          </Link>
+        </section>
+      ) : (
+        <form className="card form" onSubmit={submit}>
+          <span className="eyebrow">Start your business workspace</span>
+          <h1>Create account</h1>
+          <label>
+            Name
+            <input name="name" required minLength={2} autoComplete="name" />
+          </label>
+          <label>
+            Email
+            <input name="email" type="email" required autoComplete="email" />
+          </label>
+          <label>
+            Password
+            <input
+              name="password"
+              type="password"
+              required
+              minLength={8}
+              autoComplete="new-password"
+            />
+          </label>
+          <label>
+            Confirm password
+            <input
+              name="confirmPassword"
+              type="password"
+              required
+              minLength={8}
+              autoComplete="new-password"
+            />
+          </label>
+          {error && <p className="error">{error}</p>}
+          <button disabled={loading}>
+            {loading ? "Creating…" : "Create account"}
+          </button>
+          <p>
+            Already registered? <Link href="/login">Sign in</Link>
+          </p>
+        </form>
+      )}
     </main>
   );
 }

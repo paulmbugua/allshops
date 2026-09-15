@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../app.dart';
 import '../../core/models.dart';
 import '../inventory/inventory_screen.dart';
 import 'module_config.dart';
@@ -35,7 +36,7 @@ class WorkspaceScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    title,
+                    translateLabel(context, title),
                     style: const TextStyle(
                       fontSize: 30,
                       fontWeight: FontWeight.w900,
@@ -106,7 +107,7 @@ class WorkspaceScreen extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  config.title,
+                                  translateLabel(context, config.title),
                                   style: const TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w900,

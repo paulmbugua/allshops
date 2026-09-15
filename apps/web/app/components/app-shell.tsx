@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import {
   api,
   clearSession,
@@ -17,6 +17,7 @@ import {
 import { OfflineStatus } from "./offline-status";
 import { PermissionProvider } from "./permission-context";
 import { SubscriptionBanner } from "./subscription-banner";
+import { LanguageToggle, useLanguage } from "./language-provider";
 
 export function AppShell({
   title,
@@ -27,6 +28,8 @@ export function AppShell({
 }) {
   const [membership, setMembership] = useState<Membership>();
   const [idleTimeoutMinutes, setIdleTimeoutMinutes] = useState(5);
+  const [brand, setBrand] = useState({ primary: "#087F5B", accent: "#FFCF5C" });
+  const { t } = useLanguage();
   const pathname = usePathname();
   useEffect(() => {
     const organizationId = selectedOrganization();
@@ -36,23 +39,28 @@ export function AppShell({
         setMembership(
           user.memberships.find((row) => row.organizationId === organizationId),
         );
-        return api<{ idleTimeoutMinutes: number }>(
-          `/organizations/${organizationId}`,
-        );
+        return api<{
+          idleTimeoutMinutes: number;
+          brandPrimaryColor?: string;
+          brandAccentColor?: string;
+        }>(`/organizations/${organizationId}`);
       })
-      .then((organization) =>
-        setIdleTimeoutMinutes(organization.idleTimeoutMinutes),
-      )
+      .then((organization) => {
+        setIdleTimeoutMinutes(organization.idleTimeoutMinutes);
+        setBrand({
+          primary: organization.brandPrimaryColor ?? "#087F5B",
+          accent: organization.brandAccentColor ?? "#FFCF5C",
+        });
+      })
       .catch(() => undefined);
   }, []);
   const can = (...permissions: string[]) =>
     hasAllPermissions(membership, ...permissions);
   const any = (...permissions: string[]) =>
     hasAnyPermission(membership, ...permissions);
-  const routeAllowed = hasAllPermissions(
-    membership,
-    ...permissionsForPath(pathname),
-  );
+  const routeAllowed = pathname.startsWith("/reconciliation")
+    ? any("reconciliation.submit", "reconciliation.read_all")
+    : hasAllPermissions(membership, ...permissionsForPath(pathname));
   async function leaveForWelcome(reason: "logout" | "idle" = "logout") {
     const organizationId = selectedOrganization();
     await Promise.race([
@@ -87,95 +95,127 @@ export function AppShell({
     };
   }, [membership, idleTimeoutMinutes]);
   return (
-    <div className="app-layout">
+    <div
+      className="app-layout"
+      style={
+        {
+          "--brand": brand.primary,
+          "--brand-accent": brand.accent,
+        } as CSSProperties
+      }
+    >
       <aside>
         <Link className="brand" href="/dashboard">
           AllShops
         </Link>
         <nav>
-          {can("organization.read") && <Link href="/dashboard">Dashboard</Link>}
-          {any("sale.create", "sale.read", "sync.read") && <small>Sales</small>}
-          {can("catalogue.read", "sale.create", "payment.record") && (
-            <Link href="/pos">Point of Sale</Link>
+          {can("organization.read") && (
+            <Link href="/dashboard">{t("Dashboard")}</Link>
           )}
-          {can("sync.read") && <Link href="/pos/sync">Offline sync</Link>}
-          {can("sale.read") && <Link href="/sales">Sales history</Link>}
-          {can("report.dashboard") && <Link href="/reports">Reports</Link>}
+          {any("sale.create", "sale.read", "sync.read") && (
+            <small>{t("Sales")}</small>
+          )}
+          {can("catalogue.read", "sale.create", "payment.record") && (
+            <Link href="/pos">{t("Point of Sale")}</Link>
+          )}
+          {can("sync.read") && (
+            <Link href="/pos/sync">{t("Offline sync")}</Link>
+          )}
+          {can("sale.read") && <Link href="/sales">{t("Sales history")}</Link>}
+          {can("report.dashboard") && (
+            <Link href="/reports">{t("Reports")}</Link>
+          )}
+          {any("reconciliation.submit", "reconciliation.read_all") && (
+            <Link href="/reconciliation">{t("End-of-day cash-up")}</Link>
+          )}
           {any("appointment.read", "staff.read", "commission.read") && (
-            <small>Services</small>
+            <small>{t("Services")}</small>
           )}
           {can("appointment.read") && (
-            <Link href="/appointments">Appointments</Link>
+            <Link href="/appointments">{t("Appointments")}</Link>
           )}
-          {can("staff.read") && <Link href="/staff">Staff</Link>}
+          {can("staff.read") && <Link href="/staff">{t("Staff")}</Link>}
           {can("commission.read") && (
-            <Link href="/commissions">Commissions</Link>
+            <Link href="/commissions">{t("Commissions")}</Link>
           )}
           {can("commission_rule.read") && (
-            <Link href="/commission-rules">Commission rules</Link>
+            <Link href="/commission-rules">{t("Commission rules")}</Link>
           )}
-          {can("catalogue.read") && <small>Catalogue</small>}
-          {can("catalogue.read") && <Link href="/products">Products</Link>}
-          {can("catalogue.read") && <Link href="/categories">Categories</Link>}
-          {can("catalogue.read") && <Link href="/brands">Brands</Link>}
-          {can("catalogue.read") && <Link href="/units">Units</Link>}
-          {can("inventory.read") && <small>Inventory</small>}
+          {can("catalogue.read") && <small>{t("Catalogue")}</small>}
+          {can("catalogue.read") && (
+            <Link href="/products">{t("Products")}</Link>
+          )}
+          {can("catalogue.read") && (
+            <Link href="/categories">{t("Categories")}</Link>
+          )}
+          {can("catalogue.read") && <Link href="/brands">{t("Brands")}</Link>}
+          {can("catalogue.read") && <Link href="/units">{t("Units")}</Link>}
+          {can("inventory.read") && <small>{t("Inventory")}</small>}
           {can("inventory.read") && (
-            <Link href="/inventory">Current stock</Link>
+            <Link href="/inventory">{t("Current stock")}</Link>
           )}
           {can("inventory.read") && (
-            <Link href="/inventory/movements">Movements</Link>
+            <Link href="/inventory/movements">{t("Movements")}</Link>
           )}
           {can("inventory.read") && (
-            <Link href="/inventory/transfers">Transfers</Link>
+            <Link href="/inventory/transfers">{t("Transfers")}</Link>
           )}
-          {any("purchase.read", "supplier.read") && <small>Purchasing</small>}
-          {can("purchase.read") && <Link href="/purchases">Purchases</Link>}
-          {can("supplier.read") && <Link href="/suppliers">Suppliers</Link>}
-          {can("customer.read") && <small>Customers</small>}
+          {any("purchase.read", "supplier.read") && (
+            <small>{t("Purchasing")}</small>
+          )}
+          {can("purchase.read") && (
+            <Link href="/purchases">{t("Purchases")}</Link>
+          )}
+          {can("supplier.read") && (
+            <Link href="/suppliers">{t("Suppliers")}</Link>
+          )}
+          {can("customer.read") && <small>{t("Customers")}</small>}
           {can("customer.read") && (
-            <Link href="/customers">Customers &amp; credit</Link>
+            <Link href="/customers">{t("Customers & credit")}</Link>
           )}
           {any("expense.read", "expense_category.read") && (
-            <small>Expenses</small>
+            <small>{t("Expenses")}</small>
           )}
-          {can("expense.read") && <Link href="/expenses">Expense history</Link>}
+          {can("expense.read") && (
+            <Link href="/expenses">{t("Expense history")}</Link>
+          )}
           {can("expense_category.read") && (
-            <Link href="/expense-categories">Categories</Link>
+            <Link href="/expense-categories">{t("Categories")}</Link>
           )}
           {any("settings.read", "user.read", "device.read", "billing.read") && (
-            <small>Settings</small>
+            <small>{t("Settings")}</small>
           )}
           {can("settings.read", "organization.read") && (
-            <Link href="/settings/business">Business</Link>
+            <Link href="/settings/business">{t("Business")}</Link>
           )}
           {can("settings.read", "branch.read") && (
-            <Link href="/settings/branches">Branches</Link>
+            <Link href="/settings/branches">{t("Branches")}</Link>
           )}
-          {can("user.read") && <Link href="/settings/users">Users</Link>}
+          {can("user.read") && <Link href="/settings/users">{t("Users")}</Link>}
           {can("device.read") && (
-            <Link href="/settings/devices">POS devices</Link>
+            <Link href="/settings/devices">{t("POS devices")}</Link>
           )}
           {can("billing.read") && (
-            <Link href="/settings/subscription">Subscription</Link>
+            <Link href="/settings/subscription">{t("Subscription")}</Link>
           )}
           {can("organization.read") && (
-            <Link href="/support/diagnostics">Help & diagnostics</Link>
+            <Link href="/support/diagnostics">{t("Help & diagnostics")}</Link>
           )}
         </nav>
         <button className="link-button" onClick={() => void leaveForWelcome()}>
-          Sign out
+          {t("Sign out")}
         </button>
       </aside>
       <main className="workspace">
         <header>
-          <h1>{title}</h1>
+          <h1>{t(title)}</h1>
+          <LanguageToggle />
           <OfflineStatus />
         </header>
         {can("billing.read") && <SubscriptionBanner />}
         {!membership ? (
           <section className="card">
-            <p>Loading your access…</p>
+            <p>{t("Loading your access…")}</p>
           </section>
         ) : routeAllowed ? (
           <PermissionProvider permissions={membership.permissions}>
@@ -183,11 +223,12 @@ export function AppShell({
           </PermissionProvider>
         ) : (
           <section className="card">
-            <span className="eyebrow">Restricted workspace</span>
-            <h2>Access not assigned</h2>
+            <span className="eyebrow">{t("Restricted workspace")}</span>
+            <h2>{t("Access not assigned")}</h2>
             <p>
-              Your role does not include the permission required for this area.
-              Ask an owner or administrator to update your role.
+              {t(
+                "Your role does not include the permission required for this area. Ask an owner or administrator to update your role.",
+              )}
             </p>
           </section>
         )}

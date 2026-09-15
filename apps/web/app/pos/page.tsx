@@ -477,32 +477,49 @@ export default function PosPage() {
               <small>Scanner ready</small>
             </span>
           </div>
-          <select
-            aria-label="Active branch"
-            value={branchId}
-            onChange={(event) => changeBranch(event.target.value)}
-          >
-            {branches.map((branch) => (
-              <option key={branch.id} value={branch.id}>
-                {branch.name}
-              </option>
-            ))}
-          </select>
-          <label className="pos-auto-print">
-            <input
-              type="checkbox"
-              checked={autoPrint}
-              onChange={toggleAutoPrint}
-            />
-            Auto-print receipt
-          </label>
-          <button
-            type="button"
-            className="secondary"
-            onClick={() => void toggleFocusMode()}
-          >
-            {focusMode ? "Exit full screen" : "Full screen"}
-          </button>
+          <details className="pos-register-menu">
+            <summary>
+              <span>
+                <small>Register options</small>
+                <strong>
+                  {branches.find((branch) => branch.id === branchId)?.name ??
+                    "Choose branch"}
+                </strong>
+              </span>
+              <span aria-hidden="true">⌄</span>
+            </summary>
+            <div className="pos-register-menu-panel">
+              <label>
+                Active branch
+                <select
+                  aria-label="Active branch"
+                  value={branchId}
+                  onChange={(event) => changeBranch(event.target.value)}
+                >
+                  {branches.map((branch) => (
+                    <option key={branch.id} value={branch.id}>
+                      {branch.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="pos-auto-print">
+                <input
+                  type="checkbox"
+                  checked={autoPrint}
+                  onChange={toggleAutoPrint}
+                />
+                Auto-print receipt
+              </label>
+              <button
+                type="button"
+                className="secondary"
+                onClick={() => void toggleFocusMode()}
+              >
+                {focusMode ? "Exit full screen" : "Full screen"}
+              </button>
+            </div>
+          </details>
         </header>
         <section className="pos-layout">
           <div className="card pos-products">
