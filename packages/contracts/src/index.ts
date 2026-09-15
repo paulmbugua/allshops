@@ -61,11 +61,6 @@ export const updateOrganizationSchema = createOrganizationSchema
 
 export const createBranchSchema = z.object({
   name: z.string().trim().min(2).max(120),
-  code: z
-    .string()
-    .min(1)
-    .max(30)
-    .regex(/^[A-Z0-9_-]+$/),
   phone: z.string().min(6).max(30).optional(),
   email: z.string().email().optional(),
   address: z.string().max(300).optional(),

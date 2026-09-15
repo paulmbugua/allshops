@@ -57,7 +57,6 @@ export default function BranchSettingsPage() {
           method: "POST",
           body: JSON.stringify({
             name: data.get("name"),
-            code: data.get("code"),
             address: data.get("address") || undefined,
             phone: data.get("phone") || undefined,
             timezone: "Asia/Qatar",
@@ -125,10 +124,9 @@ export default function BranchSettingsPage() {
                 Name
                 <input name="name" required minLength={2} />
               </label>
-              <label>
-                Code
-                <input name="code" required pattern="[A-Z0-9_-]+" />
-              </label>
+              <p className="muted">
+                Branch ID is generated automatically from its name.
+              </p>
               <label>
                 Address
                 <input name="address" />

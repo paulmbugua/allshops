@@ -4,6 +4,10 @@ import type {
   CreateOrganizationInput,
   UpdateOrganizationInput,
 } from "@allshops/contracts";
+import {
+  employeePrefix,
+  formatEmployeeNumber,
+} from "./public-identifiers.js";
 
 @Injectable()
 export class OrganizationsService {
@@ -20,6 +24,7 @@ export class OrganizationsService {
     if (!Number.isFinite(trialDays) || trialDays <= 0)
       throw new Error("TRIAL_DAYS must be a positive number");
     return prisma.$transaction(async (tx) => {
+      const prefix = employeePrefix(input.name);
       const organization = await tx.organization.create({
         data: {
           name: input.name,
@@ -31,6 +36,8 @@ export class OrganizationsService {
           phone: input.phone,
           currency: input.currency,
           timezone: input.timezone,
+          employeePrefix: prefix,
+          nextEmployeeNumber: 2,
         },
       });
       await tx.organizationUser.create({
@@ -38,6 +45,7 @@ export class OrganizationsService {
           organizationId: organization.id,
           userId,
           roleId: ownerRole.id,
+          employeeNumber: formatEmployeeNumber(prefix, 1),
           status: "ACTIVE",
         },
       });
@@ -115,6 +123,7 @@ export class OrganizationsService {
         brandPrimaryColor: true,
         brandAccentColor: true,
         idleTimeoutMinutes: true,
+        employeePrefix: true,
         currency: true,
         timezone: true,
         status: true,

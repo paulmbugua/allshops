@@ -159,6 +159,9 @@ export function AppShell({
           {can("billing.read") && (
             <Link href="/settings/subscription">Subscription</Link>
           )}
+          {can("organization.read") && (
+            <Link href="/support/diagnostics">Help & diagnostics</Link>
+          )}
         </nav>
         <button className="link-button" onClick={() => void leaveForWelcome()}>
           Sign out

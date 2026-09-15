@@ -1,6 +1,16 @@
 import 'package:flutter/material.dart';
 
-enum FieldKind { text, email, phone, money, choice, toggle }
+enum FieldKind {
+  text,
+  email,
+  phone,
+  money,
+  number,
+  date,
+  choice,
+  toggle,
+  reference,
+}
 
 class FormFieldSpec {
   const FormFieldSpec(
@@ -10,6 +20,10 @@ class FormFieldSpec {
     this.required = false,
     this.options = const [],
     this.initial,
+    this.sourcePath,
+    this.optionLabelKeys = const ['name', 'displayName', 'code'],
+    this.optionValueKey = 'id',
+    this.nullable = false,
   });
   final String key;
   final String label;
@@ -17,6 +31,10 @@ class FormFieldSpec {
   final bool required;
   final List<String> options;
   final Object? initial;
+  final String? sourcePath;
+  final List<String> optionLabelKeys;
+  final String optionValueKey;
+  final bool nullable;
 }
 
 class RecordAction {
@@ -29,6 +47,7 @@ class RecordAction {
     this.body = const {},
     this.permission,
     this.visibleWhen = const {},
+    this.method = 'POST',
   });
   final String label;
   final String suffix;
@@ -38,6 +57,7 @@ class RecordAction {
   final Map<String, dynamic> body;
   final String? permission;
   final Map<String, Object?> visibleWhen;
+  final String method;
 }
 
 class ModuleConfig {
@@ -73,6 +93,54 @@ final moduleConfigs = <String, ModuleConfig>{
     color: Color(0xFFF35F45),
     idKeys: ['id', 'productId'],
     subtitleKeys: ['sku', 'barcode', 'type'],
+    createFields: [
+      FormFieldSpec('name', 'Product name', required: true),
+      FormFieldSpec('arabicName', 'Arabic name'),
+      FormFieldSpec(
+        'type',
+        'Product type',
+        kind: FieldKind.choice,
+        required: true,
+        options: ['STOCK_ITEM', 'SERVICE', 'NON_STOCK_ITEM'],
+        initial: 'STOCK_ITEM',
+      ),
+      FormFieldSpec(
+        'unitId',
+        'Unit',
+        kind: FieldKind.reference,
+        required: true,
+        sourcePath: 'units',
+        optionLabelKeys: ['name', 'symbol'],
+      ),
+      FormFieldSpec(
+        'categoryId',
+        'Category',
+        kind: FieldKind.reference,
+        nullable: true,
+        sourcePath: 'categories',
+      ),
+      FormFieldSpec(
+        'brandId',
+        'Brand',
+        kind: FieldKind.reference,
+        nullable: true,
+        sourcePath: 'brands',
+      ),
+      FormFieldSpec('sku', 'SKU'),
+      FormFieldSpec('barcode', 'Barcode'),
+      FormFieldSpec('costMinor', 'Cost (QAR)', kind: FieldKind.money),
+      FormFieldSpec('priceMinor', 'Selling price (QAR)', kind: FieldKind.money),
+      FormFieldSpec(
+        'trackInventory',
+        'Track inventory',
+        kind: FieldKind.toggle,
+      ),
+      FormFieldSpec(
+        'allowNegativeStock',
+        'Allow negative stock',
+        kind: FieldKind.toggle,
+      ),
+    ],
   ),
   'categories': const ModuleConfig(
     title: 'Categories',
@@ -205,6 +273,44 @@ final moduleConfigs = <String, ModuleConfig>{
     color: Color(0xFFB36AD4),
     idKeys: ['id', 'expenseId'],
     subtitleKeys: ['description', 'paymentMethod', 'expenseDate'],
+    createFields: [
+      FormFieldSpec(
+        'branchId',
+        'Branch',
+        kind: FieldKind.reference,
+        required: true,
+        sourcePath: 'branches',
+      ),
+      FormFieldSpec(
+        'categoryId',
+        'Expense category',
+        kind: FieldKind.reference,
+        required: true,
+        sourcePath: 'expense-categories',
+      ),
+      FormFieldSpec(
+        'amountMinor',
+        'Amount (QAR)',
+        kind: FieldKind.money,
+        required: true,
+      ),
+      FormFieldSpec(
+        'paymentMethod',
+        'Payment method',
+        kind: FieldKind.choice,
+        required: true,
+        options: ['CASH', 'CARD', 'BANK_TRANSFER', 'QR', 'OTHER'],
+        initial: 'CASH',
+      ),
+      FormFieldSpec(
+        'expenseDate',
+        'Expense date',
+        kind: FieldKind.date,
+        required: true,
+      ),
+      FormFieldSpec('description', 'Description'),
+      FormFieldSpec('reference', 'Reference'),
+    ],
   ),
   'expense-categories': const ModuleConfig(
     title: 'Expense categories',
@@ -269,11 +375,28 @@ final moduleConfigs = <String, ModuleConfig>{
     icon: Icons.badge_outlined,
     color: Color(0xFF269AA6),
     idKeys: ['id', 'staffProfileId'],
+    subtitleKeys: ['employeeNumber', 'jobTitle', 'email'],
     createFields: [
+      FormFieldSpec(
+        'userId',
+        'Login account',
+        kind: FieldKind.reference,
+        nullable: true,
+        sourcePath: 'users',
+        optionValueKey: 'user.id',
+        optionLabelKeys: ['user.name', 'employeeNumber'],
+      ),
       FormFieldSpec('displayName', 'Display name', required: true),
       FormFieldSpec('phone', 'Phone', kind: FieldKind.phone),
       FormFieldSpec('email', 'Email', kind: FieldKind.email),
       FormFieldSpec('jobTitle', 'Job title'),
+      FormFieldSpec(
+        'primaryBranchId',
+        'Primary branch',
+        kind: FieldKind.reference,
+        nullable: true,
+        sourcePath: 'branches',
+      ),
       FormFieldSpec(
         'isBookable',
         'Bookable',
@@ -304,10 +427,30 @@ final moduleConfigs = <String, ModuleConfig>{
     idKeys: ['id', 'branchId'],
     createFields: [
       FormFieldSpec('name', 'Branch name', required: true),
-      FormFieldSpec('code', 'Code', required: true),
       FormFieldSpec('phone', 'Phone', kind: FieldKind.phone),
       FormFieldSpec('email', 'Email', kind: FieldKind.email),
       FormFieldSpec('address', 'Address'),
+    ],
+    actions: [
+      RecordAction(
+        'Deactivate',
+        '',
+        Icons.pause_circle_outline,
+        method: 'PATCH',
+        body: {'isActive': false},
+        visibleWhen: {'isActive': true},
+        permission: 'branch.update',
+        destructive: true,
+      ),
+      RecordAction(
+        'Activate',
+        '',
+        Icons.play_circle_outline,
+        method: 'PATCH',
+        body: {'isActive': true},
+        visibleWhen: {'isActive': false},
+        permission: 'branch.update',
+      ),
     ],
   ),
   'users': const ModuleConfig(
@@ -317,6 +460,53 @@ final moduleConfigs = <String, ModuleConfig>{
     color: Color(0xFF7E69B5),
     idKeys: ['id', 'membershipId'],
     detail: false,
+    subtitleKeys: ['employeeNumber', 'status'],
+    createFields: [
+      FormFieldSpec('name', 'Full name', required: true),
+      FormFieldSpec('email', 'Email', kind: FieldKind.email, required: true),
+      FormFieldSpec(
+        'roleId',
+        'Role',
+        kind: FieldKind.reference,
+        required: true,
+        sourcePath: 'roles',
+      ),
+      FormFieldSpec(
+        'branchId',
+        'Branch',
+        kind: FieldKind.reference,
+        nullable: true,
+        sourcePath: 'branches',
+      ),
+    ],
+    actions: [
+      RecordAction(
+        'Resend invitation',
+        'resend-invitation',
+        Icons.forward_to_inbox_outlined,
+        visibleWhen: {'status': 'INVITED'},
+        permission: 'user.invite',
+      ),
+      RecordAction(
+        'Deactivate access',
+        '',
+        Icons.person_off_outlined,
+        method: 'PATCH',
+        body: {'status': 'SUSPENDED'},
+        visibleWhen: {'status': 'ACTIVE'},
+        permission: 'user.update',
+        destructive: true,
+      ),
+      RecordAction(
+        'Reactivate access',
+        '',
+        Icons.person_add_alt_1_outlined,
+        method: 'PATCH',
+        body: {'status': 'ACTIVE'},
+        visibleWhen: {'status': 'SUSPENDED'},
+        permission: 'user.update',
+      ),
+    ],
   ),
   'devices': const ModuleConfig(
     title: 'Devices',
@@ -504,6 +694,7 @@ String? moduleReadPermission(String path) {
 }
 
 String? moduleCreatePermission(String path) => <String, String>{
+  'products': 'product.create',
   'categories': 'category.create',
   'brands': 'brand.create',
   'units': 'unit.create',
@@ -511,4 +702,18 @@ String? moduleCreatePermission(String path) => <String, String>{
   'suppliers': 'supplier.create',
   'staff': 'staff.create',
   'branches': 'branch.create',
+  'users': 'user.invite',
+  'expenses': 'expense.create',
+}[path];
+
+String? moduleUpdatePermission(String path) => <String, String>{
+  'products': 'product.update',
+  'categories': 'category.update',
+  'brands': 'brand.update',
+  'units': 'unit.update',
+  'customers': 'customer.update',
+  'suppliers': 'supplier.update',
+  'staff': 'staff.update',
+  'branches': 'branch.update',
+  'expense-categories': 'expense_category.update',
 }[path];

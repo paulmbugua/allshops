@@ -4,6 +4,7 @@ class Membership {
     required this.organizationName,
     required this.role,
     required this.permissions,
+    required this.employeeNumber,
     this.branchId,
     this.branchName,
   });
@@ -11,6 +12,7 @@ class Membership {
   final String organizationName;
   final String role;
   final List<String> permissions;
+  final String employeeNumber;
   final String? branchId;
   final String? branchName;
   factory Membership.fromJson(Map<String, dynamic> json) => Membership(
@@ -20,6 +22,7 @@ class Membership {
     permissions: (json['permissions'] as List<dynamic>? ?? const [])
         .map((value) => value.toString())
         .toList(growable: false),
+    employeeNumber: json['employeeNumber'] as String,
     branchId: json['branchId'] as String?,
     branchName: json['branchName'] as String?,
   );

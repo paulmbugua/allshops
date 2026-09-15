@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { AppShell } from "../../components/app-shell";
 import { api, selectedOrganization } from "../../lib/api";
+import { usePermissions } from "../../components/permission-context";
 
 type Details = {
   id: string;
@@ -26,6 +27,9 @@ type Plan = {
   monthlyPriceMinor: number;
   annualPriceMinor: number;
   currency: string;
+  description: string | null;
+  features: { featureCode: string; enabled: boolean }[];
+  limits: { limitCode: string; value: number | null }[];
 };
 type Bill = {
   id: string;
@@ -40,6 +44,7 @@ type PlanSelection = { billingRecord: Bill | null; scheduled: boolean };
 type PaystackIntent = { reference: string; authorizationUrl: string };
 
 export default function SubscriptionPage() {
+  const { can } = usePermissions();
   const organizationId = selectedOrganization();
   const [details, setDetails] = useState<Details>();
   const [usage, setUsage] = useState<Usage>({});
@@ -176,36 +181,109 @@ export default function SubscriptionPage() {
           ))}
         </div>
       </section>
-      <section className="card">
+      <section className="card subscription-plans-section">
         <div className="toolbar">
-          <h2>Change plan</h2>
-          <select
-            value={interval}
-            onChange={(event) =>
-              setIntervalValue(event.target.value as "MONTHLY" | "ANNUAL")
-            }
-          >
-            <option>MONTHLY</option>
-            <option>ANNUAL</option>
-          </select>
-        </div>
-        <div className="product-grid">
-          {plans.map((plan) => (
+          <div>
+            <span className="subscription-eyebrow">
+              Plans built for Qatar businesses
+            </span>
+            <h2>Choose the way your business grows</h2>
+            <p className="muted">
+              Every plan includes secure cloud access, Arabic-ready experiences
+              and automatic updates.
+            </p>
+          </div>
+          <div className="billing-toggle" aria-label="Billing interval">
             <button
-              className="product-tile"
-              key={plan.id}
-              onClick={() => void select(plan.code)}
-              disabled={plan.code === "ENTERPRISE"}
+              className={interval === "MONTHLY" ? "active" : ""}
+              onClick={() => setIntervalValue("MONTHLY")}
             >
-              <strong>{plan.name}</strong>
-              <span>
-                {plan.code === "ENTERPRISE"
-                  ? "Contact AllShops"
-                  : `${plan.currency} ${((interval === "ANNUAL" ? plan.annualPriceMinor : plan.monthlyPriceMinor) / 100).toLocaleString()}`}
-              </span>
+              Monthly
             </button>
-          ))}
+            <button
+              className={interval === "ANNUAL" ? "active" : ""}
+              onClick={() => setIntervalValue("ANNUAL")}
+            >
+              Annual <small>2 months free</small>
+            </button>
+          </div>
         </div>
+        <div className="subscription-plan-grid">
+          {plans
+            .filter((plan) => plan.code !== "ENTERPRISE")
+            .map((plan) => {
+              const current = details?.plan.code === plan.code;
+              const price =
+                (interval === "ANNUAL"
+                  ? plan.annualPriceMinor
+                  : plan.monthlyPriceMinor) / 100;
+              return (
+                <article
+                  className={`subscription-plan ${plan.code === "BUSINESS" ? "featured" : ""}`}
+                  key={plan.id}
+                >
+                  {plan.code === "BUSINESS" && (
+                    <span className="plan-ribbon">Most popular</span>
+                  )}
+                  <div className="plan-icon" aria-hidden>
+                    {plan.code === "STARTER"
+                      ? "✦"
+                      : plan.code === "BUSINESS"
+                        ? "◆"
+                        : "▲"}
+                  </div>
+                  <span className="plan-code">{plan.code}</span>
+                  <h3>{plan.name}</h3>
+                  <p>{plan.description ?? planDescription(plan.code)}</p>
+                  <div className="plan-price">
+                    <strong>
+                      {plan.currency} {price.toLocaleString()}
+                    </strong>
+                    <span>/{interval === "ANNUAL" ? "year" : "month"}</span>
+                  </div>
+                  <div className="plan-limits">
+                    {plan.limits.map((limit) => (
+                      <span key={limit.limitCode}>
+                        <b>{limit.value ?? "Unlimited"}</b>{" "}
+                        {limitLabel(limit.limitCode)}
+                      </span>
+                    ))}
+                  </div>
+                  <ul className="plan-features">
+                    {plan.features
+                      .filter((feature) => feature.enabled)
+                      .map((feature) => (
+                        <li key={feature.featureCode}>
+                          {featureLabel(feature.featureCode)}
+                        </li>
+                      ))}
+                  </ul>
+                  <button
+                    onClick={() => void select(plan.code)}
+                    disabled={current || !can("billing.manage")}
+                  >
+                    {current
+                      ? "Current plan"
+                      : can("billing.manage")
+                        ? `Choose ${plan.name}`
+                        : "Owner approval required"}
+                  </button>
+                </article>
+              );
+            })}
+        </div>
+        {plans.some((plan) => plan.code === "ENTERPRISE") && (
+          <div className="enterprise-callout">
+            <div>
+              <strong>Need a tailored rollout?</strong>
+              <span>
+                Enterprise adds custom limits, assisted deployment and
+                multi-site planning.
+              </span>
+            </div>
+            <a href="mailto:support@ekazi.co.ke">Talk to AllShops</a>
+          </div>
+        )}
       </section>
       <section className="card">
         <h2>Billing history</h2>
@@ -234,5 +312,54 @@ export default function SubscriptionPage() {
       </section>
       {message && <p className="notice">{message}</p>}
     </AppShell>
+  );
+}
+
+function planDescription(code: string) {
+  return (
+    (
+      {
+        STARTER:
+          "A focused toolkit for a single counter and a growing catalogue.",
+        BUSINESS:
+          "Complete daily operations for established shops and service teams.",
+        GROWTH:
+          "Multi-branch control, offline selling and deeper performance insight.",
+      } as Record<string, string>
+    )[code] ?? "Flexible tools for your business."
+  );
+}
+function featureLabel(code: string) {
+  return (
+    (
+      {
+        pos: "Modern POS checkout",
+        inventory: "Inventory control",
+        customers: "Customer records",
+        reports: "Core reporting",
+        suppliers: "Suppliers & purchasing",
+        purchases: "Purchase workflows",
+        expenses: "Expense tracking",
+        customer_credit: "Customer credit",
+        reports_profit: "Profit reporting",
+        exports: "Protected exports",
+        appointments: "Appointments",
+        commissions: "Staff commissions",
+        offline_pos: "Offline POS",
+        multi_branch: "Multi-branch operations",
+      } as Record<string, string>
+    )[code] ?? code.replaceAll("_", " ")
+  );
+}
+function limitLabel(code: string) {
+  return (
+    (
+      {
+        "branches.max": "branches",
+        "users.max": "users",
+        "devices.max": "POS devices",
+        "products.max": "products",
+      } as Record<string, string>
+    )[code] ?? code
   );
 }

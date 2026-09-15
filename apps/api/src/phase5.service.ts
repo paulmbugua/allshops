@@ -28,6 +28,7 @@ import type {
   UpdateStaffServiceInput,
 } from "@allshops/contracts";
 import type { TenantContext } from "./security.types.js";
+import { allocateEmployeeNumber } from "./public-identifiers.js";
 
 type Transaction = Prisma.TransactionClient;
 type AppointmentDraft = {
@@ -125,14 +126,30 @@ export class Phase5Service {
 
   createStaff(tenant: TenantContext, userId: string, input: CreateStaffInput) {
     return this.serializable(async (tx) => {
-      if (input.userId)
+      if (input.userId) {
         await this.requireMember(tx, tenant.organizationId, input.userId);
+      }
+      const linkedMembership = input.userId
+        ? await tx.organizationUser.findUnique({
+            where: {
+              organizationId_userId: {
+                organizationId: tenant.organizationId,
+                userId: input.userId,
+              },
+            },
+            select: { employeeNumber: true },
+          })
+        : null;
+      const employeeNumber =
+        input.employeeNumber ??
+        linkedMembership?.employeeNumber ??
+        (await allocateEmployeeNumber(tx, tenant.organizationId));
       if (
-        input.employeeNumber &&
+        employeeNumber &&
         (await tx.staffProfile.findFirst({
           where: {
             organizationId: tenant.organizationId,
-            employeeNumber: input.employeeNumber,
+            employeeNumber,
           },
           select: { id: true },
         }))
@@ -144,6 +161,7 @@ export class Phase5Service {
       const staff = await tx.staffProfile.create({
         data: {
           ...input,
+          employeeNumber,
           organizationId: tenant.organizationId,
           createdBy: userId,
         },

@@ -15,6 +15,7 @@ interface Branch {
 }
 interface Member {
   id: string;
+  employeeNumber: string;
   branchId: string | null;
   status: string;
   user: { id: string; name: string; email: string; status: string };
@@ -23,6 +24,7 @@ interface Member {
 }
 interface InvitationResult {
   invitationRequired: boolean;
+  employeeNumber?: string;
   invitationToken?: string;
   expiresAt?: string;
   emailDelivery?: "SENT" | "FAILED" | "NOT_CONFIGURED" | "EXISTING_ACCOUNT";
@@ -103,7 +105,7 @@ export default function UserSettingsPage() {
       form.reset();
       setMessage(
         result.emailDelivery === "SENT"
-          ? "Invitation emailed. The team member will create a private password from the secure link."
+          ? `Invitation emailed. Employee ID ${result.employeeNumber ?? "generated"}. The team member will create a private password from the secure link.`
           : result.emailDelivery === "FAILED"
             ? "User created, but email delivery failed. Check the SMTP settings before inviting more users."
             : result.invitationToken
@@ -201,7 +203,9 @@ export default function UserSettingsPage() {
             >
               <div>
                 <strong>{member.user.name}</strong>
-                <small>{member.user.email}</small>
+                <small>
+                  {member.employeeNumber} · {member.user.email}
+                </small>
               </div>
               <select
                 name="roleId"

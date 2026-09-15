@@ -6,6 +6,7 @@ type InvitationMail = {
   recipientName: string;
   organizationName: string;
   roleName: string;
+  employeeNumber: string;
   branchName?: string | null;
   invitationToken: string;
   expiresAt: Date;
@@ -84,6 +85,7 @@ export class MailService {
         `Hello ${input.recipientName},`,
         "",
         `${input.organizationName} has created an AllShops account for you as ${input.roleName}${branch}.`,
+        `Your employee ID is ${input.employeeNumber}.`,
         `Create your private password here: ${invitationUrl}`,
         `This secure link expires ${input.expiresAt.toISOString()}.`,
         "",
@@ -94,6 +96,7 @@ export class MailService {
           ${logo}<p style="color:${primary};font-weight:700">ALLSHOPS TEAM ACCESS</p>
           <h1 style="margin:8px 0">Welcome, ${escapeHtml(input.recipientName)}</h1>
           <p>${escapeHtml(input.organizationName)} has created an account for you as <strong>${escapeHtml(input.roleName)}</strong>${escapeHtml(branch)}.</p>
+          <p style="padding:12px 14px;border-radius:10px;background:white"><strong>Employee ID:</strong> ${escapeHtml(input.employeeNumber)}</p>
           <p style="margin:28px 0"><a href="${escapeHtml(invitationUrl)}" style="padding:14px 20px;border-radius:10px;background:${primary};color:white;text-decoration:none;font-weight:700">Create my password</a></p>
           <p style="font-size:13px;color:#60766f">This one-time link expires ${escapeHtml(input.expiresAt.toLocaleString("en-QA"))}. Never share it with anyone.</p>
         </div>

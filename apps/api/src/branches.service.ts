@@ -7,6 +7,7 @@ import { prisma } from "@allshops/database";
 import type { CreateBranchInput, UpdateBranchInput } from "@allshops/contracts";
 import type { TenantContext } from "./security.types.js";
 import { EntitlementService } from "./entitlement.service.js";
+import { allocateBranchCode } from "./public-identifiers.js";
 
 @Injectable()
 export class BranchesService {
@@ -63,11 +64,16 @@ export class BranchesService {
         tenant.organizationId,
         "branches.max",
       );
+      const code = await allocateBranchCode(
+        tx,
+        tenant.organizationId,
+        input.name,
+      );
       const branch = await tx.branch.create({
         data: {
           organizationId: tenant.organizationId,
           name: input.name,
-          code: input.code,
+          code,
           phone: input.phone,
           email: input.email,
           address: input.address,
@@ -116,7 +122,6 @@ export class BranchesService {
         where: { id: current.id },
         data: {
           ...(input.name !== undefined ? { name: input.name } : {}),
-          ...(input.code !== undefined ? { code: input.code } : {}),
           ...(input.phone !== undefined ? { phone: input.phone } : {}),
           ...(input.email !== undefined ? { email: input.email } : {}),
           ...(input.address !== undefined ? { address: input.address } : {}),

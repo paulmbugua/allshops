@@ -8,6 +8,7 @@ import '../modules/module_screen.dart';
 import '../modules/workspace_screen.dart';
 import '../pos/pos_screen.dart';
 import '../subscription/subscription_screen.dart';
+import '../support/support_screen.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key, required this.user, required this.membership});
@@ -237,7 +238,7 @@ class DashboardTab extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '${membership.branchName ?? 'All branches'}  •  ${membership.role.replaceAll('_', ' ')}',
+                    '${membership.employeeNumber}  •  ${membership.branchName ?? 'All branches'}  •  ${membership.role.replaceAll('_', ' ')}',
                     style: const TextStyle(
                       color: Colors.blueGrey,
                       fontWeight: FontWeight.w600,
@@ -314,6 +315,8 @@ class DashboardTab extends StatelessWidget {
                     MaterialPageRoute(
                       builder: (_) => item.path == 'subscription'
                           ? SubscriptionScreen(membership: membership)
+                          : item.path == 'support/diagnostics'
+                          ? SupportScreen(membership: membership)
                           : ModuleScreen(
                               membership: membership,
                               title: item.title,

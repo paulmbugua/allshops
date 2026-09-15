@@ -306,42 +306,61 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen>
                   ],
                 ),
                 const SizedBox(height: 10),
-                ..._plans.map((plan) {
-                  final enterprise = plan['code'] == 'ENTERPRISE';
-                  final amount =
-                      (_interval == 'ANNUAL'
-                              ? plan['annualPriceMinor']
-                              : plan['monthlyPriceMinor'])
-                          as num? ??
-                      0;
-                  return Card(
-                    child: ListTile(
-                      contentPadding: const EdgeInsets.all(16),
-                      leading: CircleAvatar(
-                        backgroundColor: const Color(0xFFFFE4DA),
-                        child: const Icon(
-                          Icons.workspace_premium,
-                          color: Color(0xFFF35F45),
+                ..._plans
+                    .where((plan) => plan['code'] != 'ENTERPRISE')
+                    .map(
+                      (plan) => _PlanCard(
+                        plan: plan,
+                        interval: _interval,
+                        current:
+                            (_subscription?['plan'] as Map?)?['code'] ==
+                            plan['code'],
+                        canManage: widget.membership.hasPermission(
+                          'billing.manage',
                         ),
-                      ),
-                      title: Text(
-                        plan['name']?.toString() ?? 'Plan',
-                        style: const TextStyle(fontWeight: FontWeight.w900),
-                      ),
-                      subtitle: Text(
-                        enterprise
-                            ? 'Contact AllShops'
-                            : '${plan['currency'] ?? ''} ${(amount / 100).toStringAsFixed(2)} / ${_interval == 'ANNUAL' ? 'year' : 'month'}',
-                      ),
-                      trailing: FilledButton(
-                        onPressed: enterprise || _busy
-                            ? null
-                            : () => _selectPlan(plan['code'].toString()),
-                        child: const Text('Select'),
+                        busy: _busy,
+                        onSelect: () => _selectPlan(plan['code'].toString()),
                       ),
                     ),
-                  );
-                }),
+                if (_plans.any((plan) => plan['code'] == 'ENTERPRISE'))
+                  Container(
+                    margin: const EdgeInsets.only(top: 6),
+                    padding: const EdgeInsets.all(17),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF173B34),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const Row(
+                      children: [
+                        CircleAvatar(
+                          backgroundColor: Color(0xFFFFCF5C),
+                          child: Icon(Icons.apartment_rounded),
+                        ),
+                        SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Enterprise rollout',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                              Text(
+                                'Custom limits and assisted multi-site planning. Contact support@ekazi.co.ke.',
+                                style: TextStyle(
+                                  color: Color(0xFFBDD4CD),
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 const SizedBox(height: 18),
                 const Text(
                   'Billing history',
@@ -432,6 +451,178 @@ class _SubscriptionHero extends StatelessWidget {
   }
 }
 
+class _PlanCard extends StatelessWidget {
+  const _PlanCard({
+    required this.plan,
+    required this.interval,
+    required this.current,
+    required this.canManage,
+    required this.busy,
+    required this.onSelect,
+  });
+  final Map<String, dynamic> plan;
+  final String interval;
+  final bool current;
+  final bool canManage;
+  final bool busy;
+  final VoidCallback onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    final code = plan['code']?.toString() ?? '';
+    final featured = code == 'BUSINESS';
+    final amount =
+        ((interval == 'ANNUAL'
+                    ? plan['annualPriceMinor']
+                    : plan['monthlyPriceMinor'])
+                as num? ??
+            0) /
+        100;
+    final features = (plan['features'] as List<dynamic>? ?? const [])
+        .whereType<Map<String, dynamic>>()
+        .where((item) => item['enabled'] == true)
+        .toList();
+    final limits = (plan['limits'] as List<dynamic>? ?? const [])
+        .whereType<Map<String, dynamic>>()
+        .toList();
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(19),
+      decoration: BoxDecoration(
+        gradient: featured
+            ? const LinearGradient(
+                colors: [Color(0xFFFFF8E5), Color(0xFFFFE8DE)],
+              )
+            : null,
+        color: featured ? null : Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: featured ? const Color(0xFFF35F45) : const Color(0xFFDDE9E4),
+          width: featured ? 2 : 1,
+        ),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x100F342B),
+            blurRadius: 22,
+            offset: Offset(0, 9),
+          ),
+        ],
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Container(
+            width: 45,
+            height: 45,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: featured
+                  ? const Color(0xFFFFDED3)
+                  : const Color(0xFFE5F5EE),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(
+              code == 'STARTER'
+                  ? Icons.bolt_rounded
+                  : code == 'BUSINESS'
+                  ? Icons.storefront_rounded
+                  : Icons.auto_graph_rounded,
+              color: featured
+                  ? const Color(0xFFF35F45)
+                  : const Color(0xFF278565),
+            ),
+          ),
+          const Spacer(),
+          if (featured)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFCF5C),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Text(
+                'MOST POPULAR',
+                style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900),
+              ),
+            ),
+        ]),
+        const SizedBox(height: 14),
+        Text(
+          plan['name']?.toString() ?? 'Plan',
+          style: const TextStyle(fontSize: 23, fontWeight: FontWeight.w900),
+        ),
+        Text(
+          plan['description']?.toString() ?? _planDescription(code),
+          style: const TextStyle(color: Colors.blueGrey, height: 1.4),
+        ),
+        const SizedBox(height: 12),
+        Text.rich(
+          TextSpan(children: [
+            TextSpan(
+              text:
+                  '${plan['currency'] ?? ''} ${amount.toStringAsFixed(amount.truncateToDouble() == amount ? 0 : 2)}',
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900),
+            ),
+            TextSpan(
+              text: interval == 'ANNUAL' ? ' / year' : ' / month',
+              style: const TextStyle(color: Colors.blueGrey),
+            ),
+          ]),
+        ),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 7,
+          runSpacing: 7,
+          children: limits
+              .map(
+                (limit) => Chip(
+                  visualDensity: VisualDensity.compact,
+                  label: Text(
+                    '${limit['value'] ?? 'Unlimited'} ${_limitLabel(limit['limitCode']?.toString() ?? '')}',
+                    style: const TextStyle(fontSize: 11),
+                  ),
+                ),
+              )
+              .toList(),
+        ),
+        const SizedBox(height: 12),
+        ...features.map(
+          (feature) => Padding(
+            padding: const EdgeInsets.only(bottom: 7),
+            child: Row(children: [
+              const Icon(
+                Icons.check_circle_rounded,
+                size: 17,
+                color: Color(0xFF2B9A6D),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  _featureLabel(feature['featureCode']?.toString() ?? ''),
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+              ),
+            ]),
+          ),
+        ),
+        const SizedBox(height: 10),
+        SizedBox(
+          width: double.infinity,
+          child: FilledButton(
+            onPressed: current || !canManage || busy ? null : onSelect,
+            child: Text(
+              current
+                  ? 'Current plan'
+                  : canManage
+                  ? 'Choose ${plan['name']}'
+                  : 'Owner approval required',
+            ),
+          ),
+        ),
+      ]),
+    );
+  }
+}
+
 class _Notice extends StatelessWidget {
   const _Notice({required this.message, required this.error});
   final String message;
@@ -457,3 +648,33 @@ String _label(String value) => value
           part.isEmpty ? part : '${part[0].toUpperCase()}${part.substring(1)}',
     )
     .join(' ');
+
+String _planDescription(String code) => const {
+  'STARTER': 'A focused toolkit for a single counter and growing catalogue.',
+  'BUSINESS': 'Complete daily operations for established shops and teams.',
+  'GROWTH': 'Multi-branch control, offline selling and deeper insight.',
+}[code] ?? 'Flexible tools for your business.';
+
+String _featureLabel(String code) => const {
+  'pos': 'Modern POS checkout',
+  'inventory': 'Inventory control',
+  'customers': 'Customer records',
+  'reports': 'Core reporting',
+  'suppliers': 'Suppliers & purchasing',
+  'purchases': 'Purchase workflows',
+  'expenses': 'Expense tracking',
+  'customer_credit': 'Customer credit',
+  'reports_profit': 'Profit reporting',
+  'exports': 'Protected exports',
+  'appointments': 'Appointments',
+  'commissions': 'Staff commissions',
+  'offline_pos': 'Offline POS',
+  'multi_branch': 'Multi-branch operations',
+}[code] ?? _label(code);
+
+String _limitLabel(String code) => const {
+  'branches.max': 'branches',
+  'users.max': 'users',
+  'devices.max': 'POS devices',
+  'products.max': 'products',
+}[code] ?? code;

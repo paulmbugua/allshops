@@ -274,6 +274,7 @@ export class AuthService {
             id: true,
             organizationId: true,
             branchId: true,
+            employeeNumber: true,
             status: true,
             organization: { select: { name: true, status: true } },
             branch: { select: { name: true } },
@@ -310,6 +311,7 @@ export class AuthService {
           .sort(),
         branchId: membership.branchId,
         branchName: membership.branch?.name ?? null,
+        employeeNumber: membership.employeeNumber,
         status: membership.status,
       })),
     };

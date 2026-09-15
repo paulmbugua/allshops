@@ -12,6 +12,7 @@ export interface Membership {
   permissions: string[];
   branchId: string | null;
   branchName: string | null;
+  employeeNumber: string;
   status: string;
 }
 export interface CurrentUser {

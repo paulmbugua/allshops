@@ -13,7 +13,6 @@ export default function NewStaffPage() {
     jobTitle: "",
     phone: "",
     email: "",
-    employeeNumber: "",
   });
   const [roles, setRoles] = useState<
     { id: string; name: string; code: string }[]
@@ -95,7 +94,6 @@ export default function NewStaffPage() {
           email: form.email || null,
           phone: form.phone || null,
           jobTitle: form.jobTitle || null,
-          employeeNumber: form.employeeNumber || null,
         }),
       });
       if (branchId)
@@ -125,17 +123,10 @@ export default function NewStaffPage() {
               }
             />
           </label>
-          <label>
-            Staff number
-            <input
-              required
-              maxLength={60}
-              value={form.employeeNumber}
-              onChange={(e) =>
-                setForm({ ...form, employeeNumber: e.target.value })
-              }
-            />
-          </label>
+          <p className="notice">
+            The employee ID is generated automatically from your company
+            initials.
+          </p>
           <label>
             Job title
             <input

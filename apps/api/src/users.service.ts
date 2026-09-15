@@ -14,6 +14,7 @@ import type { TenantContext } from "./security.types.js";
 import { TokenService } from "./token.service.js";
 import { EntitlementService } from "./entitlement.service.js";
 import { MailService } from "./mail.service.js";
+import { allocateEmployeeNumber } from "./public-identifiers.js";
 
 @Injectable()
 export class UsersService {
@@ -32,6 +33,7 @@ export class UsersService {
       },
       select: {
         id: true,
+        employeeNumber: true,
         branchId: true,
         status: true,
         createdAt: true,
@@ -76,12 +78,17 @@ export class UsersService {
           tenant.organizationId,
           "users.max",
         );
+        const employeeNumber = await allocateEmployeeNumber(
+          tx,
+          tenant.organizationId,
+        );
         const created = await tx.organizationUser.create({
           data: {
             organizationId: tenant.organizationId,
             userId: existingUser.id,
             roleId: role.id,
             branchId: input.branchId ?? null,
+            employeeNumber,
             status: "ACTIVE",
           },
         });
@@ -104,6 +111,7 @@ export class UsersService {
       return {
         membership,
         userId: existingUser.id,
+        employeeNumber: membership.employeeNumber,
         invitationRequired: false,
         emailDelivery: "EXISTING_ACCOUNT",
       };
@@ -125,12 +133,17 @@ export class UsersService {
           status: "INVITED",
         },
       });
+      const employeeNumber = await allocateEmployeeNumber(
+        tx,
+        tenant.organizationId,
+      );
       const membership = await tx.organizationUser.create({
         data: {
           organizationId: tenant.organizationId,
           userId: user.id,
           roleId: role.id,
           branchId: input.branchId ?? null,
+          employeeNumber,
           status: "INVITED",
         },
       });
@@ -165,6 +178,7 @@ export class UsersService {
       return {
         userId: user.id,
         membershipId: membership.id,
+        employeeNumber,
         expiresAt: invitation.expiresAt,
       };
     });
@@ -191,6 +205,7 @@ export class UsersService {
           recipientName: input.name,
           organizationName: organization.name,
           roleName: role.name,
+          employeeNumber: result.employeeNumber,
           branchName: branch?.name,
           invitationToken,
           expiresAt: result.expiresAt,
@@ -396,6 +411,7 @@ export class UsersService {
           recipientName: membership.user.name,
           organizationName: membership.organization.name,
           roleName: membership.role.name,
+          employeeNumber: membership.employeeNumber,
           branchName: membership.branch?.name,
           invitationToken,
           expiresAt,

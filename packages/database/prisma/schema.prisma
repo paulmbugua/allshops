@@ -263,6 +263,9 @@ model Organization {
   brandPrimaryColor  String             @default("#172C2B")
   brandAccentColor   String             @default("#FFCF5C")
   idleTimeoutMinutes Int                @default(5)
+  employeePrefix     String             @default("EMP")
+  nextEmployeeNumber Int                @default(1)
+  nextBranchNumber   Int                @default(1)
   status             OrganizationStatus @default(TRIAL)
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
@@ -515,6 +518,7 @@ model OrganizationUser {
   userId         String           @db.Uuid
   roleId         String           @db.Uuid
   branchId       String?          @db.Uuid
+  employeeNumber String
   status         MembershipStatus @default(ACTIVE)
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
@@ -525,6 +529,7 @@ model OrganizationUser {
   branch       Branch?      @relation(fields: [branchId], references: [id], onDelete: SetNull)
 
   @@unique([organizationId, userId])
+  @@unique([organizationId, employeeNumber])
   @@index([organizationId, branchId, status])
   @@map("organization_users")
 }

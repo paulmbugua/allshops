@@ -32,7 +32,6 @@ export default function OnboardingPage() {
         method: "POST",
         body: JSON.stringify({
           name: data.get("branchName"),
-          code: data.get("branchCode"),
           address: data.get("address") || undefined,
           phone: data.get("branchPhone") || undefined,
           timezone: "Asia/Qatar",
@@ -89,15 +88,9 @@ export default function OnboardingPage() {
               defaultValue="Main Branch"
             />
           </label>
-          <label>
-            Branch code
-            <input
-              name="branchCode"
-              required
-              pattern="[A-Z0-9_-]+"
-              defaultValue="MAIN"
-            />
-          </label>
+          <p className="muted">
+            The branch ID is generated automatically from its name.
+          </p>
           <label>
             Address
             <input name="address" />
