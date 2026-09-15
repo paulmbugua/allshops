@@ -395,147 +395,170 @@ class _PurchaseCreateSheetState extends ConsumerState<_PurchaseCreateSheet> {
     expand: false,
     initialChildSize: .92,
     maxChildSize: .98,
-    builder: (_, controller) => ListView(
-      controller: controller,
-      padding: EdgeInsets.fromLTRB(
-        20,
-        0,
-        20,
-        MediaQuery.viewInsetsOf(context).bottom + 24,
-      ),
+    builder: (_, controller) => Column(
       children: [
-        const Text(
-          'New purchase order',
-          style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900),
-        ),
-        const Text(
-          'Build a supplier order, review its live estimate, then save it as a draft.',
-          style: TextStyle(color: Colors.blueGrey),
-        ),
-        const SizedBox(height: 16),
-        if (loading)
-          const Padding(
-            padding: EdgeInsets.all(30),
-            child: Center(child: CircularProgressIndicator()),
-          )
-        else ...[
-          _drop(
-            'Supplier',
-            supplierId,
-            suppliers,
-            (value) => setState(() => supplierId = value),
-          ),
-          _drop(
-            'Receiving branch',
-            branchId,
-            branches,
-            widget.membership.branchId == null
-                ? (value) => setState(() => branchId = value)
-                : null,
-          ),
-          Row(
+        Expanded(
+          child: ListView(
+            controller: controller,
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
             children: [
-              Expanded(
-                child: _DateButton(
-                  label: 'Purchase date',
-                  value: _date(purchaseDate),
-                  onTap: () => _chooseDate(expected: false),
+              const Text(
+                'New purchase order',
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900),
+              ),
+              const Text(
+                'Build a supplier order, review its live estimate, then save it as a draft.',
+                style: TextStyle(color: Colors.blueGrey),
+              ),
+              const SizedBox(height: 16),
+              if (loading)
+                const Padding(
+                  padding: EdgeInsets.all(30),
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              else ...[
+                _drop(
+                  'Supplier',
+                  supplierId,
+                  suppliers,
+                  (value) => setState(() => supplierId = value),
                 ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _DateButton(
-                  label: 'Expected date',
-                  value: expectedDate == null
-                      ? 'Optional'
-                      : _date(expectedDate),
-                  onTap: () => _chooseDate(expected: true),
+                _drop(
+                  'Receiving branch',
+                  branchId,
+                  branches,
+                  widget.membership.branchId == null
+                      ? (value) => setState(() => branchId = value)
+                      : null,
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          TextField(
-            controller: invoice,
-            decoration: const InputDecoration(
-              labelText: 'Supplier invoice number',
-            ),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              const Expanded(
-                child: Text(
-                  'Purchase items',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _DateButton(
+                        label: 'Purchase date',
+                        value: _date(purchaseDate),
+                        onTap: () => _chooseDate(expected: false),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _DateButton(
+                        label: 'Expected date',
+                        value: expectedDate == null
+                            ? 'Optional'
+                            : _date(expectedDate),
+                        onTap: () => _chooseDate(expected: true),
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-              TextButton.icon(
-                onPressed: () => setState(() => lines.add(_DraftLine())),
-                icon: const Icon(Icons.add_rounded),
-                label: const Text('Add item'),
-              ),
-            ],
-          ),
-          ...lines.asMap().entries.map(
-            (entry) => _PurchaseLineCard(
-              line: entry.value,
-              products: products,
-              canRemove: lines.length > 1,
-              onChanged: () => setState(() {}),
-              onRemove: () => setState(() {
-                final removed = lines.removeAt(entry.key);
-                removed.dispose();
-              }),
-            ),
-          ),
-          TextField(
-            controller: headerDiscount,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            onChanged: (_) => setState(() {}),
-            decoration: const InputDecoration(
-              labelText: 'Order discount (QAR)',
-            ),
-          ),
-          const SizedBox(height: 10),
-          TextField(
-            controller: notes,
-            maxLines: 2,
-            decoration: const InputDecoration(labelText: 'Notes (optional)'),
-          ),
-          Container(
-            margin: const EdgeInsets.symmetric(vertical: 14),
-            padding: const EdgeInsets.all(15),
-            decoration: BoxDecoration(
-              color: const Color(0xFFE8F6F0),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text('Estimated total'),
-                Text(
-                  _money(estimatedMinor),
-                  style: const TextStyle(
-                    fontSize: 19,
-                    fontWeight: FontWeight.w900,
+                const SizedBox(height: 10),
+                TextField(
+                  controller: invoice,
+                  decoration: const InputDecoration(
+                    labelText: 'Supplier invoice number',
                   ),
                 ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    const Expanded(
+                      child: Text(
+                        'Purchase items',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                    TextButton.icon(
+                      onPressed: () => setState(() => lines.add(_DraftLine())),
+                      icon: const Icon(Icons.add_rounded),
+                      label: const Text('Add item'),
+                    ),
+                  ],
+                ),
+                ...lines.asMap().entries.map(
+                  (entry) => _PurchaseLineCard(
+                    line: entry.value,
+                    products: products,
+                    canRemove: lines.length > 1,
+                    onChanged: () => setState(() {}),
+                    onRemove: () => setState(() {
+                      final removed = lines.removeAt(entry.key);
+                      removed.dispose();
+                    }),
+                  ),
+                ),
+                TextField(
+                  controller: headerDiscount,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  onChanged: (_) => setState(() {}),
+                  decoration: const InputDecoration(
+                    labelText: 'Order discount (QAR)',
+                  ),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: notes,
+                  maxLines: 2,
+                  decoration: const InputDecoration(
+                    labelText: 'Notes (optional)',
+                  ),
+                ),
+                Container(
+                  margin: const EdgeInsets.symmetric(vertical: 14),
+                  padding: const EdgeInsets.all(15),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE8F6F0),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Estimated total'),
+                      Text(
+                        _money(estimatedMinor),
+                        style: const TextStyle(
+                          fontSize: 19,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (error != null) _Notice(error!, error: true),
               ],
+            ],
+          ),
+        ),
+        AnimatedPadding(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOut,
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.viewInsetsOf(context).bottom,
+          ),
+          child: SafeArea(
+            top: false,
+            minimum: const EdgeInsets.fromLTRB(20, 10, 20, 12),
+            child: SizedBox(
+              width: double.infinity,
+              height: 54,
+              child: FilledButton.icon(
+                onPressed: saving ? null : _save,
+                icon: saving
+                    ? const SizedBox.square(
+                        dimension: 17,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.save_outlined),
+                label: Text(saving ? 'Creating…' : 'Create draft purchase'),
+              ),
             ),
           ),
-          if (error != null) _Notice(error!, error: true),
-          FilledButton.icon(
-            onPressed: saving ? null : _save,
-            icon: saving
-                ? const SizedBox.square(
-                    dimension: 17,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.save_outlined),
-            label: Text(saving ? 'Creating…' : 'Create draft purchase'),
-          ),
-        ],
+        ),
       ],
     ),
   );
