@@ -7,7 +7,12 @@ import {
   type KeyboardEvent,
 } from "react";
 import { AppShell } from "../components/app-shell";
-import { api, selectedOrganization, type CurrentUser } from "../lib/api";
+import {
+  api,
+  resolveApiAssetUrl,
+  selectedOrganization,
+  type CurrentUser,
+} from "../lib/api";
 import { formatMinorCurrency } from "../lib/catalogue";
 import type { Paged, PosProduct, Sale } from "../lib/sales";
 import type { Appointment } from "../lib/phase5";
@@ -560,6 +565,7 @@ export default function PosPage() {
                 )
                   .slice(0, 2)
                   .join(" · ");
+                const imageUrl = resolveApiAssetUrl(product.imageUrl);
                 return (
                   <button
                     className="product-tile"
@@ -568,32 +574,11 @@ export default function PosPage() {
                     onClick={() => add(product)}
                     title={`${product.name}${identity ? ` — ${identity}` : ""} — ${formatMinorCurrency(product.priceMinor)}`}
                   >
-                    <span className="product-tile-media">
-                      {product.imageUrl ? (
-                        // API-hosted product images are normalized and cached as WebP.
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          className="product-tile-image"
-                          src={product.imageUrl}
-                          alt=""
-                          loading="lazy"
-                        />
-                      ) : (
-                        <span
-                          className="product-tile-fallback"
-                          aria-hidden="true"
-                        >
-                          {product.name.slice(0, 2).toUpperCase()}
-                        </span>
-                      )}
-                      <b className="product-tile-price">
-                        {formatMinorCurrency(product.priceMinor)}
-                      </b>
-                    </span>
-                    <span className="product-tile-copy">
+                    <ProductTileMedia imageUrl={imageUrl} name={product.name} />
+                    <div className="product-tile-copy">
                       <strong>{product.name}</strong>
                       <small>{identity || "Standard item"}</small>
-                    </span>
+                    </div>
                   </button>
                 );
               })}
@@ -624,7 +609,12 @@ export default function PosPage() {
             )}
           </div>
           <div className="card pos-cart">
-            <h2>Cart</h2>
+            <div className="pos-cart-header">
+              <h2>Cart</h2>
+              <span>
+                {cart.length} {cart.length === 1 ? "item" : "items"} · {formatMinorCurrency(total)}
+              </span>
+            </div>
             <div className="pos-cart-lines">
               {appointmentId && (
                 <p className="notice">
@@ -700,66 +690,67 @@ export default function PosPage() {
                 </div>
               ))}
             </div>
-            {canDiscount && (
-              <div className="discount-row">
-                <select
-                  aria-label="Discount type"
-                  value={discountType}
-                  onChange={(event) => setDiscountType(event.target.value)}
-                >
-                  <option value="">No discount</option>
-                  <option value="FIXED">Fixed QAR</option>
-                  <option value="PERCENTAGE">Percentage</option>
-                </select>
-                <input
-                  aria-label="Discount value"
-                  type="number"
-                  min="0"
-                  max={discountType === "PERCENTAGE" ? 100 : undefined}
-                  value={discountValue}
-                  onChange={(event) => setDiscountValue(event.target.value)}
-                />
+            <div className="pos-cart-calculator">
+              {canDiscount && (
+                <div className="discount-row">
+                  <select
+                    aria-label="Discount type"
+                    value={discountType}
+                    onChange={(event) => setDiscountType(event.target.value)}
+                  >
+                    <option value="">No discount</option>
+                    <option value="FIXED">Fixed QAR</option>
+                    <option value="PERCENTAGE">Percentage</option>
+                  </select>
+                  <input
+                    aria-label="Discount value"
+                    type="number"
+                    min="0"
+                    max={discountType === "PERCENTAGE" ? 100 : undefined}
+                    value={discountValue}
+                    onChange={(event) => setDiscountValue(event.target.value)}
+                  />
+                </div>
+              )}
+              <div className="totals">
+                <span>
+                  Subtotal <b>{formatMinorCurrency(subtotal)}</b>
+                </span>
+                <span>
+                  Discount <b>− {formatMinorCurrency(discount)}</b>
+                </span>
+                <span>
+                  Tax <b>{formatMinorCurrency(0)}</b>
+                </span>
+                <strong>
+                  Total <b>{formatMinorCurrency(total)}</b>
+                </strong>
               </div>
-            )}
-            <div className="totals">
-              <span>
-                Subtotal <b>{formatMinorCurrency(subtotal)}</b>
-              </span>
-              <span>
-                Discount <b>− {formatMinorCurrency(discount)}</b>
-              </span>
-              <span>
-                Tax <b>{formatMinorCurrency(0)}</b>
-              </span>
-              <strong>
-                Total <b>{formatMinorCurrency(total)}</b>
-              </strong>
-            </div>
-            <h3>Payment</h3>
-            <label>
-              Customer (optional)
-              <select
-                value={customerId}
-                onChange={(event) => setCustomerId(event.target.value)}
-              >
-                <option value="">Walk-in customer</option>
-                {customers.map((row) => (
-                  <option key={row.id} value={row.id}>
-                    {row.name}
-                    {row.phone ? ` · ${row.phone}` : ""}
-                  </option>
-                ))}
-              </select>
-            </label>
-            {customer && (
-              <p className="muted">
-                Outstanding {formatMinorCurrency(customer.balanceMinor ?? 0)}
-                {customer.creditLimitMinor == null
-                  ? " · No credit limit"
-                  : ` · Limit ${formatMinorCurrency(customer.creditLimitMinor)}`}
-              </p>
-            )}
-            <div className="payment-choice-grid">
+              <h3>Payment</h3>
+              <label>
+                Customer (optional)
+                <select
+                  value={customerId}
+                  onChange={(event) => setCustomerId(event.target.value)}
+                >
+                  <option value="">Walk-in customer</option>
+                  {customers.map((row) => (
+                    <option key={row.id} value={row.id}>
+                      {row.name}
+                      {row.phone ? ` · ${row.phone}` : ""}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {customer && (
+                <p className="muted">
+                  Outstanding {formatMinorCurrency(customer.balanceMinor ?? 0)}
+                  {customer.creditLimitMinor == null
+                    ? " · No credit limit"
+                    : ` · Limit ${formatMinorCurrency(customer.creditLimitMinor)}`}
+                </p>
+              )}
+              <div className="payment-choice-grid">
               {(
                 [
                   ["CASH", "Cash", "Record cash and calculate change."],
@@ -784,9 +775,9 @@ export default function PosPage() {
                   <small>{description}</small>
                 </button>
               ))}
-            </div>
-            {tenderMode === "CASH" && (
-              <div className="cash-panel">
+              </div>
+              {tenderMode === "CASH" && (
+                <div className="cash-panel">
                 <label>
                   Cash received (QAR)
                   <input
@@ -824,10 +815,10 @@ export default function PosPage() {
                     )}
                   </strong>
                 </div>
-              </div>
-            )}
-            {tenderMode === "LOCAL_CARD" && (
-              <div className="payment-row">
+                </div>
+              )}
+              {tenderMode === "LOCAL_CARD" && (
+                <div className="payment-row">
                 <label>
                   Acquiring bank / terminal
                   <select
@@ -853,8 +844,9 @@ export default function PosPage() {
                     }
                   />
                 </label>
-              </div>
-            )}
+                </div>
+              )}
+            </div>
             <div className="actions">
               <button
                 className="secondary"
@@ -944,5 +936,35 @@ export default function PosPage() {
         </div>
       )}
     </AppShell>
+  );
+}
+
+function ProductTileMedia({
+  imageUrl,
+  name,
+}: {
+  imageUrl: string | null;
+  name: string;
+}) {
+  const [failed, setFailed] = useState(false);
+  return (
+    <div className="product-tile-media">
+      {imageUrl && !failed ? (
+        // Product images are optimized as WebP by the API. A visible initials
+        // fallback prevents empty tiles if an old file is missing in production.
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          className="product-tile-image"
+          src={imageUrl}
+          alt={name}
+          loading="lazy"
+          onError={() => setFailed(true)}
+        />
+      ) : (
+        <span className="product-tile-fallback" aria-hidden="true">
+          {name.slice(0, 2).toUpperCase()}
+        </span>
+      )}
+    </div>
   );
 }

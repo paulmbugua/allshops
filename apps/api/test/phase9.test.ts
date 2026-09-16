@@ -107,6 +107,16 @@ try {
     cors.headers["access-control-allow-origin"],
     "http://localhost:3000",
   );
+  const idempotencyPreflight = await request(app.getHttpServer())
+    .options("/api/v1/health/live")
+    .set("Origin", "http://localhost:3000")
+    .set("Access-Control-Request-Method", "POST")
+    .set("Access-Control-Request-Headers", "idempotency-key");
+  assert.equal(idempotencyPreflight.status, 204);
+  assert.match(
+    idempotencyPreflight.headers["access-control-allow-headers"] ?? "",
+    /idempotency-key/i,
+  );
   const blockedCors = await request(app.getHttpServer())
     .get("/api/v1/health/live")
     .set("Origin", "https://untrusted.example");

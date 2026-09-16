@@ -2,9 +2,16 @@ import type { NextConfig } from "next";
 import path from "node:path";
 
 const publicApiUrl = process.env.NEXT_PUBLIC_API_URL ?? "/api/v1";
-const apiConnectSource = /^https?:\/\//.test(publicApiUrl)
+const configuredApiOrigin = /^https?:\/\//.test(publicApiUrl)
   ? new URL(publicApiUrl).origin
   : "";
+const apiConnectSource =
+  configuredApiOrigin ||
+  (process.env.NODE_ENV !== "production" ? "http://localhost:4000" : "");
+// Product media is served by the API rather than Next.js. Keep the allow-list
+// tied to the configured API origin; local development needs the HTTP origin,
+// while production remains restricted to the deployed HTTPS API.
+const apiImageSource = apiConnectSource;
 const productionCspSuffix =
   process.env.NODE_ENV === "production" ? "; upgrade-insecure-requests" : "";
 const scriptPolicy = process.env.NODE_ENV === "production"
@@ -36,7 +43,7 @@ const nextConfig: NextConfig = {
           },
           {
             key: "Content-Security-Policy",
-            value: `default-src 'self'; base-uri 'self'; frame-ancestors 'none'; object-src 'none'; form-action 'self'; ${scriptPolicy}; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self'${apiConnectSource ? ` ${apiConnectSource}` : ""}; worker-src 'self' blob:; manifest-src 'self'${productionCspSuffix}`,
+            value: `default-src 'self'; base-uri 'self'; frame-ancestors 'none'; object-src 'none'; form-action 'self'; ${scriptPolicy}; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:${apiImageSource ? ` ${apiImageSource}` : ""}; font-src 'self' data:; connect-src 'self'${apiConnectSource ? ` ${apiConnectSource}` : ""}; worker-src 'self' blob:; manifest-src 'self'${productionCspSuffix}`,
           },
         ],
       },

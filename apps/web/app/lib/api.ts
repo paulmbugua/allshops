@@ -1,6 +1,24 @@
 "use client";
 export const API_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1";
+
+/**
+ * Product images are persisted as absolute API URLs. Older local uploads can
+ * therefore contain localhost even after the web app is deployed elsewhere.
+ * Repoint only those legacy local origins to the current configured API while
+ * leaving every normal HTTPS asset untouched.
+ */
+export function resolveApiAssetUrl(value: string | null | undefined): string | null {
+  if (!value) return null;
+  try {
+    const parsed = new URL(value, typeof window === "undefined" ? "http://localhost" : window.location.origin);
+    if (parsed.hostname !== "localhost" && parsed.hostname !== "127.0.0.1") return value;
+    const configured = new URL(API_URL, typeof window === "undefined" ? "http://localhost" : window.location.origin);
+    return `${configured.origin}${parsed.pathname}${parsed.search}`;
+  } catch {
+    return value;
+  }
+}
 export interface Membership {
   id: string;
   organizationId: string;

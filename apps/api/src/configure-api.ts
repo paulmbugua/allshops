@@ -33,7 +33,12 @@ export function configureApi(app: INestApplication): void {
     },
     credentials: true,
     methods: ["GET", "POST", "PATCH", "OPTIONS"],
-    allowedHeaders: ["Authorization", "Content-Type", "X-Request-Id"],
+    allowedHeaders: [
+      "Authorization",
+      "Content-Type",
+      "X-Request-Id",
+      "Idempotency-Key",
+    ],
     exposedHeaders: ["X-Request-Id"],
   });
   (

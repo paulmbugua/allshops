@@ -440,7 +440,7 @@ nav a:hover {
   text-align: center;
 }
 .transfer-item {
-  align-items: end;
+  align-items: flex-end;
   padding: 0.75rem;
   border: 1px solid var(--line);
   border-radius: 0.6rem;
@@ -2907,12 +2907,12 @@ body.pos-focus-mode .pos-layout {
   padding-top: 0.4rem;
   font-size: 1rem;
 }
-.pos-cart > label {
+.pos-cart-calculator > label {
   flex: 0 0 auto;
   gap: 0.2rem;
   font-size: 0.7rem;
 }
-.pos-cart > label select {
+.pos-cart-calculator > label select {
   min-height: 2.35rem;
   padding: 0.4rem 0.55rem;
   font-size: 0.75rem;
@@ -3251,6 +3251,198 @@ html[dir="rtl"] textarea {
   line-height: 1.08;
 }
 
+/* Keep POS identity content visible after the compact tile rules above. */
+.pos-products .product-grid .product-tile > .product-tile-media {
+  display: block !important;
+  min-height: 0;
+  height: 100%;
+}
+.pos-products .product-grid .product-tile > .product-tile-copy {
+  display: block !important;
+  min-height: 0;
+}
+.pos-products .product-grid .product-tile-media .product-tile-image,
+.pos-products .product-grid .product-tile-media .product-tile-fallback {
+  display: grid !important;
+  visibility: visible;
+  opacity: 1;
+}
+.pos-products .product-grid .product-tile-copy strong,
+.pos-products .product-grid .product-tile-copy small {
+  display: block !important;
+  visibility: visible;
+  opacity: 1;
+}
+.pos-products .product-grid .product-tile-copy strong {
+  color: #173a31;
+}
+.pos-products .product-grid .product-tile-copy small {
+  color: #5b756b;
+}
+
+.pos-cart-header {
+  display: flex;
+  min-width: 0;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+.pos-cart-header h2 {
+  margin: 0;
+}
+.pos-cart-header > span {
+  overflow: hidden;
+  color: #b8d1c8;
+  font-size: 0.7rem;
+  font-weight: 850;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pos-cart-calculator {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+}
+
+/* On compact desktop/tablet windows, the checkout becomes a reserved footer
+   dock. It stays visible without covering the product catalogue. */
+@media (min-width: 761px) and (max-width: 1180px) {
+  body.pos-route-mode {
+    overflow: hidden;
+  }
+  body.pos-route-mode .workspace {
+    height: 100vh;
+    overflow: hidden;
+  }
+  .pos-workspace {
+    height: 100%;
+  }
+  .pos-layout,
+  body.pos-focus-mode .pos-layout {
+    display: grid;
+    min-height: 0;
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(12rem, 1fr) auto;
+    gap: 0.65rem;
+  }
+  .pos-products {
+    min-height: 0;
+  }
+  .pos-products .product-grid {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+  }
+  .pos-cart {
+    display: grid;
+    width: 100%;
+    height: min(17.5rem, 38vh);
+    max-height: 17.5rem;
+    grid-template-columns: minmax(10rem, 0.8fr) minmax(22rem, 1.8fr) minmax(8.5rem, 0.65fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: 0.45rem 0.7rem;
+    padding: 0.65rem;
+    overflow: hidden;
+    border-radius: 1.25rem 1.25rem 0.85rem 0.85rem;
+    box-shadow: 0 -0.8rem 2.2rem rgb(16 35 29 / 12%);
+  }
+  .pos-cart-header {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .pos-cart-header h2 {
+    font-size: 1rem;
+  }
+  .pos-cart-header > span {
+    font-size: 0.62rem;
+  }
+  .pos-cart-lines {
+    max-height: none;
+    grid-column: 1;
+    grid-row: 2;
+    overflow-y: auto;
+    padding-right: 0.2rem;
+  }
+  .pos-cart-calculator {
+    display: grid;
+    grid-column: 2;
+    grid-row: 1 / 3;
+    grid-template-columns: minmax(9rem, 0.8fr) minmax(12rem, 1.2fr);
+    grid-auto-rows: min-content;
+    gap: 0.35rem 0.55rem;
+    overflow-y: auto;
+    padding: 0.05rem 0.3rem;
+    scrollbar-width: thin;
+  }
+  .pos-cart-calculator .discount-row,
+  .pos-cart-calculator .totals {
+    grid-column: 1;
+  }
+  .pos-cart-calculator .discount-row {
+    grid-row: 1;
+  }
+  .pos-cart-calculator .totals {
+    grid-row: 2 / span 4;
+    align-self: start;
+    margin: 0;
+  }
+  .pos-cart-calculator > h3 {
+    display: none;
+  }
+  .pos-cart-calculator > label,
+  .pos-cart-calculator > .muted,
+  .pos-cart-calculator > .payment-choice-grid,
+  .pos-cart-calculator > .cash-panel,
+  .pos-cart-calculator > .payment-row {
+    grid-column: 2;
+  }
+  .pos-cart-calculator > label {
+    grid-row: 1;
+  }
+  .pos-cart-calculator > .muted {
+    margin: 0;
+    font-size: 0.62rem;
+  }
+  .pos-cart-calculator > .payment-choice-grid {
+    margin: 0;
+  }
+  .pos-cart-calculator > .cash-panel,
+  .pos-cart-calculator > .payment-row {
+    align-self: start;
+  }
+  .pos-cart > .actions {
+    display: flex;
+    min-width: 0;
+    margin: 0;
+    grid-column: 3;
+    grid-row: 1 / 3;
+    flex-direction: column;
+    justify-content: flex-end;
+    gap: 0.45rem;
+  }
+  .pos-cart > .actions button {
+    width: 100%;
+    min-height: 2.6rem;
+    padding: 0.4rem 0.55rem;
+    white-space: normal;
+  }
+  .pos-cart > .notice {
+    position: absolute;
+    right: 0.65rem;
+    bottom: 0.65rem;
+    max-width: 16rem;
+  }
+}
+@media (min-width: 761px) and (max-width: 1100px) {
+  body.pos-route-mode .workspace {
+    height: calc(100vh - 5.8rem);
+  }
+}
+
 /* Flutter-parity responsive shell: phone bottom navigation, tablet canvas and
    the same maroon/sand/emerald visual language as apps/mobile. */
 @media (max-width: 1100px) {
@@ -3527,6 +3719,227 @@ html[dir="rtl"] textarea {
 }
 html[dir="rtl"] .auth-page {
   direction: rtl;
+}
+
+/* Public pricing page: high-contrast plan cards that remain readable over the
+   Qatar-inspired welcome background. */
+.pricing-page {
+  align-items: center;
+  padding: clamp(1rem, 3vw, 2.5rem);
+}
+.pricing-shell {
+  width: min(1180px, 100%);
+  padding: clamp(1.25rem, 3vw, 2.5rem);
+  border: 1px solid rgb(255 255 255 / 22%);
+  border-radius: 2rem;
+  background: rgb(13 40 36 / 88%);
+  box-shadow: 0 2rem 5rem rgb(0 0 0 / 25%);
+}
+.pricing-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 2rem;
+  margin-bottom: 1.75rem;
+}
+.pricing-kicker {
+  display: inline-block;
+  margin-bottom: 0.65rem;
+  color: #ffcf5c;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.pricing-heading h1 {
+  margin-bottom: 0.65rem;
+  color: #fffaf2;
+  font-size: clamp(2rem, 5vw, 3.7rem);
+  letter-spacing: -0.06em;
+}
+.pricing-heading p {
+  max-width: 44rem;
+  margin-bottom: 0;
+  color: #d6e7df;
+  line-height: 1.6;
+}
+.pricing-assurance {
+  display: grid;
+  flex: 0 0 auto;
+  gap: 0.55rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid rgb(255 255 255 / 16%);
+  border-radius: 1rem;
+  background: rgb(255 255 255 / 7%);
+  color: #effaf5;
+  font-size: 0.75rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.9rem;
+  align-items: stretch;
+}
+.pricing-plan {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  padding: 1.25rem;
+  overflow: hidden;
+  border: 1px solid #d8e8e0;
+  border-radius: 1.35rem;
+  background: #fffdf9;
+  color: #19342e;
+  box-shadow: 0 1rem 2rem rgb(0 0 0 / 13%);
+}
+.pricing-plan::before {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 0.28rem;
+  background: #2c9d77;
+  content: "";
+}
+.pricing-plan-business {
+  border-color: #ffbe58;
+  background: linear-gradient(160deg, #fffdf8, #fff1d5);
+  box-shadow: 0 1.2rem 2.5rem rgb(255 181 72 / 22%);
+  transform: translateY(-0.45rem);
+}
+.pricing-plan-business::before { background: #ef654c; }
+.pricing-plan-growth::before { background: #8169d7; }
+.pricing-plan-enterprise::before { background: #d34568; }
+.pricing-badge {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  padding: 0.3rem 0.5rem;
+  border-radius: 999px;
+  background: #6d1738;
+  color: #fff;
+  font-size: 0.62rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.pricing-plan-mark {
+  display: grid;
+  width: 2.5rem;
+  height: 2.5rem;
+  margin-bottom: 0.7rem;
+  place-items: center;
+  border-radius: 0.8rem;
+  background: #e4f5ed;
+  color: #087f5b;
+  font-size: 1.25rem;
+  font-weight: 900;
+}
+.pricing-plan-business .pricing-plan-mark { background: #ffe4bc; color: #a85b00; }
+.pricing-plan-growth .pricing-plan-mark { background: #ebe5ff; color: #6046b4; }
+.pricing-plan-enterprise .pricing-plan-mark { background: #ffe2e8; color: #a72d4b; }
+.pricing-plan-code {
+  color: #6a8178;
+  font-size: 0.64rem;
+  font-weight: 950;
+  letter-spacing: 0.13em;
+}
+.pricing-plan h2 {
+  margin: 0.25rem 0 0.45rem;
+  color: #142c27;
+  font-size: 1.35rem;
+  letter-spacing: -0.035em;
+}
+.pricing-plan-top p {
+  min-height: 4rem;
+  margin: 0;
+  color: #4d655d;
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+.pricing-price {
+  display: flex;
+  min-height: 3.2rem;
+  align-items: baseline;
+  gap: 0.3rem;
+  margin: 1rem 0 0.75rem;
+}
+.pricing-price strong {
+  color: #6d1738;
+  font-size: 1.45rem;
+  letter-spacing: -0.04em;
+}
+.pricing-price span { color: #6d8279; font-size: 0.72rem; }
+.pricing-plan-audience {
+  display: grid;
+  gap: 0.2rem;
+  margin-bottom: 0.75rem;
+  padding: 0.65rem 0.75rem;
+  border-left: 0.2rem solid #ef654c;
+  border-radius: 0 0.6rem 0.6rem 0;
+  background: #fff1e8;
+}
+.pricing-plan-audience span,
+.pricing-includes > span {
+  color: #8a4560;
+  font-size: 0.62rem;
+  font-weight: 950;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.pricing-plan-audience strong { color: #263f37; font-size: 0.74rem; line-height: 1.35; }
+.pricing-limits {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.45rem;
+  padding: 0.65rem;
+  border-radius: 0.75rem;
+  background: #eff7f3;
+}
+.pricing-limits span { display: grid; gap: 0.1rem; color: #60766e; font-size: 0.62rem; }
+.pricing-limits strong { color: #1d4b3e; font-size: 0.82rem; }
+.pricing-includes { flex: 1; margin: 0.9rem 0 1rem; }
+.pricing-includes ul { display: grid; gap: 0.45rem; margin: 0.55rem 0 0; padding: 0; list-style: none; }
+.pricing-includes li { color: #2d4b41; font-size: 0.72rem; line-height: 1.3; }
+.pricing-includes li::before { margin-right: 0.4rem; color: #16805c; content: "✓"; font-weight: 950; }
+.pricing-cta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 2.7rem;
+  padding: 0.65rem 0.8rem;
+  border-radius: 0.7rem;
+  background: #6d1738;
+  color: #fff;
+  font-size: 0.76rem;
+  font-weight: 900;
+  text-decoration: none;
+}
+.pricing-cta:hover { background: #8c2149; }
+.pricing-cta span { color: #ffcf5c; font-size: 1rem; }
+.pricing-annual { margin-top: 0.55rem; color: #71887f; font-size: 0.62rem; text-align: center; }
+.pricing-footer {
+  display: flex;
+  justify-content: center;
+  gap: 0.45rem;
+  margin-top: 1.25rem;
+  color: #c6ddd3;
+  font-size: 0.78rem;
+}
+.pricing-footer a { color: #ffcf5c; font-weight: 850; }
+html[dir="rtl"] .pricing-plan-audience { border-right: 0.2rem solid #ef654c; border-left: 0; border-radius: 0.6rem 0 0 0.6rem; }
+html[dir="rtl"] .pricing-includes li::before { margin-right: 0; margin-left: 0.4rem; }
+@media (max-width: 1050px) {
+  .pricing-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pricing-plan-business { transform: none; }
+}
+@media (max-width: 680px) {
+  .pricing-heading { align-items: stretch; flex-direction: column; gap: 1rem; }
+  .pricing-assurance { white-space: normal; }
+  .pricing-grid { grid-template-columns: 1fr; }
+  .pricing-plan-top p { min-height: 0; }
+  .pricing-footer { align-items: center; flex-direction: column; }
 }
 @media (max-width: 600px) {
   .auth-page {
