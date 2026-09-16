@@ -74,6 +74,7 @@ export function ProductForm({
       setMessage("Choose a JPEG, PNG, or WebP image up to 5 MB.");
       return;
     }
+    if (imagePreview.startsWith("blob:")) URL.revokeObjectURL(imagePreview);
     setImageFile(file);
     setImagePreview(URL.createObjectURL(file));
     setRemoveImage(false);
@@ -264,6 +265,9 @@ export function ProductForm({
                   className="image-remove-button"
                   type="button"
                   onClick={() => {
+                    if (imagePreview.startsWith("blob:")) {
+                      URL.revokeObjectURL(imagePreview);
+                    }
                     setImageFile(null);
                     setImagePreview("");
                     setRemoveImage(true);
