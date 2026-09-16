@@ -135,6 +135,36 @@ export default function PosPage() {
     return () => document.body.classList.remove("pos-route-mode");
   }, []);
 
+  // Keep the register fast for keyboard-first cashiers. Enter confirms the
+  // completion dialog, Ctrl/Cmd+K jumps to scan/search, and F2 starts a fresh
+  // ticket when the current cart is empty.
+  useEffect(() => {
+    const onShortcut = (event: globalThis.KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      const editing =
+        target?.tagName === "INPUT" ||
+        target?.tagName === "TEXTAREA" ||
+        target?.tagName === "SELECT";
+      if (completedSale && event.key === "Enter") {
+        event.preventDefault();
+        newSale();
+        return;
+      }
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        searchRef.current?.focus();
+        searchRef.current?.select();
+        return;
+      }
+      if (!editing && event.key === "F2") {
+        event.preventDefault();
+        if (!cart.length) newSale();
+      }
+    };
+    window.addEventListener("keydown", onShortcut);
+    return () => window.removeEventListener("keydown", onShortcut);
+  }, [cart.length, completedSale]);
+
   useEffect(() => {
     const grid = productGridRef.current;
     if (!grid || typeof ResizeObserver === "undefined") return;
@@ -615,6 +645,14 @@ export default function PosPage() {
                 </button>
               </nav>
             )}
+            <div className="pos-products-footer-dock" aria-label="Register quick summary">
+              <span><small>Ticket total</small><strong>{formatMinorCurrency(total)}</strong></span>
+              <span className={changeDue > 0 ? "has-change" : ""}>
+                <small>{cashShortfall > 0 ? "Still due" : "Change"}</small>
+                <strong>{formatMinorCurrency(cashShortfall > 0 ? cashShortfall : changeDue)}</strong>
+              </span>
+              <span className="pos-shortcuts"><kbd>Ctrl</kbd><span>+</span><kbd>K</kbd> scan · <kbd>F2</kbd> new ticket</span>
+            </div>
           </div>
           <div className="card pos-cart">
             <div className="pos-cart-header">
@@ -938,7 +976,9 @@ export default function PosPage() {
               >
                 Print again
               </button>
-              <button onClick={newSale}>New sale</button>
+              <button onClick={newSale} autoFocus>
+                New sale <span className="button-shortcut">↵ Enter</span>
+              </button>
             </div>
           </div>
         </div>

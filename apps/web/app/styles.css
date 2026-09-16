@@ -2132,6 +2132,96 @@ body.pos-focus-mode .pos-layout {
   }
 }
 
+/* Desktop register dock: keeps the most important numbers visible beside the
+   catalogue while the detailed tender calculator remains in the cart. */
+@media (min-width: 901px) {
+  .pos-products-footer-dock {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    flex: 0 0 auto;
+    min-height: 3.35rem;
+    margin-top: 0.55rem;
+    padding: 0.55rem 0.8rem;
+    border: 1px solid rgba(38, 102, 83, 0.16);
+    border-radius: 0.85rem;
+    background: linear-gradient(110deg, #e3f6ee, #fff7df);
+    color: #17352f;
+    box-shadow: 0 8px 18px rgba(20, 65, 54, 0.08);
+  }
+  .pos-products-footer-dock > span {
+    display: flex;
+    min-width: 5.5rem;
+    flex-direction: column;
+    gap: 0.1rem;
+  }
+  .pos-products-footer-dock small {
+    color: #50736a;
+    font-size: 0.63rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .pos-products-footer-dock strong {
+    font-size: 1.12rem;
+    line-height: 1.1;
+  }
+  .pos-products-footer-dock .has-change strong {
+    color: #087d58;
+  }
+  .pos-shortcuts {
+    align-items: center;
+    justify-content: flex-end;
+    color: #50736a;
+    font-size: 0.68rem;
+    white-space: nowrap;
+  }
+  .pos-shortcuts kbd,
+  .button-shortcut {
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid rgba(23, 53, 47, 0.2);
+    border-bottom-width: 2px;
+    border-radius: 0.3rem;
+    background: rgba(255, 255, 255, 0.8);
+    color: #17352f;
+    font-size: 0.65rem;
+    font-weight: 800;
+    line-height: 1;
+    padding: 0.22rem 0.32rem;
+  }
+  .button-shortcut {
+    margin-left: 0.35rem;
+    opacity: 0.8;
+  }
+  .pos-cart-calculator {
+    font-size: 0.92rem;
+  }
+  .pos-cart-calculator .totals {
+    font-size: 0.9rem;
+  }
+  .pos-cart-calculator .totals strong {
+    font-size: 1.2rem;
+  }
+  .pos-cart .cash-change strong {
+    font-size: 1.2rem;
+  }
+  .pos-cart > .actions button {
+    font-size: 0.82rem;
+    font-weight: 800;
+  }
+}
+
+@media (max-width: 900px) {
+  .pos-products-footer-dock {
+    display: none;
+  }
+  .button-shortcut {
+    display: none;
+  }
+}
+
 /* Merchant-branded idle and welcome experience */
 .shop-welcome {
   --shop-primary: #172c2b;
