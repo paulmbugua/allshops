@@ -578,7 +578,11 @@ export default function PosPage() {
                     onClick={() => add(product)}
                     title={`${product.name}${identity ? ` — ${identity}` : ""} — ${formatMinorCurrency(product.priceMinor)}`}
                   >
-                    <ProductTileMedia imageUrl={imageUrl} name={product.name} />
+                    <ProductTileMedia
+                      imageUrl={imageUrl}
+                      name={product.name}
+                      priceLabel={formatMinorCurrency(product.priceMinor)}
+                    />
                     <div className="product-tile-copy">
                       <strong>{product.name}</strong>
                       <small>{tileSubtitle}</small>
@@ -946,9 +950,11 @@ export default function PosPage() {
 function ProductTileMedia({
   imageUrl,
   name,
+  priceLabel,
 }: {
   imageUrl: string | null;
   name: string;
+  priceLabel: string;
 }) {
   const [failed, setFailed] = useState(false);
   return (
@@ -969,6 +975,7 @@ function ProductTileMedia({
           {name.slice(0, 2).toUpperCase()}
         </span>
       )}
+      <span className="product-tile-price">{priceLabel}</span>
     </div>
   );
 }
