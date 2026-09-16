@@ -565,6 +565,10 @@ export default function PosPage() {
                 )
                   .slice(0, 2)
                   .join(" · ");
+                const tileSubtitle =
+                  product.categoryName?.trim() ||
+                  product.brandName?.trim() ||
+                  "Uncategorized";
                 const imageUrl = resolveApiAssetUrl(product.imageUrl);
                 return (
                   <button
@@ -577,7 +581,7 @@ export default function PosPage() {
                     <ProductTileMedia imageUrl={imageUrl} name={product.name} />
                     <div className="product-tile-copy">
                       <strong>{product.name}</strong>
-                      <small>{identity || "Standard item"}</small>
+                      <small>{tileSubtitle}</small>
                     </div>
                   </button>
                 );

@@ -2,6 +2,7 @@ export interface PosProduct {
   productId: string;
   variantId: string | null;
   name: string;
+  categoryName?: string | null;
   brandName?: string | null;
   variantName: string | null;
   sku: string | null;
