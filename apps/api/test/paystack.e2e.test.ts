@@ -30,7 +30,11 @@ try {
     name: "Paystack Cashier",
     password: "StrongPass123!",
   });
-  const token = registered.body.accessToken as string;
+  const activated = await request(server)
+    .post("/api/v1/auth/activate-account")
+    .send({ token: registered.body.activationToken });
+  assert.equal(activated.status, 201);
+  const token = activated.body.accessToken as string;
   const auth = { Authorization: `Bearer ${token}` };
   const organization = await request(server)
     .post("/api/v1/organizations")

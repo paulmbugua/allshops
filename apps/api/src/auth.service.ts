@@ -273,7 +273,7 @@ export class AuthService {
         message: "The email or password is incorrect.",
       });
     }
-    if (!user.emailVerifiedAt && user.accountTokens.length > 0) {
+    if (!user.emailVerifiedAt) {
       throw new UnauthorizedException({
         code: "EMAIL_NOT_VERIFIED",
         message:
@@ -309,7 +309,7 @@ export class AuthService {
         userId: payload.sub,
         revokedAt: null,
         expiresAt: { gt: new Date() },
-        user: { status: "ACTIVE" },
+        user: { status: "ACTIVE", emailVerifiedAt: { not: null } },
       },
     });
     if (
@@ -520,6 +520,7 @@ export class AuthService {
         id: true,
         name: true,
         email: true,
+        emailVerifiedAt: true,
         status: true,
         memberships: {
           where: { status: { in: ["ACTIVE", "INVITED"] } },
@@ -550,6 +551,7 @@ export class AuthService {
       id: user.id,
       name: user.name,
       email: user.email,
+      emailVerifiedAt: user.emailVerifiedAt?.toISOString() ?? null,
       status: user.status,
       memberships: user.memberships.map((membership) => ({
         id: membership.id,

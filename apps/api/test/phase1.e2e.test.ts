@@ -39,8 +39,21 @@ try {
   assert.equal(registerA.status, 201);
   assert.ok(registerA.body.accessToken);
   assert.equal(registerA.body.refreshToken, undefined);
-  const tokenA = registerA.body.accessToken as string;
-  const refreshA = cookie(registerA);
+  const blockedBeforeActivation = await request(app.getHttpServer())
+    .post("/api/v1/organizations")
+    .set(bearer(registerA.body.accessToken))
+    .send({ name: "Blocked Organization", businessType: "RETAIL" });
+  assert.equal(blockedBeforeActivation.status, 403);
+  assert.equal(
+    blockedBeforeActivation.body.code,
+    "EMAIL_ACTIVATION_REQUIRED",
+  );
+  const activatedA = await request(app.getHttpServer())
+    .post("/api/v1/auth/activate-account")
+    .send({ token: registerA.body.activationToken });
+  assert.equal(activatedA.status, 201);
+  const tokenA = activatedA.body.accessToken as string;
+  const refreshA = cookie(activatedA);
 
   const duplicate = await request(app.getHttpServer())
     .post("/api/v1/auth/register")
@@ -76,7 +89,11 @@ try {
     .post("/api/v1/auth/register")
     .send({ name: "Owner B", email: emails.ownerB, password });
   assert.equal(registerB.status, 201);
-  const tokenB = registerB.body.accessToken as string;
+  const activatedB = await request(app.getHttpServer())
+    .post("/api/v1/auth/activate-account")
+    .send({ token: registerB.body.activationToken });
+  assert.equal(activatedB.status, 201);
+  const tokenB = activatedB.body.accessToken as string;
 
   const createOrgB = await request(app.getHttpServer())
     .post("/api/v1/organizations")

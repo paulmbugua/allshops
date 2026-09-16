@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
 import { prisma } from "@allshops/database";
 import type {
   CreateOrganizationInput,
@@ -12,6 +16,17 @@ import {
 @Injectable()
 export class OrganizationsService {
   async create(userId: string, input: CreateOrganizationInput) {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { emailVerifiedAt: true },
+    });
+    if (!user?.emailVerifiedAt) {
+      throw new ForbiddenException({
+        code: "EMAIL_ACTIVATION_REQUIRED",
+        message:
+          "Activate your email address before creating an AllShops business.",
+      });
+    }
     const ownerRole = await prisma.role.findFirst({
       where: { organizationId: null, code: "OWNER", isSystemRole: true },
     });

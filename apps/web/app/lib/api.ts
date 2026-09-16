@@ -37,6 +37,7 @@ export interface CurrentUser {
   id: string;
   name: string;
   email: string;
+  emailVerifiedAt: string | null;
   status: string;
   memberships: Membership[];
 }

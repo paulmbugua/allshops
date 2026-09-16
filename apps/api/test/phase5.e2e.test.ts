@@ -22,7 +22,11 @@ async function register(email: string) {
     .post("/api/v1/auth/register")
     .send({ email, name: "Phase 5 Owner", password });
   assert.equal(response.status, 201);
-  return response.body.accessToken as string;
+  const activated = await request(server)
+    .post("/api/v1/auth/activate-account")
+    .send({ token: response.body.activationToken });
+  assert.equal(activated.status, 201);
+  return activated.body.accessToken as string;
 }
 async function setup(token: string, name: string) {
   const org = await request(server)

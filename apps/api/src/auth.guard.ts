@@ -1,6 +1,7 @@
 import {
   CanActivate,
   ExecutionContext,
+  ForbiddenException,
   Injectable,
   UnauthorizedException,
 } from "@nestjs/common";
@@ -43,12 +44,24 @@ export class AuthGuard implements CanActivate {
     const payload = this.tokens.verifyAccessToken(value.slice(7));
     const user = await prisma.user.findFirst({
       where: { id: payload.sub, status: "ACTIVE" },
-      select: { id: true, email: true, isPlatformAdmin: true },
+      select: {
+        id: true,
+        email: true,
+        emailVerifiedAt: true,
+        isPlatformAdmin: true,
+      },
     });
     if (!user?.email) {
       throw new UnauthorizedException({
         code: "UNAUTHENTICATED",
         message: "The authenticated user is unavailable.",
+      });
+    }
+    if (!user.emailVerifiedAt) {
+      throw new ForbiddenException({
+        code: "EMAIL_ACTIVATION_REQUIRED",
+        message:
+          "Activate your email address before accessing your AllShops workspace.",
       });
     }
     request.user = {

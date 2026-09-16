@@ -1,6 +1,7 @@
 "use client";
-import { useState, type FormEvent } from "react";
-import { api, selectOrganization } from "../lib/api";
+import Link from "next/link";
+import { useEffect, useState, type FormEvent } from "react";
+import { api, selectOrganization, type CurrentUser } from "../lib/api";
 
 interface Organization {
   id: string;
@@ -10,6 +11,16 @@ interface Organization {
 export default function OnboardingPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [verification, setVerification] = useState<
+    "CHECKING" | "REQUIRED" | "VERIFIED"
+  >("CHECKING");
+  useEffect(() => {
+    void api<CurrentUser>("/auth/me")
+      .then((user) =>
+        setVerification(user.emailVerifiedAt ? "VERIFIED" : "REQUIRED"),
+      )
+      .catch(() => setVerification("REQUIRED"));
+  }, []);
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setLoading(true);
@@ -45,6 +56,40 @@ export default function OnboardingPage() {
     } finally {
       setLoading(false);
     }
+  }
+  if (verification === "CHECKING") {
+    return (
+      <main className="auth-page">
+        <section className="card">
+          <span className="eyebrow">Secure business setup</span>
+          <h1>Confirming your account…</h1>
+          <p className="muted">Checking email activation status.</p>
+        </section>
+      </main>
+    );
+  }
+  if (verification === "REQUIRED") {
+    return (
+      <main className="auth-page">
+        <section className="card">
+          <span className="eyebrow">Email activation required</span>
+          <h1>Activate before creating your shop</h1>
+          <p>
+            Open the secure activation link sent to your registered email.
+            After verification, you will return here to create your business
+            and first branch.
+          </p>
+          <div className="actions">
+            <Link className="button-link" href="/resend-activation">
+              Resend activation email
+            </Link>
+            <Link className="button-link secondary" href="/login">
+              Return to sign in
+            </Link>
+          </div>
+        </section>
+      </main>
+    );
   }
   return (
     <main className="auth-page">

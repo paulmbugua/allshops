@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
-import { api, setAccessToken, type AuthResult } from "../lib/api";
+import { api, type AuthResult } from "../lib/api";
 export default function RegisterPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -25,7 +25,6 @@ export default function RegisterPage() {
           password: data.get("password"),
         }),
       });
-      setAccessToken(result.accessToken);
       setEmailDelivery(result.emailDelivery);
       setCreated(true);
     } catch (caught) {
@@ -52,8 +51,12 @@ export default function RegisterPage() {
               <Link href="/resend-activation">Resend activation email</Link>
             </p>
           )}
-          <Link className="button-link" href="/onboarding">
-            Continue setup
+          <p className="muted">
+            Business setup remains locked until you open the secure activation
+            link sent to your email address.
+          </p>
+          <Link className="button-link" href="/login">
+            I have activated my account
           </Link>
         </section>
       ) : (

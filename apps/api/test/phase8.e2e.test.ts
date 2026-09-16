@@ -26,7 +26,11 @@ try {
     password: "StrongPass123!",
   });
   assert.equal(registered.status, 201);
-  const token = registered.body.accessToken as string;
+  const accountActivation = await request(server)
+    .post("/api/v1/auth/activate-account")
+    .send({ token: registered.body.activationToken });
+  assert.equal(accountActivation.status, 201);
+  const token = accountActivation.body.accessToken as string;
   const userId = registered.body.user.id as string;
   const created = await request(server)
     .post("/api/v1/organizations")
