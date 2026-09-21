@@ -63,6 +63,7 @@ export default function PosPage() {
   const [localBank, setLocalBank] = useState("QNB");
   const [terminalReference, setTerminalReference] = useState("");
   const [autoPrint, setAutoPrint] = useState(true);
+  const [celebrationMode, setCelebrationMode] = useState(false);
   const [focusMode, setFocusMode] = useState(false);
   const [completedSale, setCompletedSale] = useState<Sale>();
   const [printJob, setPrintJob] = useState<{
@@ -117,6 +118,9 @@ export default function PosPage() {
   useEffect(() => {
     setAutoPrint(
       window.localStorage.getItem("allshops-pos-auto-print") !== "false",
+    );
+    setCelebrationMode(
+      window.localStorage.getItem("allshops-pos-celebration-mode") === "true",
     );
     const onFullscreen = () => {
       if (!document.fullscreenElement) setFocusMode(false);
@@ -465,6 +469,11 @@ export default function PosPage() {
     setAutoPrint(next);
     window.localStorage.setItem("allshops-pos-auto-print", String(next));
   }
+  function toggleCelebrationMode() {
+    const next = !celebrationMode;
+    setCelebrationMode(next);
+    window.localStorage.setItem("allshops-pos-celebration-mode", String(next));
+  }
   async function toggleFocusMode() {
     if (focusMode) {
       if (document.fullscreenElement)
@@ -545,6 +554,14 @@ export default function PosPage() {
                   onChange={toggleAutoPrint}
                 />
                 Auto-print receipt
+              </label>
+              <label className="pos-auto-print">
+                <input
+                  type="checkbox"
+                  checked={celebrationMode}
+                  onChange={toggleCelebrationMode}
+                />
+                Celebration mode
               </label>
               <button
                 type="button"
@@ -934,9 +951,11 @@ export default function PosPage() {
           aria-modal="true"
           aria-labelledby="sale-complete-title"
         >
-          <div className="celebration-sparkles" aria-hidden="true">
-            <i>✦</i><i>✦</i><i>✦</i><i>✦</i><i>✦</i><i>✦</i>
-          </div>
+          {celebrationMode && (
+            <div className="celebration-sparkles" aria-hidden="true">
+              <i>✦</i><i>✦</i><i>✦</i><i>✦</i><i>✦</i><i>✦</i>
+            </div>
+          )}
           <div className="pos-success-card">
             <span className="sale-check">✓</span>
             <p className="eyebrow">Payment approved</p>
