@@ -3033,6 +3033,23 @@ body.pos-focus-mode .pos-layout {
 .pos-cart .payment-choice-grid .product-tile small {
   display: none;
 }
+.pos-split-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0.25rem 0 0.4rem;
+  color: #d7eee4;
+  font-size: 0.72rem;
+  font-weight: 750;
+}
+.pos-split-toggle input {
+  width: auto;
+  min-height: auto;
+  accent-color: #ffcf5c;
+}
+.split-payment-panel {
+  margin-bottom: 0.4rem;
+}
 .pos-cart .cash-panel {
   flex: 0 0 auto;
   gap: 0.35rem;

@@ -59,6 +59,8 @@ export default function PosPage() {
   const [message, setMessage] = useState("");
   const [appointmentId, setAppointmentId] = useState("");
   const [tenderMode, setTenderMode] = useState<TenderMode>("CASH");
+  const [splitTender, setSplitTender] = useState(false);
+  const [splitCash, setSplitCash] = useState("");
   const [cashTender, setCashTender] = useState("");
   const [localBank, setLocalBank] = useState("QNB");
   const [terminalReference, setTerminalReference] = useState("");
@@ -99,6 +101,12 @@ export default function PosPage() {
     ? Math.max(0, total - enteredCashMinor)
     : total;
   const customer = customers.find((row) => row.id === customerId);
+  const splitCashMinor = splitCash.trim()
+    ? Math.round(Number(splitCash) * 100)
+    : 0;
+  const splitCardMinor = Math.max(0, total - splitCashMinor);
+  const splitValid =
+    Number.isFinite(splitCashMinor) && splitCashMinor > 0 && splitCashMinor < total;
 
   const quickCash = useMemo(() => {
     const qar = total / 100;
@@ -421,10 +429,15 @@ export default function PosPage() {
       const tenderedMinor = cashTender
         ? Math.round(Number(cashTender) * 100)
         : total;
-      if (tenderMode === "CASH" && tenderedMinor < total)
+      if (!splitTender && tenderMode === "CASH" && tenderedMinor < total)
         throw new Error("Cash received cannot be less than the sale total.");
       const payment =
-        tenderMode === "CASH"
+        splitTender
+          ? [
+              { method: "CASH", amountMinor: splitCashMinor },
+              { method: "CARD", amountMinor: splitCardMinor, reference: `SPLIT:${localBank}` },
+            ]
+          : tenderMode === "CASH"
           ? { method: "CASH", amountMinor: tenderedMinor }
           : {
               method: "CARD",
@@ -440,14 +453,16 @@ export default function PosPage() {
           headers: { "Idempotency-Key": crypto.randomUUID() },
           body: JSON.stringify(
             appointmentId
-              ? { ...appointmentPayload, payments: [payment] }
-              : { ...basePayload, payments: [payment] },
+              ? { ...appointmentPayload, payments: Array.isArray(payment) ? payment : [payment] }
+              : { ...basePayload, payments: Array.isArray(payment) ? payment : [payment] },
           ),
         },
       );
       setCompletedSale(sale);
       setCart([]);
       setCashTender("");
+      setSplitCash("");
+      setSplitTender(false);
       setTerminalReference("");
       setDiscountType("");
       setDiscountValue("");
@@ -839,6 +854,33 @@ export default function PosPage() {
                 </button>
               ))}
               </div>
+              <label className="pos-split-toggle">
+                <input
+                  type="checkbox"
+                  checked={splitTender}
+                  onChange={(event) => setSplitTender(event.target.checked)}
+                />
+                Split payment between cash and local card
+              </label>
+              {splitTender && (
+                <div className="cash-panel split-payment-panel">
+                  <label>
+                    Cash portion (QAR)
+                    <input
+                      type="number"
+                      min="0.01"
+                      max={(total / 100 - 0.01).toFixed(2)}
+                      step="0.01"
+                      value={splitCash}
+                      onChange={(event) => setSplitCash(event.target.value)}
+                    />
+                  </label>
+                  <div className="cash-change">
+                    <span>Local card portion</span>
+                    <strong>{formatMinorCurrency(splitCardMinor)}</strong>
+                  </div>
+                </div>
+              )}
               {tenderMode === "CASH" && (
                 <div className="cash-panel">
                 <label>
@@ -922,12 +964,15 @@ export default function PosPage() {
                 disabled={
                   busy ||
                   !cart.length ||
-                  (tenderMode === "CASH" && (!validCash || cashShortfall > 0))
+                  (!splitTender && tenderMode === "CASH" && (!validCash || cashShortfall > 0)) ||
+                  (splitTender && !splitValid)
                 }
                 onClick={() => void checkout()}
               >
                 {busy
                   ? "Processing…"
+                  : splitTender
+                    ? "Complete split sale"
                   : tenderMode === "CASH"
                     ? "Complete cash sale"
                     : "Record local card sale"}
