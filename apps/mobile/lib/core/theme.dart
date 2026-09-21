@@ -17,6 +17,12 @@ abstract final class AllShopsTheme {
       surface: Colors.white,
     ),
     scaffoldBackgroundColor: const Color(0xFFF8F5F1),
+    pageTransitionsTheme: const PageTransitionsTheme(
+      builders: <TargetPlatform, PageTransitionsBuilder>{
+        TargetPlatform.android: FadeUpwardsPageTransitionsBuilder(),
+        TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+      },
+    ),
     appBarTheme: const AppBarTheme(
       backgroundColor: Color(0xFFF8F5F1),
       elevation: 0,

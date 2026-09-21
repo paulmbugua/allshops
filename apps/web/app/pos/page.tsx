@@ -934,6 +934,9 @@ export default function PosPage() {
           aria-modal="true"
           aria-labelledby="sale-complete-title"
         >
+          <div className="celebration-sparkles" aria-hidden="true">
+            <i>✦</i><i>✦</i><i>✦</i><i>✦</i><i>✦</i><i>✦</i>
+          </div>
           <div className="pos-success-card">
             <span className="sale-check">✓</span>
             <p className="eyebrow">Payment approved</p>
