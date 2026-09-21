@@ -112,6 +112,36 @@ export class InventoryService {
     });
   }
 
+  postRefundMovement(
+    tx: Transaction,
+    tenant: TenantContext,
+    input: {
+      branchId: string;
+      locationId: string;
+      productId: string;
+      variantId?: string | null;
+      quantity: Prisma.Decimal;
+      unitCostMinor: number;
+      refundId: string;
+      userId: string;
+    },
+  ) {
+    return this.writeMovement(tx, tenant, {
+      branchId: input.branchId,
+      locationId: input.locationId,
+      productId: input.productId,
+      variantId: input.variantId,
+      quantity: input.quantity,
+      movementType: "ADJUSTMENT_IN",
+      unitCostMinor: input.unitCostMinor,
+      referenceType: "SALE_REFUND",
+      referenceId: input.refundId,
+      reason: "Returned stock from sale refund",
+      userId: input.userId,
+      allowInactiveProduct: true,
+    });
+  }
+
   locations(tenant: TenantContext, branchId?: string) {
     this.assertBranchScope(tenant, branchId);
     return prisma.stockLocation.findMany({
@@ -795,6 +825,15 @@ export class InventoryService {
       where: { id: balance.id },
       data: { quantity: next },
     });
+    const minimumStock = (product as { minimumStock?: Prisma.Decimal | null }).minimumStock;
+    if (minimumStock !== undefined && minimumStock !== null && next.lte(minimumStock)) {
+      const dedupeKey = `LOW_STOCK:${input.branchId}:${input.productId}:${input.variantId ?? "BASE"}`;
+      await tx.operationalAlert.upsert({
+        where: { organizationId_dedupeKey: { organizationId: tenant.organizationId, dedupeKey } },
+        update: { status: "OPEN", message: `Stock is ${next.toString()} and at or below the minimum of ${minimumStock.toString()}.`, updatedAt: new Date() },
+        create: { organizationId: tenant.organizationId, branchId: input.branchId, type: "LOW_STOCK", severity: "WARNING", title: "Low stock", message: `Stock is ${next.toString()} and at or below the minimum of ${minimumStock.toString()}.`, entityType: "Product", entityId: input.productId, dedupeKey },
+      });
+    }
     return movement;
   }
 
@@ -839,6 +878,7 @@ export class InventoryService {
         type: true,
         trackInventory: true,
         allowNegativeStock: true,
+        minimumStock: true,
       },
     });
     if (!product)

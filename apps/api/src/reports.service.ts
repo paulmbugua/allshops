@@ -415,21 +415,28 @@ export class ReportsService {
       _count: { _all: true },
       _sum: { amountMinor: true },
     });
+    const refunds = await prisma.saleRefund.groupBy({
+      by: ["method"],
+      where: { organizationId: tenant.organizationId, status: "COMPLETED", createdAt: { gte: from, lt: to }, sale: { status: "COMPLETED", ...(branchId ? { branchId } : {}) } },
+      _count: { _all: true },
+      _sum: { amountMinor: true },
+    });
+    const refundByMethod = new Map(refunds.map((row) => [row.method, row]));
     const collectedMinor = records.reduce(
       (sum, row) => sum + (row._sum.amountMinor ?? 0),
       0,
-    );
+    ) - refunds.reduce((sum, row) => sum + (row._sum.amountMinor ?? 0), 0);
+    const methods = [...new Set([...records.map((row) => row.method), ...refunds.map((row) => row.method)])].map((method) => {
+      const payment = records.find((row) => row.method === method);
+      const refund = refundByMethod.get(method);
+      return { method, transactionCount: (payment?._count._all ?? 0) - (refund?._count._all ?? 0), amountMinor: (payment?._sum.amountMinor ?? 0) - (refund?._sum.amountMinor ?? 0), percentage: percentage((payment?._sum.amountMinor ?? 0) - (refund?._sum.amountMinor ?? 0), collectedMinor) };
+    });
     return {
       period: this.period(input),
       collectedMinor,
       // Only actual Payment rows are counted. Sale.balanceMinor (credit) and
       // tenderedMinor (cash before change) are intentionally excluded.
-      methods: records.map((row) => ({
-        method: row.method,
-        transactionCount: row._count._all,
-        amountMinor: row._sum.amountMinor ?? 0,
-        percentage: percentage(row._sum.amountMinor ?? 0, collectedMinor),
-      })),
+      methods,
     };
   }
 

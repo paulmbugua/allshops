@@ -51,6 +51,10 @@ import { ProductImagesService } from "./product-images.service.js";
 import { MailService } from "./mail.service.js";
 import { ReconciliationController } from "./reconciliation.controller.js";
 import { ReconciliationService } from "./reconciliation.service.js";
+import { RegisterShiftsController } from "./register-shifts.controller.js";
+import { RegisterShiftsService } from "./register-shifts.service.js";
+import { AlertsController } from "./alerts.controller.js";
+import { AlertsService } from "./alerts.service.js";
 
 @Module({
   controllers: [
@@ -76,6 +80,8 @@ import { ReconciliationService } from "./reconciliation.service.js";
     ProductImageUploadsController,
     ProductImagesController,
     ReconciliationController,
+    RegisterShiftsController,
+    AlertsController,
   ],
   providers: [
     HealthService,
@@ -100,6 +106,8 @@ import { ReconciliationService } from "./reconciliation.service.js";
     ProductImagesService,
     MailService,
     ReconciliationService,
+    RegisterShiftsService,
+    AlertsService,
     { provide: APP_GUARD, useClass: AuthGuard },
     { provide: APP_GUARD, useClass: PermissionGuard },
     { provide: APP_GUARD, useClass: SubscriptionGuard },

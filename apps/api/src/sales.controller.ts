@@ -16,6 +16,7 @@ import {
   idempotencyKeySchema,
   posBarcodeLookupSchema,
   posProductListSchema,
+  refundSchema,
   salesListSchema,
 } from "@allshops/contracts";
 import { RequirePermission } from "./permissions.decorator.js";
@@ -148,6 +149,24 @@ export class SalesController {
       request.tenant!,
       request.user!.id,
       assertUuid(saleId, "saleId"),
+    );
+  }
+
+  @ApiHeader({ name: "Idempotency-Key", required: true })
+  @RequirePermission("sale.refund")
+  @Post("sales/:saleId/refund")
+  refund(
+    @Param("saleId") saleId: string,
+    @Body() body: unknown,
+    @Headers("idempotency-key") key: string | undefined,
+    @Req() request: RequestContext,
+  ) {
+    return this.sales.refund(
+      request.tenant!,
+      request.user!.id,
+      assertUuid(saleId, "saleId"),
+      parseInput(refundSchema, body),
+      requiredIdempotencyKey(key),
     );
   }
 }

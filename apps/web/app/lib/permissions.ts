@@ -20,6 +20,8 @@ export function hasAnyPermission(
 
 const routePermissions: Array<[string, string[]]> = [
   ["/reconciliation", []],
+  ["/register-shifts", []],
+  ["/alerts", []],
   ["/settings/subscription", ["billing.read"]],
   ["/settings/devices", ["device.read"]],
   ["/settings/users", ["user.read"]],

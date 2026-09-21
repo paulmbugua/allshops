@@ -14,6 +14,7 @@ import type {
   DiscountInput,
   HoldSaleInput,
   PaymentInput,
+  RefundInput,
   PosBarcodeLookupInput,
   PosProductListInput,
   SaleItemInput,
@@ -724,6 +725,98 @@ export class SalesService {
         return this.finalize(tx, tenant, userId, checkout, held.id, options);
       },
     );
+  }
+
+  async refund(
+    tenant: TenantContext,
+    userId: string,
+    saleId: string,
+    input: RefundInput,
+    idempotencyKey: string,
+  ) {
+    return prisma.$transaction(async (tx) => {
+      const existing = await tx.saleRefund.findUnique({
+        where: { organizationId_idempotencyKey: { organizationId: tenant.organizationId, idempotencyKey } },
+        include: { items: true },
+      });
+      if (existing) return existing;
+      const sale = await tx.sale.findFirst({
+        where: { id: saleId, organizationId: tenant.organizationId, status: "COMPLETED", ...(tenant.branchId ? { branchId: tenant.branchId } : {}) },
+        include: {
+          items: { include: { product: { select: { trackInventory: true } } } },
+          refunds: { where: { status: "COMPLETED" }, include: { items: true } },
+        },
+      });
+      if (!sale) throw new NotFoundException({ code: "SALE_NOT_FOUND", message: "Completed sale not found." });
+      if (input.kind === "EXCHANGE") {
+        if (!input.replacementSaleId) throw new BadRequestException({ code: "EXCHANGE_REPLACEMENT_REQUIRED", message: "An exchange must reference the replacement sale." });
+        const replacement = await tx.sale.findFirst({ where: { id: input.replacementSaleId, organizationId: tenant.organizationId, branchId: sale.branchId, status: "COMPLETED" }, select: { id: true } });
+        if (!replacement) throw new BadRequestException({ code: "REPLACEMENT_SALE_NOT_FOUND", message: "Replacement sale was not found in this branch." });
+      }
+      const refundedTotal = sale.refunds.reduce((sum, row) => sum + row.amountMinor, 0);
+      if (refundedTotal + input.amountMinor > sale.totalMinor)
+        throw new ConflictException({ code: "REFUND_EXCEEDS_SALE", message: "Refund exceeds the remaining refundable amount." });
+      const requested = new Map(input.items.map((item) => [item.saleItemId, item]));
+      let itemTotal = 0;
+      for (const item of sale.items) {
+        const request = requested.get(item.id);
+        if (!request) continue;
+        const already = sale.refunds.reduce((sum, refund) => {
+          const prior = refund.items.find((row) => row.saleItemId === item.id);
+          return sum + (prior ? Number(prior.quantity) : 0);
+        }, 0);
+        if (already + Number(request.quantity) > Number(item.quantity))
+          throw new ConflictException({ code: "REFUND_QUANTITY_EXCEEDS_SALE", message: `Refund quantity exceeds ${item.productNameSnapshot}.` });
+        itemTotal += request.amountMinor;
+      }
+      if (requested.size !== input.items.length || itemTotal !== input.amountMinor)
+        throw new BadRequestException({ code: "REFUND_TOTAL_MISMATCH", message: "Refund lines must equal the refund amount." });
+      const refund = await tx.saleRefund.create({
+        data: {
+          organizationId: tenant.organizationId,
+          branchId: sale.branchId,
+          saleId: sale.id,
+          kind: input.kind,
+          amountMinor: input.amountMinor,
+          method: input.method,
+          reason: input.reason,
+          reference: input.reference,
+          replacementSaleId: input.replacementSaleId,
+          idempotencyKey,
+          createdBy: userId,
+          items: { create: input.items.map((item) => {
+            const sold = sale.items.find((row) => row.id === item.saleItemId)!;
+            return { saleItemId: sold.id, productId: sold.productId, variantId: sold.variantId, quantity: new Prisma.Decimal(item.quantity), amountMinor: item.amountMinor };
+          }) },
+        },
+        include: { items: true },
+      });
+      for (const item of input.items) {
+        const sold = sale.items.find((row) => row.id === item.saleItemId)!;
+        if (sold.product.trackInventory)
+          await this.inventory.postRefundMovement(tx, tenant, {
+            branchId: sale.branchId,
+            locationId: sale.locationId,
+            productId: sold.productId,
+            variantId: sold.variantId,
+            quantity: new Prisma.Decimal(item.quantity),
+            unitCostMinor: sold.unitCostMinor,
+            refundId: refund.id,
+            userId,
+          });
+      }
+      await tx.auditLog.create({
+        data: {
+          organizationId: tenant.organizationId,
+          userId,
+          action: input.kind === "EXCHANGE" ? "SALE_EXCHANGED" : "SALE_REFUNDED",
+          entityType: "SaleRefund",
+          entityId: refund.id,
+          afterJson: jsonValue({ saleId, amountMinor: input.amountMinor, reason: input.reason }),
+        },
+      });
+      return refund;
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
   }
 
   async cancel(tenant: TenantContext, userId: string, saleId: string) {
@@ -1559,6 +1652,7 @@ export class SalesService {
             currency: true,
           },
         },
+        refunds: { where: { status: "COMPLETED" }, include: { items: true }, orderBy: { createdAt: "desc" } },
       },
     });
     if (!sale)

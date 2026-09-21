@@ -11,6 +11,7 @@ import {
 import { ApiBearerAuth, ApiBody, ApiTags } from "@nestjs/swagger";
 import {
   catalogueListSchema,
+  catalogueImportSchema,
   createBrandSchema,
   createCategorySchema,
   createProductSchema,
@@ -170,6 +171,22 @@ export class CatalogueController {
     return this.catalogue.products(
       request.tenant!,
       parseInput(productListSchema, query),
+    );
+  }
+
+  @RequirePermission("catalogue.export")
+  @Get("products/export")
+  async exportProducts(@Req() request: RequestContext) {
+    return this.catalogue.exportCsv(request.tenant!, request.user!.id);
+  }
+
+  @RequirePermission("catalogue.import")
+  @Post("products/import")
+  importProducts(@Body() body: unknown, @Req() request: RequestContext) {
+    return this.catalogue.importCsv(
+      request.tenant!,
+      request.user!.id,
+      parseInput(catalogueImportSchema, body),
     );
   }
   @RequirePermission("catalogue.read")

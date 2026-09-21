@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useEffect, useState, type FormEvent } from "react";
 import { AppShell } from "../components/app-shell";
 import { Can } from "../components/permission-context";
-import { api, selectedOrganization } from "../lib/api";
+import { api, apiText, selectedOrganization } from "../lib/api";
 import {
   formatMinorCurrency,
   type Paged,
@@ -19,6 +19,8 @@ export default function ProductsPage() {
   const [query, setQuery] = useState("");
   const [type, setType] = useState("");
   const [message, setMessage] = useState("");
+  const [csv, setCsv] = useState("");
+  const [importing, setImporting] = useState(false);
   const organizationId = selectedOrganization();
   useEffect(() => {
     if (!organizationId) {
@@ -44,6 +46,17 @@ export default function ProductsPage() {
   function search(event: FormEvent) {
     event.preventDefault();
     void load(1);
+  }
+  async function exportCsv() {
+    if (!organizationId) return;
+    const value = await apiText(`/organizations/${organizationId}/products/export`);
+    const url = URL.createObjectURL(new Blob([value], { type: "text/csv;charset=utf-8" }));
+    const anchor = document.createElement("a"); anchor.href = url; anchor.download = "allshops-catalogue.csv"; anchor.click(); URL.revokeObjectURL(url);
+  }
+  async function importCsv(dryRun: boolean) {
+    if (!organizationId || !csv.trim()) return;
+    setImporting(true);
+    try { const result = await api<{ imported: number; validRows: number; errors: Array<{ row: number; message: string }> }>(`/organizations/${organizationId}/products/import`, { method: "POST", body: JSON.stringify({ csv, dryRun }) }); setMessage(`${dryRun ? "Validation complete" : `Imported ${result.imported} products`}. ${result.validRows} valid rows, ${result.errors.length} errors${result.errors.length ? `: ${result.errors[0]?.message ?? "invalid row"}` : "."}`); if (!dryRun) { setCsv(""); await load(1); } } catch (error) { setMessage(error instanceof Error ? error.message : "Catalogue import failed."); } finally { setImporting(false); }
   }
   return (
     <AppShell title="Products">
@@ -73,7 +86,9 @@ export default function ProductsPage() {
               New product
             </Link>
           </Can>
+          <Can permissions={["catalogue.export"]}><button className="secondary" onClick={() => void exportCsv()}>Export CSV</button></Can>
         </div>
+        <Can permissions={["catalogue.import"]}><details className="card compact"><summary>Import catalogue CSV</summary><p className="muted">Export first to get the exact headers. Validate before committing; formula-like cells are neutralized on export.</p><textarea rows={5} value={csv} onChange={(event) => setCsv(event.target.value)} placeholder="Paste CSV here" /><div className="toolbar"><button className="secondary" disabled={importing || !csv.trim()} onClick={() => void importCsv(true)}>Validate</button><button disabled={importing || !csv.trim()} onClick={() => void importCsv(false)}>Import valid CSV</button></div></details></Can>
         <div className="data-table product-table">
           <strong>Product</strong>
           <strong>SKU / Barcode</strong>

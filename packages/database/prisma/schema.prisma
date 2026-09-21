@@ -46,6 +46,34 @@ enum ReconciliationStatus {
   APPROVED
 }
 
+enum RefundStatus {
+  COMPLETED
+  VOIDED
+}
+
+enum RefundKind {
+  REFUND
+  RETURN
+  EXCHANGE
+}
+
+enum RegisterShiftStatus {
+  OPEN
+  CLOSED
+  APPROVED
+}
+
+enum CashMovementType {
+  CASH_IN
+  CASH_OUT
+}
+
+enum OperationalAlertStatus {
+  OPEN
+  ACKNOWLEDGED
+  RESOLVED
+}
+
 enum MembershipStatus {
   ACTIVE
   INVITED
@@ -280,58 +308,61 @@ model Organization {
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
 
-  branches            Branch[]
-  memberships         OrganizationUser[]
-  invitations         Invitation[]
-  roles               Role[]
-  devices             Device[]
-  auditLogs           AuditLog[]
-  idempotencyRecords  IdempotencyRecord[]
-  categories          Category[]
-  brands              Brand[]
-  units               Unit[]
-  products            Product[]
-  productVariants     ProductVariant[]
-  stockLocations      StockLocation[]
-  stockMovements      StockMovement[]
-  inventoryBalances   InventoryBalance[]
-  stockTransfers      StockTransfer[]
-  sales               Sale[]
-  saleItems           SaleItem[]
-  payments            Payment[]
-  invoiceSequences    InvoiceSequence[]
-  suppliers           Supplier[]
-  purchases           Purchase[]
-  purchaseItems       PurchaseItem[]
-  supplierPayments    SupplierPayment[]
-  customers           Customer[]
-  customerLedger      CustomerLedgerEntry[]
-  customerPayments    CustomerPayment[]
-  paymentAllocations  CustomerPaymentAllocation[]
-  expenseCategories   ExpenseCategory[]
-  expenses            Expense[]
-  serviceProfiles     ServiceProfile[]
-  staffProfiles       StaffProfile[]
-  staffServices       StaffService[]
-  staffBranches       StaffBranch[]
-  staffAvailability   StaffAvailability[]
-  staffTimeOff        StaffTimeOff[]
-  appointments        Appointment[]
-  appointmentServices AppointmentService[]
-  commissionRules     CommissionRule[]
-  commissions         Commission[]
-  offlineTransactions OfflineTransaction[]
-  subscription        Subscription?
-  subscriptionEvents  SubscriptionEvent[]
-  billingRecords      BillingRecord[]
-  billingSequences    BillingSequence[]
-  paystackPayments    PaystackPaymentIntent[]
-  pilot               PilotOrganization?
-  featureFlags        OrganizationFeatureFlag[]
-  onboardingSteps     OrganizationOnboardingStep[]
-  supportIssues       SupportIssue[]
-  pilotFeedback       PilotFeedback[]
+  branches               Branch[]
+  memberships            OrganizationUser[]
+  invitations            Invitation[]
+  roles                  Role[]
+  devices                Device[]
+  auditLogs              AuditLog[]
+  idempotencyRecords     IdempotencyRecord[]
+  categories             Category[]
+  brands                 Brand[]
+  units                  Unit[]
+  products               Product[]
+  productVariants        ProductVariant[]
+  stockLocations         StockLocation[]
+  stockMovements         StockMovement[]
+  inventoryBalances      InventoryBalance[]
+  stockTransfers         StockTransfer[]
+  sales                  Sale[]
+  saleItems              SaleItem[]
+  payments               Payment[]
+  invoiceSequences       InvoiceSequence[]
+  suppliers              Supplier[]
+  purchases              Purchase[]
+  purchaseItems          PurchaseItem[]
+  supplierPayments       SupplierPayment[]
+  customers              Customer[]
+  customerLedger         CustomerLedgerEntry[]
+  customerPayments       CustomerPayment[]
+  paymentAllocations     CustomerPaymentAllocation[]
+  expenseCategories      ExpenseCategory[]
+  expenses               Expense[]
+  serviceProfiles        ServiceProfile[]
+  staffProfiles          StaffProfile[]
+  staffServices          StaffService[]
+  staffBranches          StaffBranch[]
+  staffAvailability      StaffAvailability[]
+  staffTimeOff           StaffTimeOff[]
+  appointments           Appointment[]
+  appointmentServices    AppointmentService[]
+  commissionRules        CommissionRule[]
+  commissions            Commission[]
+  offlineTransactions    OfflineTransaction[]
+  subscription           Subscription?
+  subscriptionEvents     SubscriptionEvent[]
+  billingRecords         BillingRecord[]
+  billingSequences       BillingSequence[]
+  paystackPayments       PaystackPaymentIntent[]
+  pilot                  PilotOrganization?
+  featureFlags           OrganizationFeatureFlag[]
+  onboardingSteps        OrganizationOnboardingStep[]
+  supportIssues          SupportIssue[]
+  pilotFeedback          PilotFeedback[]
   cashierReconciliations CashierReconciliation[]
+  refunds                SaleRefund[]
+  registerShifts         RegisterShift[]
+  operationalAlerts      OperationalAlert[]
 
   @@index([status])
   @@map("organizations")
@@ -350,25 +381,28 @@ model Branch {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  organization      Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  memberships       OrganizationUser[]
-  invitations       Invitation[]
-  devices           Device[]
-  stockLocations    StockLocation[]
-  stockMovements    StockMovement[]
-  inventoryBalances InventoryBalance[]
-  transfersFrom     StockTransfer[]         @relation("TransferFromBranch")
-  transfersTo       StockTransfer[]         @relation("TransferToBranch")
-  sales             Sale[]
-  purchases         Purchase[]
-  expenses          Expense[]
-  staffBranches     StaffBranch[]
-  staffAvailability StaffAvailability[]
-  appointments      Appointment[]
-  commissions       Commission[]
-  paystackPayments  PaystackPaymentIntent[]
-  supportIssues     SupportIssue[]
+  organization           Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  memberships            OrganizationUser[]
+  invitations            Invitation[]
+  devices                Device[]
+  stockLocations         StockLocation[]
+  stockMovements         StockMovement[]
+  inventoryBalances      InventoryBalance[]
+  transfersFrom          StockTransfer[]         @relation("TransferFromBranch")
+  transfersTo            StockTransfer[]         @relation("TransferToBranch")
+  sales                  Sale[]
+  purchases              Purchase[]
+  expenses               Expense[]
+  staffBranches          StaffBranch[]
+  staffAvailability      StaffAvailability[]
+  appointments           Appointment[]
+  commissions            Commission[]
+  paystackPayments       PaystackPaymentIntent[]
+  supportIssues          SupportIssue[]
   cashierReconciliations CashierReconciliation[]
+  refunds                SaleRefund[]
+  registerShifts         RegisterShift[]
+  operationalAlerts      OperationalAlert[]
 
   @@unique([organizationId, code])
   @@index([organizationId, isActive])
@@ -416,13 +450,20 @@ model User {
   subscriptionEventsCreated SubscriptionEvent[]          @relation("SubscriptionEventCreator")
   billingRecordsConfirmed   BillingRecord[]              @relation("BillingRecordConfirmer")
   paystackPaymentsCreated   PaystackPaymentIntent[]
-  cashierReconciliations    CashierReconciliation[]       @relation("CashierReconciliationCashier")
-  reconciliationsSubmitted  CashierReconciliation[]       @relation("CashierReconciliationSubmitter")
-  reconciliationsApproved   CashierReconciliation[]       @relation("CashierReconciliationApprover")
+  cashierReconciliations    CashierReconciliation[]      @relation("CashierReconciliationCashier")
+  reconciliationsSubmitted  CashierReconciliation[]      @relation("CashierReconciliationSubmitter")
+  reconciliationsApproved   CashierReconciliation[]      @relation("CashierReconciliationApprover")
   pilotsOwned               PilotOrganization[]          @relation("PilotSupportOwner")
   onboardingStepsCompleted  OrganizationOnboardingStep[] @relation("OnboardingCompletedBy")
   supportIssuesReported     SupportIssue[]               @relation("SupportIssueReporter")
   pilotFeedbackSubmitted    PilotFeedback[]              @relation("PilotFeedbackSubmitter")
+  refundsCreated            SaleRefund[]                 @relation("RefundCreator")
+  shiftsOpened              RegisterShift[]              @relation("ShiftOpener")
+  shiftsCashier             RegisterShift[]              @relation("ShiftCashier")
+  shiftsClosed              RegisterShift[]              @relation("ShiftCloser")
+  shiftsApproved            RegisterShift[]              @relation("ShiftApprover")
+  cashMovementsCreated      CashMovement[]
+  alertsAcknowledged        OperationalAlert[]           @relation("AlertAcknowledger")
 
   @@index([status])
   @@map("users")
@@ -674,6 +715,7 @@ model Device {
   user                User?                @relation(fields: [userId], references: [id], onDelete: SetNull)
   sales               Sale[]
   offlineTransactions OfflineTransaction[]
+  registerShifts      RegisterShift[]
 
   @@index([organizationId, branchId, status])
   @@index([organizationId, userId, status])
@@ -975,6 +1017,7 @@ model Product {
   staffServices       StaffService[]
   appointmentServices AppointmentService[]
   commissionRules     CommissionRule[]
+  refundItems         SaleRefundItem[]
 
   @@unique([organizationId, sku])
   @@unique([organizationId, barcode])
@@ -1005,6 +1048,7 @@ model ProductVariant {
   transferItems     StockTransferItem[]
   saleItems         SaleItem[]
   purchaseItems     PurchaseItem[]
+  refundItems       SaleRefundItem[]
 
   @@unique([organizationId, sku])
   @@unique([organizationId, barcode])
@@ -1183,6 +1227,7 @@ model Sale {
   commissions                Commission[]
   offlineTransaction         OfflineTransaction?
   paystackPayment            PaystackPaymentIntent?
+  refunds                    SaleRefund[]
 
   @@unique([organizationId, invoiceNumber])
   @@unique([organizationId, transactionUuid])
@@ -1249,12 +1294,13 @@ model SaleItem {
   totalMinor          Int
   createdAt           DateTime @default(now())
 
-  organization Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  sale         Sale            @relation(fields: [saleId], references: [id], onDelete: Cascade)
-  product      Product         @relation(fields: [productId], references: [id], onDelete: Restrict)
-  variant      ProductVariant? @relation(fields: [variantId], references: [id], onDelete: Restrict)
-  staffProfile StaffProfile?   @relation(fields: [staffProfileId], references: [id], onDelete: SetNull)
+  organization Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  sale         Sale             @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  product      Product          @relation(fields: [productId], references: [id], onDelete: Restrict)
+  variant      ProductVariant?  @relation(fields: [variantId], references: [id], onDelete: Restrict)
+  staffProfile StaffProfile?    @relation(fields: [staffProfileId], references: [id], onDelete: SetNull)
   commissions  Commission[]
+  refundItems  SaleRefundItem[]
 
   staffProfileId String? @db.Uuid
 
@@ -1286,27 +1332,154 @@ model Payment {
   @@map("payments")
 }
 
+model SaleRefund {
+  id                String        @id @default(uuid()) @db.Uuid
+  organizationId    String        @db.Uuid
+  branchId          String        @db.Uuid
+  saleId            String        @db.Uuid
+  kind              RefundKind    @default(REFUND)
+  status            RefundStatus  @default(COMPLETED)
+  amountMinor       Int
+  method            PaymentMethod
+  reason            String
+  reference         String?
+  replacementSaleId String?       @db.Uuid
+  idempotencyKey    String        @db.Uuid
+  createdBy         String        @db.Uuid
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  organization Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  branch       Branch           @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  sale         Sale             @relation(fields: [saleId], references: [id], onDelete: Restrict)
+  creator      User             @relation("RefundCreator", fields: [createdBy], references: [id], onDelete: Restrict)
+  items        SaleRefundItem[]
+
+  @@unique([organizationId, idempotencyKey])
+  @@index([organizationId, branchId, createdAt])
+  @@index([saleId, status])
+  @@map("sale_refunds")
+}
+
+model SaleRefundItem {
+  id          String  @id @default(uuid()) @db.Uuid
+  refundId    String  @db.Uuid
+  saleItemId  String  @db.Uuid
+  productId   String  @db.Uuid
+  variantId   String? @db.Uuid
+  quantity    Decimal @db.Decimal(18, 4)
+  amountMinor Int
+
+  refund   SaleRefund      @relation(fields: [refundId], references: [id], onDelete: Cascade)
+  saleItem SaleItem        @relation(fields: [saleItemId], references: [id], onDelete: Restrict)
+  product  Product         @relation(fields: [productId], references: [id], onDelete: Restrict)
+  variant  ProductVariant? @relation(fields: [variantId], references: [id], onDelete: Restrict)
+
+  @@unique([refundId, saleItemId])
+  @@index([saleItemId])
+  @@map("sale_refund_items")
+}
+
+model RegisterShift {
+  id                String              @id @default(uuid()) @db.Uuid
+  organizationId    String              @db.Uuid
+  branchId          String              @db.Uuid
+  cashierId         String              @db.Uuid
+  deviceId          String?             @db.Uuid
+  status            RegisterShiftStatus @default(OPEN)
+  openingCashMinor  Int
+  expectedCashMinor Int?
+  countedCashMinor  Int?
+  varianceMinor     Int?
+  notes             String?
+  openedAt          DateTime            @default(now())
+  closedAt          DateTime?
+  approvedAt        DateTime?
+  openedBy          String              @db.Uuid
+  closedBy          String?             @db.Uuid
+  approvedBy        String?             @db.Uuid
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  organization Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  branch       Branch         @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  cashier      User           @relation("ShiftCashier", fields: [cashierId], references: [id], onDelete: Restrict)
+  opener       User           @relation("ShiftOpener", fields: [openedBy], references: [id], onDelete: Restrict)
+  closer       User?          @relation("ShiftCloser", fields: [closedBy], references: [id], onDelete: SetNull)
+  approver     User?          @relation("ShiftApprover", fields: [approvedBy], references: [id], onDelete: SetNull)
+  device       Device?        @relation(fields: [deviceId], references: [id], onDelete: SetNull)
+  movements    CashMovement[]
+
+  @@index([organizationId, branchId, status])
+  @@index([cashierId, openedAt])
+  @@map("register_shifts")
+}
+
+model CashMovement {
+  id          String           @id @default(uuid()) @db.Uuid
+  shiftId     String           @db.Uuid
+  type        CashMovementType
+  amountMinor Int
+  reason      String
+  createdBy   String           @db.Uuid
+  createdAt   DateTime         @default(now())
+
+  shift   RegisterShift @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+  creator User          @relation(fields: [createdBy], references: [id], onDelete: Restrict)
+
+  @@index([shiftId, createdAt])
+  @@map("cash_movements")
+}
+
+model OperationalAlert {
+  id             String                 @id @default(uuid()) @db.Uuid
+  organizationId String                 @db.Uuid
+  branchId       String?                @db.Uuid
+  type           String
+  severity       String                 @default("INFO")
+  status         OperationalAlertStatus @default(OPEN)
+  title          String
+  message        String
+  entityType     String?
+  entityId       String?
+  dedupeKey      String?
+  acknowledgedBy String?                @db.Uuid
+  acknowledgedAt DateTime?
+  resolvedAt     DateTime?
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  branch       Branch?      @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  acknowledger User?        @relation("AlertAcknowledger", fields: [acknowledgedBy], references: [id], onDelete: SetNull)
+
+  @@unique([organizationId, dedupeKey])
+  @@index([organizationId, status, createdAt])
+  @@index([branchId, status])
+  @@map("operational_alerts")
+}
+
 model CashierReconciliation {
-  id                 String               @id @default(uuid()) @db.Uuid
-  organizationId     String               @db.Uuid
-  branchId           String               @db.Uuid
-  cashierId          String               @db.Uuid
-  businessDate       DateTime             @db.Date
-  transactionCount   Int
-  totalSalesMinor    Int
-  expectedCashMinor  Int
-  cardSalesMinor     Int
-  creditSalesMinor   Int
-  countedCashMinor   Int
-  varianceMinor      Int
-  notes              String?
-  status             ReconciliationStatus @default(SUBMITTED)
-  submittedBy        String               @db.Uuid
-  submittedAt        DateTime             @default(now())
-  approvedBy         String?              @db.Uuid
-  approvedAt         DateTime?
-  createdAt          DateTime             @default(now())
-  updatedAt          DateTime             @updatedAt
+  id                String               @id @default(uuid()) @db.Uuid
+  organizationId    String               @db.Uuid
+  branchId          String               @db.Uuid
+  cashierId         String               @db.Uuid
+  businessDate      DateTime             @db.Date
+  transactionCount  Int
+  totalSalesMinor   Int
+  expectedCashMinor Int
+  cardSalesMinor    Int
+  creditSalesMinor  Int
+  countedCashMinor  Int
+  varianceMinor     Int
+  notes             String?
+  status            ReconciliationStatus @default(SUBMITTED)
+  submittedBy       String               @db.Uuid
+  submittedAt       DateTime             @default(now())
+  approvedBy        String?              @db.Uuid
+  approvedAt        DateTime?
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   branch       Branch       @relation(fields: [branchId], references: [id], onDelete: Restrict)

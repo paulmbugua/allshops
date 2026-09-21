@@ -112,6 +112,16 @@ const permissions = [
   ["sale.create", "Complete point-of-sale checkout"],
   ["sale.hold", "Hold sales for later completion"],
   ["sale.cancel_draft", "Cancel draft or held sales"],
+  ["sale.refund", "Refund, return, or exchange completed sales"],
+  ["shift.open", "Open a cashier register shift"],
+  ["shift.read", "View register shifts"],
+  ["shift.close", "Close a cashier register shift"],
+  ["shift.approve", "Approve register cash variances"],
+  ["shift.cash_movement", "Record cash in and cash out movements"],
+  ["alert.read", "View operational alerts"],
+  ["alert.manage", "Acknowledge and resolve operational alerts"],
+  ["catalogue.import", "Import products from CSV"],
+  ["catalogue.export", "Export products to CSV"],
   ["sale.discount", "Apply configured sale discounts"],
   ["payment.record", "Record sale payments"],
   ["receipt.print", "View and print sale receipts"],
@@ -210,6 +220,8 @@ const catalogueManagement = [
   "unit.update",
   "product.create",
   "product.update",
+  "catalogue.import",
+  "catalogue.export",
 ];
 const inventoryManagement = [
   "inventory.opening",
@@ -222,6 +234,7 @@ const saleOperations = [
   "sale.create",
   "sale.hold",
   "sale.cancel_draft",
+  "sale.refund",
   "payment.record",
   "receipt.print",
 ];
@@ -235,6 +248,11 @@ const cashierOperations = [
   "sync.read",
   "sync.execute",
   "reconciliation.submit",
+  "shift.open",
+  "shift.read",
+  "shift.close",
+  "shift.cash_movement",
+  "alert.read",
 ];
 const phase4Management = [
   "supplier.read",
@@ -303,6 +321,8 @@ const operationalReports = [
   "report.export",
   "reconciliation.read_all",
   "reconciliation.approve",
+  "shift.approve",
+  "alert.manage",
 ];
 const syncManagement = [
   "device.register",

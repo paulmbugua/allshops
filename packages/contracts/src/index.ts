@@ -460,6 +460,41 @@ export const completeHeldSaleSchema = z.object({
   discount: discountSchema.nullable().optional(),
   payments: z.array(paymentInputSchema).max(10).default([]),
 });
+export const refundSchema = z.object({
+  kind: z.enum(["REFUND", "RETURN", "EXCHANGE"]).default("REFUND"),
+  amountMinor: z.number().int().positive().max(2_147_483_647),
+  method: paymentMethodSchema,
+  reason: z.string().trim().min(2).max(500),
+  reference: optionalNullableText(120),
+  replacementSaleId: identifier.nullable().optional(),
+  items: z.array(z.object({
+    saleItemId: identifier,
+    quantity: quantitySchema,
+    amountMinor: z.number().int().positive().max(2_147_483_647),
+  })).min(1).max(200),
+});
+export const openShiftSchema = z.object({
+  branchId: identifier,
+  openingCashMinor: z.number().int().min(0).max(2_147_483_647),
+  deviceId: identifier.nullable().optional(),
+  notes: optionalNullableText(500),
+});
+export const closeShiftSchema = z.object({
+  countedCashMinor: z.number().int().min(0).max(2_147_483_647),
+  notes: optionalNullableText(500),
+});
+export const cashMovementSchema = z.object({
+  type: z.enum(["CASH_IN", "CASH_OUT"]),
+  amountMinor: z.number().int().positive().max(2_147_483_647),
+  reason: z.string().trim().min(2).max(300),
+});
+export const alertListSchema = paginationSchema.extend({
+  status: z.enum(["OPEN", "ACKNOWLEDGED", "RESOLVED"]).optional(),
+});
+export const catalogueImportSchema = z.object({
+  csv: z.string().min(1).max(5_000_000),
+  dryRun: z.boolean().default(true),
+});
 export const salesListSchema = paginationSchema.extend({
   branchId: identifier.optional(),
   status: saleStatusSchema.optional(),
@@ -1112,6 +1147,12 @@ export type DiscountInput = z.infer<typeof discountSchema>;
 export type SaleItemInput = z.infer<typeof saleItemInputSchema>;
 export type PaymentInput = z.infer<typeof paymentInputSchema>;
 export type CheckoutInput = z.infer<typeof checkoutSchema>;
+export type RefundInput = z.infer<typeof refundSchema>;
+export type OpenShiftInput = z.infer<typeof openShiftSchema>;
+export type CloseShiftInput = z.infer<typeof closeShiftSchema>;
+export type CashMovementInput = z.infer<typeof cashMovementSchema>;
+export type AlertListInput = z.infer<typeof alertListSchema>;
+export type CatalogueImportInput = z.infer<typeof catalogueImportSchema>;
 export type InitializeCardPaymentInput = z.infer<
   typeof initializeCardPaymentSchema
 >;

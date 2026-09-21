@@ -82,6 +82,7 @@ export interface Sale {
     phone: string | null;
     currency: string;
   };
+  refunds?: Array<{ id: string; kind: string; amountMinor: number; reason: string; createdAt: string }>;
 }
 export interface SaleSummary extends Omit<
   Sale,

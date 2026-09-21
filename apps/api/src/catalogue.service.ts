@@ -7,6 +7,7 @@ import {
 import { Prisma, prisma } from "@allshops/database";
 import type {
   CatalogueListInput,
+  CatalogueImportInput,
   CreateBrandInput,
   CreateCategoryInput,
   CreateProductInput,
@@ -19,6 +20,7 @@ import type {
   UpdateUnitInput,
   UpdateVariantInput,
 } from "@allshops/contracts";
+import { createProductSchema } from "@allshops/contracts";
 import type { TenantContext } from "./security.types.js";
 import { EntitlementService } from "./entitlement.service.js";
 
@@ -32,6 +34,60 @@ const page = (input: { page: number; pageSize: number }) => ({
 @Injectable()
 export class CatalogueService {
   constructor(private readonly entitlements: EntitlementService) {}
+
+  async exportCsv(tenant: TenantContext, userId?: string) {
+    const rows = await prisma.product.findMany({ where: { organizationId: tenant.organizationId }, include: { category: { select: { name: true } }, brand: { select: { name: true } }, unit: { select: { symbol: true } } }, orderBy: { name: "asc" } });
+    const cell = (value: unknown) => {
+      const text = String(value ?? "");
+      const safe = /^[=+\-@]/.test(text) ? `'${text}` : text;
+      return `"${safe.replaceAll('"', '""')}"`;
+    };
+    const header = ["id", "name", "arabicName", "description", "type", "unitId", "categoryId", "brandId", "sku", "barcode", "costMinor", "priceMinor", "trackInventory", "allowNegativeStock", "minimumStock", "imageUrl", "category", "brand", "unitSymbol", "isActive"];
+    if (userId) await prisma.auditLog.create({ data: { organizationId: tenant.organizationId, userId, action: "CATALOGUE_EXPORTED", entityType: "Product", afterJson: { count: rows.length, format: "csv" } } });
+    return [header.join(","), ...rows.map((row) => [row.id, row.name, row.arabicName, row.description, row.type, row.unitId, row.categoryId, row.brandId, row.sku, row.barcode, row.costMinor, row.priceMinor, row.trackInventory, row.allowNegativeStock, row.minimumStock?.toString(), row.imageUrl, row.category?.name, row.brand?.name, row.unit.symbol, row.isActive].map(cell).join(","))].join("\n");
+  }
+
+  async importCsv(tenant: TenantContext, userId: string, input: CatalogueImportInput) {
+    const lines = input.csv.replace(/^\uFEFF/, "").split(/\r?\n/).filter((line) => line.trim());
+    if (lines.length < 2) return { dryRun: input.dryRun, imported: 0, errors: [{ row: 1, message: "CSV must contain a header and at least one row." }] };
+    const parse = (line: string) => { const values: string[] = []; let value = ""; let quoted = false; for (let i = 0; i < line.length; i++) { const char = line[i]; if (char === '"' && line[i + 1] === '"') { value += '"'; i++; } else if (char === '"') quoted = !quoted; else if (char === "," && !quoted) { values.push(value); value = ""; } else value += char; } values.push(value); return values; };
+    const headers = parse(lines[0]!).map((header) => header.trim());
+    const errors: Array<{ row: number; message: string }> = [];
+    const valid: CreateProductInput[] = [];
+    for (let index = 1; index < lines.length; index++) {
+      const values = parse(lines[index]!);
+      const row = Object.fromEntries(headers.map((header, column) => [header, values[column] ?? ""]));
+      try {
+        valid.push(createProductSchema.parse({
+          unitId: row.unitId,
+          categoryId: row.categoryId || null,
+          brandId: row.brandId || null,
+          name: row.name,
+          arabicName: row.arabicName || null,
+          description: row.description || null,
+          type: row.type || "STOCK_ITEM",
+          sku: row.sku || null,
+          barcode: row.barcode || null,
+          costMinor: Number(row.costMinor || 0),
+          priceMinor: Number(row.priceMinor || 0),
+          trackInventory: row.trackInventory !== "false",
+          allowNegativeStock: row.allowNegativeStock === "true",
+          minimumStock: row.minimumStock || null,
+          imageUrl: row.imageUrl || null,
+          isActive: row.isActive !== "false",
+        }));
+      } catch (error) { errors.push({ row: index + 1, message: error instanceof Error ? error.message : "Invalid product row." }); }
+    }
+    let imported = 0;
+    if (!input.dryRun && errors.length === 0) {
+      for (const [offset, product] of valid.entries()) {
+        try { await this.createProduct(tenant, userId, product); imported++; }
+        catch (error) { errors.push({ row: offset + 2, message: error instanceof Error ? error.message : "Unable to create product." }); }
+      }
+    }
+    if (!input.dryRun) await prisma.auditLog.create({ data: { organizationId: tenant.organizationId, userId, action: "CATALOGUE_IMPORTED", entityType: "Product", afterJson: { imported, validRows: valid.length, errors: errors.length } } });
+    return { dryRun: input.dryRun, imported, validRows: valid.length, errors };
+  }
   async categories(tenant: TenantContext, input: CatalogueListInput) {
     const where: Prisma.CategoryWhereInput = {
       organizationId: tenant.organizationId,

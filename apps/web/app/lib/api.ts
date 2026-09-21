@@ -112,3 +112,12 @@ export async function api<T>(
   }
   return payload as T;
 }
+
+export async function apiText(path: string, init: RequestInit = {}): Promise<string> {
+  const headers = new Headers(init.headers);
+  const token = sessionStorage.getItem("allshops_access");
+  if (token) headers.set("Authorization", `Bearer ${token}`);
+  const response = await fetch(`${API_URL}${path}`, { ...init, headers, credentials: "include" });
+  if (!response.ok) throw new ApiError("Request failed.", response.status, "ERROR");
+  return response.text();
+}

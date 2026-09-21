@@ -60,6 +60,10 @@ export function AppShell({
     hasAnyPermission(membership, ...permissions);
   const routeAllowed = pathname.startsWith("/reconciliation")
     ? any("reconciliation.submit", "reconciliation.read_all")
+    : pathname.startsWith("/register-shifts")
+      ? any("shift.read", "shift.open", "shift.close")
+      : pathname.startsWith("/alerts")
+        ? any("alert.read", "alert.manage")
     : hasAllPermissions(membership, ...permissionsForPath(pathname));
   async function leaveForWelcome(reason: "logout" | "idle" = "logout") {
     const organizationId = selectedOrganization();
@@ -127,6 +131,12 @@ export function AppShell({
           )}
           {any("reconciliation.submit", "reconciliation.read_all") && (
             <Link href="/reconciliation">{t("End-of-day cash-up")}</Link>
+          )}
+          {any("shift.read", "shift.open", "shift.close") && (
+            <Link href="/register-shifts">{t("Register shifts")}</Link>
+          )}
+          {any("alert.read", "alert.manage") && (
+            <Link href="/alerts">{t("Operational alerts")}</Link>
           )}
           {any("appointment.read", "staff.read", "commission.read") && (
             <small>{t("Services")}</small>
