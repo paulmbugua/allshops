@@ -24,8 +24,12 @@ if ! grep -Fq "$MARKER" "$CADDYFILE"; then
 allshopspos.com, www.allshopspos.com {
   encode zstd gzip
   @api path /api/*
-  handle @api { reverse_proxy allshops-api:4000 }
-  handle { reverse_proxy allshops-web:3000 }
+  handle @api {
+    reverse_proxy allshops-api:4000
+  }
+  handle {
+    reverse_proxy allshops-web:3000
+  }
   header {
     Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
     X-Content-Type-Options "nosniff"
