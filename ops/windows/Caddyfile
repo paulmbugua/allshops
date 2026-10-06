@@ -1,5 +1,5 @@
 {
-	email admin@ekazi.co.ke
+	email admin@allshopspos.com
 }
 
 (security_headers) {
@@ -12,7 +12,7 @@
 	}
 }
 
-allshops.ekazi.co.ke {
+allshopspos.com, www.allshopspos.com {
 	import security_headers
 	encode zstd gzip
 	@api path /api/*
@@ -25,7 +25,7 @@ allshops.ekazi.co.ke {
 	}
 }
 
-api.ekazi.co.ke {
+api.allshopspos.com {
 	import security_headers
 	encode zstd gzip
 	@metrics path /api/v1/metrics

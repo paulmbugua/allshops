@@ -1,5 +1,5 @@
 param(
-  [string]$ApiUrl = "https://api.ekazi.co.ke/api/v1",
+  [string]$ApiUrl = "https://api.allshopspos.com/api/v1",
   [switch]$AlsoBuildApk,
   [switch]$SkipChecks
 )

@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-  [string]$PosUrl = 'https://allshops.ekazi.co.ke/welcome',
+  [string]$PosUrl = 'https://allshopspos.com/welcome',
   [ValidateSet('Chrome', 'Edge')]
   [string]$Browser = 'Chrome'
 )

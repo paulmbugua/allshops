@@ -4,9 +4,9 @@
 
 AllShops uses Docker on one Ubuntu VPS for the initial production rollout. This keeps the Next.js client, NestJS API, worker, PostgreSQL, Redis, migrations, backup tooling, and TLS edge versioned together:
 
-- `https://allshops.ekazi.co.ke` — customer web application
-- `https://allshops.ekazi.co.ke/api/v1/*` — same-origin browser API proxy
-- `https://api.ekazi.co.ke/api/v1/*` — public API for Flutter and integrations
+- `https://allshopspos.com` and `https://www.allshopspos.com` — customer web application
+- `https://allshopspos.com/api/v1/*` — same-origin browser API proxy
+- `https://api.allshopspos.com/api/v1/*` — public API for Flutter and integrations
 - Caddy — automatic HTTPS and reverse proxy
 - Next.js — private container port 3000
 - NestJS API — private container port 4000
@@ -18,14 +18,15 @@ Cloudflare Workers and Wrangler are deliberately not used. The web application i
 
 ## 1. Prepare Cloudflare DNS
 
-Create two proxied `A` records in the `ekazi.co.ke` zone:
+Create three proxied `A` records in the `allshopspos.com` zone:
 
 | Type | Name       | Target          | Proxy   |
 | ---- | ---------- | --------------- | ------- |
-| A    | `allshops` | VPS public IPv4 | Proxied |
+| A    | `@`        | VPS public IPv4 | Proxied |
+| A    | `www`      | VPS public IPv4 | Proxied |
 | A    | `api`      | VPS public IPv4 | Proxied |
 
-Set SSL/TLS mode to **Full (strict)**, enable Always Use HTTPS, and leave WebSockets enabled. Add a cache bypass rule for `api.ekazi.co.ke/*` and `allshops.ekazi.co.ke/api/*`; cache only immutable `/_next/static/*` assets. Do not expose ports 3000, 4000, 5432, or 6379 in the VPS firewall.
+Set SSL/TLS mode to **Full (strict)**, enable Always Use HTTPS, and leave WebSockets enabled. Add a cache bypass rule for `api.allshopspos.com/*` and `allshopspos.com/api/*`; cache only immutable `/_next/static/*` assets. Do not expose ports 3000, 4000, 5432, or 6379 in the VPS firewall.
 
 For the first certificate issuance, the two DNS records must already point at the VPS and inbound TCP 80/443 must be open. UDP 443 enables HTTP/3. Caddy stores certificates in the persistent `caddy_data` volume.
 
@@ -51,6 +52,20 @@ openssl rand -base64 48 | tr -d '/+=' | head -c 64; echo
 The password embedded in `DATABASE_URL` must match `POSTGRES_PASSWORD`; the one embedded in `REDIS_URL` must match `REDIS_PASSWORD`. Keep passwords URL-safe or percent-encode them. Use the Paystack live secret only on the API container. Never place it in a `NEXT_PUBLIC_*` variable or in Flutter.
 
 ## 3. Build and deploy
+
+If this VPS already has another project owning ports 80/443, keep the shared
+Caddy instance and run AllShops without its standalone edge container:
+
+```bash
+chmod +x ops/attach-existing-caddy.sh
+./ops/attach-existing-caddy.sh
+```
+
+The script connects the existing Caddy container to `allshops_edge`, adds the
+three AllShops host routes idempotently, validates the configuration, and
+reloads Caddy. The AllShops `caddy` service is placed in the
+`standalone-edge` Compose profile so it cannot compete for ports 80/443. For
+a dedicated VPS, use `docker compose --profile standalone-edge up -d` instead.
 
 These are the production build and deploy commands from `/opt/allshops`:
 
@@ -86,9 +101,10 @@ pnpm docker:production:deploy
 ```bash
 docker compose --env-file ops/vps-production.env -f docker-compose.prod.yml ps
 docker compose --env-file ops/vps-production.env -f docker-compose.prod.yml logs --tail=100 migrate api worker web caddy
-curl --fail https://api.ekazi.co.ke/api/v1/health/ready
-curl --fail https://allshops.ekazi.co.ke/login
-SMOKE_BASE_URL=https://allshops.ekazi.co.ke pnpm smoke:production
+curl --fail https://api.allshopspos.com/api/v1/health/ready
+curl --fail https://allshopspos.com/login
+curl --fail https://www.allshopspos.com/login
+SMOKE_BASE_URL=https://allshopspos.com pnpm smoke:production
 ```
 
 Also verify login, one non-financial test record, Paystack test/live-mode separation, offline synchronization, branch restrictions, report totals, and an actual restore drill before accepting customer money.

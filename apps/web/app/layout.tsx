@@ -6,7 +6,7 @@ import { PwaRegistration } from "./components/pwa-registration";
 import { LanguageProvider } from "./components/language-provider";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://allshops.ekazi.co.ke"),
+  metadataBase: new URL("https://allshopspos.com"),
   title: "AllShops · Business workspace",
   description: "Qatar-first multi-tenant business operating platform.",
   applicationName: "AllShops POS",
@@ -14,7 +14,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "AllShops · Business workspace",
     description: "Modern POS and business operations for ambitious teams.",
-    url: "https://allshops.ekazi.co.ke",
+    url: "https://allshopspos.com",
     siteName: "AllShops",
     type: "website",
   },

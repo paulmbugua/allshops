@@ -4,9 +4,9 @@ x-app-environment: &app-environment
   NODE_ENV: production
   DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
   REDIS_URL: ${REDIS_URL:?REDIS_URL is required}
-  APP_URL: ${APP_URL:-https://allshops.ekazi.co.ke}
-  API_URL: ${API_URL:-https://api.ekazi.co.ke}
-  CORS_ORIGINS: ${CORS_ORIGINS:-https://allshops.ekazi.co.ke}
+  APP_URL: ${APP_URL:-https://allshopspos.com}
+  API_URL: ${API_URL:-https://api.allshopspos.com}
+  CORS_ORIGINS: ${CORS_ORIGINS:-https://allshopspos.com,https://www.allshopspos.com}
   JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?JWT_ACCESS_SECRET is required}
   JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?JWT_REFRESH_SECRET is required}
   JWT_ACCESS_TTL: ${JWT_ACCESS_TTL:-15m}
@@ -93,7 +93,7 @@ services:
       SENTRY_DSN: ${SENTRY_DSN:-}
       PAYSTACK_SECRET_KEY: ${PAYSTACK_SECRET_KEY:?PAYSTACK_SECRET_KEY is required for subscription billing}
       PAYSTACK_BASE_URL: ${PAYSTACK_BASE_URL:-https://api.paystack.co}
-      PAYSTACK_SUBSCRIPTION_CALLBACK_URL: ${PAYSTACK_SUBSCRIPTION_CALLBACK_URL:-https://allshops.ekazi.co.ke/settings/subscription/payment-return}
+      PAYSTACK_SUBSCRIPTION_CALLBACK_URL: ${PAYSTACK_SUBSCRIPTION_CALLBACK_URL:-https://allshopspos.com/settings/subscription/payment-return}
       PAYSTACK_CURRENCY: ${PAYSTACK_CURRENCY:-KES}
       PAYSTACK_QAR_TO_KES_RATE: ${PAYSTACK_QAR_TO_KES_RATE:-}
     depends_on:
@@ -116,7 +116,10 @@ services:
       timeout: 5s
       start_period: 20s
       retries: 5
-    networks: [edge, data]
+    networks:
+      edge:
+        aliases: [allshops-api]
+      data: {}
     logging: *logging
 
   worker:
@@ -173,14 +176,18 @@ services:
       timeout: 5s
       start_period: 20s
       retries: 5
-    networks: [edge]
+    networks:
+      edge:
+        aliases: [allshops-web]
     logging: *logging
 
   caddy:
+    profiles: [standalone-edge]
     image: caddy:2.10-alpine
     environment:
-      APP_DOMAIN: ${APP_DOMAIN:-allshops.ekazi.co.ke}
-      API_DOMAIN: ${API_DOMAIN:-api.ekazi.co.ke}
+      APP_DOMAIN: ${APP_DOMAIN:-allshopspos.com}
+      WWW_DOMAIN: ${WWW_DOMAIN:-www.allshopspos.com}
+      API_DOMAIN: ${API_DOMAIN:-api.allshopspos.com}
       ACME_EMAIL: ${ACME_EMAIL:?ACME_EMAIL is required}
     ports:
       - "80:80"
@@ -217,6 +224,7 @@ services:
 
 networks:
   edge:
+    name: allshops_edge
   data:
     internal: true
 

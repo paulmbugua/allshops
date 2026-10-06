@@ -17,7 +17,7 @@
 	}
 }
 
-{$APP_DOMAIN} {
+{$APP_DOMAIN}, {$WWW_DOMAIN} {
 	import security_headers
 	encode zstd gzip
 	@api path /api/*

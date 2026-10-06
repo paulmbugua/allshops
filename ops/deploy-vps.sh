@@ -14,7 +14,7 @@ if grep -q 'REPLACE_' "$ENV_FILE"; then
   exit 1
 fi
 
-for host in allshops.ekazi.co.ke api.ekazi.co.ke; do
+for host in allshopspos.com www.allshopspos.com api.allshopspos.com; do
   getent ahosts "$host" >/dev/null 2>&1 || {
     printf 'DNS is not ready for %s. Create its Cloudflare A record before deployment.\n' "$host" >&2
     exit 1
@@ -44,7 +44,7 @@ compose up -d --remove-orphans
 
 printf 'Waiting for public readiness...\n'
 attempt=0
-until curl --fail --silent --show-error https://api.ekazi.co.ke/api/v1/health/ready >/dev/null; do
+until curl --fail --silent --show-error https://api.allshopspos.com/api/v1/health/ready >/dev/null; do
   attempt=$((attempt + 1))
   if [ "$attempt" -ge 30 ]; then
     compose ps
@@ -54,6 +54,7 @@ until curl --fail --silent --show-error https://api.ekazi.co.ke/api/v1/health/re
   sleep 5
 done
 
-curl --fail --silent --show-error https://allshops.ekazi.co.ke/login >/dev/null
+curl --fail --silent --show-error https://allshopspos.com/login >/dev/null
+curl --fail --silent --show-error https://www.allshopspos.com/login >/dev/null
 compose ps
 printf 'AllShops production deployment is healthy.\n'

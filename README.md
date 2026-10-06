@@ -2,7 +2,7 @@
 
 AllShops is a Qatar-first, multi-tenant POS and small-business operating platform. The repository implements Phases 0–9: foundation, authentication/tenancy/RBAC, catalogue/inventory, POS sales, procurement and credit, services and appointments, reporting, offline-first POS synchronization, SaaS subscriptions/entitlements, and production hardening/operations.
 
-Production rollout: [Docker VPS deployment](docs/operations/deployment.md) for `allshops.ekazi.co.ke` and `api.ekazi.co.ke`, and [Flutter Google Play release](docs/operations/mobile-play-release.md) for the signed Android API 36 app bundle.
+Production rollout: [Docker VPS deployment](docs/operations/deployment.md) for `allshopspos.com`, `www.allshopspos.com`, and `api.allshopspos.com`, and [Flutter Google Play release](docs/operations/mobile-play-release.md) for the signed Android API 36 app bundle.
 
 ## Architecture
 

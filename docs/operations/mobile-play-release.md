@@ -47,7 +47,7 @@ The optional `-SkipChecks` switch exists only to resume packaging after analysis
 The script runs dependency resolution, static analysis, tests, release signing, R8 shrinking, Dart obfuscation, and injects only this public URL:
 
 ```text
-https://api.ekazi.co.ke/api/v1
+https://api.allshopspos.com/api/v1
 ```
 
 Artifacts:
