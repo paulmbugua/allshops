@@ -40,7 +40,12 @@ if [ "${SKIP_PREDEPLOY_BACKUP:-false}" != "true" ]; then
 fi
 
 printf 'Deploying migration, API, worker, web, and HTTPS edge...\n'
-compose up -d --remove-orphans
+if [ -n "${CADDY_CONTAINER:-}" ]; then
+  compose up -d --remove-orphans
+  CADDY_CONTAINER="$CADDY_CONTAINER" ./ops/attach-existing-caddy.sh
+else
+  compose --profile standalone-edge up -d --remove-orphans
+fi
 
 printf 'Waiting for public readiness...\n'
 attempt=0

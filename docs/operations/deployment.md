@@ -58,7 +58,7 @@ Caddy instance and run AllShops without its standalone edge container:
 
 ```bash
 chmod +x ops/attach-existing-caddy.sh
-./ops/attach-existing-caddy.sh
+CADDY_CONTAINER=rivera-caddy-1 ./ops/attach-existing-caddy.sh
 ```
 
 The script connects the existing Caddy container to `allshops_edge`, adds the
@@ -79,13 +79,13 @@ The shorter guarded rollout runs validation, image builds, a verified pre-deploy
 
 ```bash
 chmod +x ops/deploy-vps.sh ops/backup-postgres.sh
-./ops/deploy-vps.sh
+CADDY_CONTAINER=rivera-caddy-1 ./ops/deploy-vps.sh
 ```
 
 On the very first empty deployment only, where no data exists to back up:
 
 ```bash
-SKIP_PREDEPLOY_BACKUP=true ./ops/deploy-vps.sh
+SKIP_PREDEPLOY_BACKUP=true CADDY_CONTAINER=rivera-caddy-1 ./ops/deploy-vps.sh
 ```
 
 The equivalent package scripts are:
