@@ -65,8 +65,17 @@ try {
   # Calling the tool snapshot directly avoids an intermittent Windows batch
   # subprocess crash observed when flutter.bat launches test/build commands.
   Invoke-FlutterChecked -Step "flutter pub get" -Arguments @("pub", "get") -AccessViolationRetries 2
-  & $dart run flutter_launcher_icons
-  if ($LASTEXITCODE -ne 0) { throw "launcher icon generation failed." }
+  $iconAttempt = 0
+  do {
+    $iconAttempt++
+    & $dart run flutter_launcher_icons
+    $iconExitCode = $LASTEXITCODE
+    if ($iconExitCode -eq 0) { break }
+    if ($iconAttempt -le 2) {
+      Write-Warning "Launcher icon generation was interrupted (exit $iconExitCode); retrying ($iconAttempt/3)."
+    }
+  } while ($iconAttempt -le 2)
+  if ($iconExitCode -ne 0) { throw "launcher icon generation failed with exit code $iconExitCode." }
   if (-not $SkipChecks) {
     Invoke-FlutterChecked -Step "flutter analyze" -Arguments @("analyze") -AccessViolationRetries 2
     Invoke-FlutterChecked -Step "flutter test" -Arguments @("test") -AccessViolationRetries 2
@@ -94,13 +103,13 @@ try {
       "build", "appbundle", "--release", "--target-platform", "android-arm64", "--obfuscate",
       "--split-debug-info=$stageSymbols",
       "--dart-define=ALLSHOPS_API_URL=$ApiUrl"
-    ) -AccessViolationRetries 2 -RetryBuildExitOne
+    ) -AccessViolationRetries 6 -RetryBuildExitOne
     if ($AlsoBuildApk) {
       Invoke-FlutterChecked -Step "release APK build" -Arguments @(
         "build", "apk", "--release", "--target-platform", "android-arm64",
         "--obfuscate", "--split-debug-info=$stageSymbols",
         "--dart-define=ALLSHOPS_API_URL=$ApiUrl"
-      ) -AccessViolationRetries 2 -RetryBuildExitOne
+      ) -AccessViolationRetries 6 -RetryBuildExitOne
     }
   } finally {
     Pop-Location
