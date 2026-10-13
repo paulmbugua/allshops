@@ -77,7 +77,17 @@ export class AuthService {
         expiresAt: activation.expiresAt,
       })
       .then((result) => result.status)
-      .catch(() => "FAILED" as const);
+      .catch((error: unknown) => {
+        this.logger.warn(
+          `Account activation email delivery failed for user ${user.id}: ${this.mailError(error)}`,
+        );
+        return "FAILED" as const;
+      });
+    if (emailDelivery === "NOT_CONFIGURED") {
+      this.logger.warn(
+        `Account activation email delivery is not configured for user ${user.id}.`,
+      );
+    }
     return {
       ...(await this.createSession(user.id, request)),
       activationRequired: true,
