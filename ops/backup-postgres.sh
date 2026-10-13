@@ -15,8 +15,14 @@ DB_HOST="$(printf '%s' "$DATABASE_URL" | sed -E 's#^[^:]+://([^@]+@)?([^/:?]+).*
 DB_NAME="$(printf '%s' "$DATABASE_URL" | sed -E 's#^.*/([^/?]+)(\?.*)?$#\1#')"
 printf 'Creating AllShops backup: host=%s database=%s timestamp=%s\n' "$DB_HOST" "$DB_NAME" "$STAMP"
 
+# Prisma accepts application-specific URL parameters such as `schema`, but
+# PostgreSQL client tools reject parameters they do not recognise. Backups run
+# against the private Compose PostgreSQL service, so no connection query
+# parameters are required here.
+PG_DUMP_DATABASE_URL="${DATABASE_URL%%\?*}"
+
 umask 077
-pg_dump --dbname="$DATABASE_URL" --format=custom --compress=9 --no-owner --file="$TARGET"
+pg_dump --dbname="$PG_DUMP_DATABASE_URL" --format=custom --compress=9 --no-owner --file="$TARGET"
 test -f "$TARGET"
 SIZE="$(wc -c < "$TARGET" | tr -d ' ')"
 if [ "$SIZE" -lt "$MINIMUM_BACKUP_BYTES" ]; then
