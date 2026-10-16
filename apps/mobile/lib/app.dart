@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -110,17 +112,26 @@ class _AllShopsAppState extends State<AllShopsApp> {
   @override
   void initState() {
     super.initState();
-    storage.read(key: 'allshops_display_language').then((value) {
-      if (mounted && (value == 'en' || value == 'ar')) {
-        setState(() => language = value!);
-      }
-    });
+    storage
+        .read(key: 'allshops_display_language')
+        .timeout(const Duration(seconds: 2))
+        .then((value) {
+          if (mounted && (value == 'en' || value == 'ar')) {
+            setState(() => language = value!);
+          }
+        })
+        .catchError((Object _) => null);
   }
 
   void setLanguage(String value) {
     if (value != 'en' && value != 'ar') return;
     setState(() => language = value);
-    storage.write(key: 'allshops_display_language', value: value);
+    unawaited(
+      storage
+          .write(key: 'allshops_display_language', value: value)
+          .timeout(const Duration(seconds: 2))
+          .catchError((Object _) => null),
+    );
   }
 
   @override
@@ -141,32 +152,79 @@ class _AllShopsAppState extends State<AllShopsApp> {
 }
 
 class SessionGate extends ConsumerStatefulWidget {
-  const SessionGate({super.key});
+  const SessionGate({
+    super.key,
+    this.restoreDeadline = const Duration(seconds: 15),
+  });
+
+  final Duration restoreDeadline;
+
   @override
   ConsumerState<SessionGate> createState() => _SessionGateState();
 }
 
+enum _SessionRestoreStatus { authenticated, anonymous, unavailable }
+
+class _SessionRestoreResult {
+  const _SessionRestoreResult(this.status, {this.user, this.timedOut = false});
+
+  final _SessionRestoreStatus status;
+  final CurrentUser? user;
+  final bool timedOut;
+}
+
 class _SessionGateState extends ConsumerState<SessionGate> {
-  late final Future<CurrentUser?> session;
+  late Future<_SessionRestoreResult> session;
+
   @override
   void initState() {
     super.initState();
     session = _restore();
   }
 
-  Future<CurrentUser?> _restore() async {
+  Future<_SessionRestoreResult> _restore() async {
+    AppLogger.startup('session_restore_started');
     AppLogger.info('session', 'restore_started');
     try {
       final user = CurrentUser.fromJson(
-        await ref.read(apiProvider).currentUser(),
+        await ref
+            .read(apiProvider)
+            .currentUser()
+            .timeout(widget.restoreDeadline),
       );
+      AppLogger.startup('session_restore_authenticated');
       AppLogger.info(
         'session',
         'restore_succeeded',
         fields: {'membershipCount': user.memberships.length},
       );
-      return user;
+      return _SessionRestoreResult(
+        _SessionRestoreStatus.authenticated,
+        user: user,
+      );
+    } on TimeoutException catch (error, stackTrace) {
+      AppLogger.startup('session_restore_deadline_exceeded');
+      AppLogger.warning(
+        'session',
+        'restore_timed_out',
+        fields: {'errorType': error.runtimeType.toString()},
+      );
+      AppLogger.debug(
+        'session',
+        'restore_timeout_detail',
+        fields: {'hasStackTrace': stackTrace.toString().isNotEmpty},
+      );
+      return const _SessionRestoreResult(
+        _SessionRestoreStatus.unavailable,
+        timedOut: true,
+      );
     } catch (error, stackTrace) {
+      final status = apiStatusCode(error);
+      final anonymous = status == 401 || status == 403;
+      AppLogger.startup(
+        anonymous ? 'session_restore_anonymous' : 'session_restore_unavailable',
+        fields: {'classification': error.runtimeType.toString()},
+      );
       AppLogger.warning(
         'session',
         'restore_failed',
@@ -177,20 +235,40 @@ class _SessionGateState extends ConsumerState<SessionGate> {
         'restore_failure_detail',
         fields: {'hasStackTrace': stackTrace.toString().isNotEmpty},
       );
-      return null;
+      return _SessionRestoreResult(
+        anonymous
+            ? _SessionRestoreStatus.anonymous
+            : _SessionRestoreStatus.unavailable,
+      );
     }
   }
 
+  void _retry() {
+    setState(() {
+      session = _restore();
+    });
+  }
+
   @override
-  Widget build(BuildContext context) => FutureBuilder<CurrentUser?>(
+  Widget build(BuildContext context) => FutureBuilder<_SessionRestoreResult>(
     future: session,
     builder: (_, snapshot) {
       if (snapshot.connectionState != ConnectionState.done) {
         return const Scaffold(body: Center(child: CircularProgressIndicator()));
       }
-      final user = snapshot.data;
-      if (user == null || user.memberships.isEmpty) {
-        return const WelcomeScreen();
+      final result = snapshot.data;
+      final user = result?.user;
+      if (result?.status != _SessionRestoreStatus.authenticated ||
+          user == null ||
+          user.memberships.isEmpty) {
+        return WelcomeScreen(
+          startupUnavailable:
+              result?.status == _SessionRestoreStatus.unavailable,
+          startupTimedOut: result?.timedOut ?? false,
+          onRetryStartup: result?.status == _SessionRestoreStatus.unavailable
+              ? _retry
+              : null,
+        );
       }
       return HomeScreen(user: user, membership: user.memberships.first);
     },

@@ -1,7 +1,8 @@
 param(
   [string]$ApiUrl = "https://api.allshopspos.com/api/v1",
   [switch]$AlsoBuildApk,
-  [switch]$SkipChecks
+  [switch]$SkipChecks,
+  [switch]$OfflineDependencies
 )
 
 $ErrorActionPreference = "Stop"
@@ -25,6 +26,8 @@ $versionLine = Select-String -Path (Join-Path $mobileRoot "pubspec.yaml") -Patte
 if (-not $versionLine) { throw "No version was found in apps/mobile/pubspec.yaml." }
 $releaseVersion = $versionLine.Matches[0].Groups[1].Value
 $symbols = Join-Path $mobileRoot "build\symbols\$releaseVersion"
+$pubGetArguments = @("pub", "get")
+if ($OfflineDependencies) { $pubGetArguments += "--offline" }
 
 if (-not (Test-Path $keyProperties)) {
   throw "Missing android/key.properties. Copy key.properties.example and configure the private upload keystore."
@@ -64,7 +67,7 @@ Push-Location $mobileRoot
 try {
   # Calling the tool snapshot directly avoids an intermittent Windows batch
   # subprocess crash observed when flutter.bat launches test/build commands.
-  Invoke-FlutterChecked -Step "flutter pub get" -Arguments @("pub", "get") -AccessViolationRetries 2
+  Invoke-FlutterChecked -Step "flutter pub get" -Arguments $pubGetArguments -AccessViolationRetries 2
   $iconAttempt = 0
   do {
     $iconAttempt++
@@ -78,7 +81,7 @@ try {
   if ($iconExitCode -ne 0) { throw "launcher icon generation failed with exit code $iconExitCode." }
   if (-not $SkipChecks) {
     Invoke-FlutterChecked -Step "flutter analyze" -Arguments @("analyze") -AccessViolationRetries 2
-    Invoke-FlutterChecked -Step "flutter test" -Arguments @("test") -AccessViolationRetries 2
+    Invoke-FlutterChecked -Step "flutter test" -Arguments @("test", "--concurrency=1") -AccessViolationRetries 2
   } else {
     Write-Warning "Static analysis and tests were skipped. Use this only after both passed independently for the exact source revision."
   }
@@ -92,13 +95,31 @@ try {
 $stagingRoot = Join-Path ([IO.Path]::GetTempPath()) "allshops-mobile-release-$([guid]::NewGuid().ToString('N'))"
 New-Item -ItemType Directory -Force -Path $stagingRoot | Out-Null
 try {
-  & robocopy $mobileRoot $stagingRoot /E /XD build .dart_tool | Out-Null
-  if ($LASTEXITCODE -gt 7) { throw "Unable to create the mobile release staging tree (robocopy exit $LASTEXITCODE)." }
+  $copyAttempt = 0
+  do {
+    $copyAttempt++
+    & robocopy $mobileRoot $stagingRoot /E /XD build .dart_tool | Out-Null
+    $copyExitCode = $LASTEXITCODE
+    $stageAndroidReady = Test-Path (Join-Path $stagingRoot "android\gradle.properties")
+    if ($copyExitCode -ge 0 -and $copyExitCode -le 7 -and $stageAndroidReady) { break }
+    if ($copyAttempt -le 2) {
+      Write-Warning "Release staging copy was interrupted (exit $copyExitCode); retrying ($copyAttempt/3)."
+    }
+  } while ($copyAttempt -le 2)
+  if (-not $stageAndroidReady -or $copyExitCode -lt 0 -or $copyExitCode -gt 7) {
+    throw "Unable to create the mobile release staging tree (robocopy exit $copyExitCode)."
+  }
+
+  # Keep the isolated build on Flutter's selected Android Studio JDK. AGP 9's
+  # JDK image transform is compatible with it, while forcing the previous
+  # Temurin 17 workaround can make jlink fail before compilation starts.
+  $gradleProperties = Join-Path $stagingRoot "android\gradle.properties"
+  Add-Content -LiteralPath $gradleProperties -Value "`norg.gradle.workers.max=1`norg.gradle.internal.instrumentation.agent=false"
 
   $stageSymbols = Join-Path $stagingRoot "build\symbols\$releaseVersion"
   Push-Location $stagingRoot
   try {
-    Invoke-FlutterChecked -Step "staged flutter pub get" -Arguments @("pub", "get") -AccessViolationRetries 2
+    Invoke-FlutterChecked -Step "staged flutter pub get" -Arguments $pubGetArguments -AccessViolationRetries 2
     Invoke-FlutterChecked -Step "Play Store app bundle build" -Arguments @(
       "build", "appbundle", "--release", "--target-platform", "android-arm64", "--obfuscate",
       "--split-debug-info=$stageSymbols",

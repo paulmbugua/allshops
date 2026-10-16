@@ -12,6 +12,18 @@ abstract final class AppLogger {
   );
   static int _sequence = 0;
 
+  /// Minimal lifecycle breadcrumbs intentionally retained in release builds.
+  /// Only fixed event names and redacted diagnostic classifications belong
+  /// here; credentials, identifiers, URLs and business data are prohibited.
+  static void startup(String event, {Map<String, Object?>? fields}) {
+    final record = <String, Object?>{
+      'time': DateTime.now().toUtc().toIso8601String(),
+      'event': event,
+      if (fields != null && fields.isNotEmpty) 'fields': _redactMap(fields),
+    };
+    debugPrint('ALLSHOPS_STARTUP ${jsonEncode(record)}');
+  }
+
   static void debug(
     String scope,
     String event, {
