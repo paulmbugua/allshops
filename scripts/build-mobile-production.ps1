@@ -44,17 +44,23 @@ function Invoke-FlutterChecked {
     [Parameter(Mandatory = $true)][string]$Step,
     [Parameter(Mandatory = $true)][string[]]$Arguments,
     [int]$AccessViolationRetries = 0,
-    [switch]$RetryBuildExitOne
+    [string]$RejectOutputPattern = ""
   )
 
   $attempt = 0
   while ($true) {
     $attempt++
-    & $dart $flutterSnapshot @Arguments
+    $commandOutput = @()
+    & $dart $flutterSnapshot @Arguments 2>&1 | Tee-Object -Variable commandOutput
     $exitCode = $LASTEXITCODE
-    if ($exitCode -eq 0) { return }
-    $knownProcessFault = $exitCode -in @(-1073741819, -1) -or
-      ($RetryBuildExitOne -and $exitCode -eq 1)
+    if ($exitCode -eq 0) {
+      $outputText = $commandOutput | Out-String
+      if ($RejectOutputPattern -and $outputText -match $RejectOutputPattern) {
+        throw "$Step emitted a forbidden release warning and will not be promoted."
+      }
+      return
+    }
+    $knownProcessFault = $exitCode -in @(-1073741819, -1)
     if ($knownProcessFault -and $attempt -le $AccessViolationRetries) {
       Write-Warning "$Step was interrupted by the known Windows process-launch fault (exit $exitCode); retrying ($attempt/$($AccessViolationRetries + 1))."
       continue
@@ -124,21 +130,30 @@ try {
       "build", "appbundle", "--release", "--target-platform", "android-arm64", "--obfuscate",
       "--split-debug-info=$stageSymbols",
       "--dart-define=ALLSHOPS_API_URL=$ApiUrl"
-    ) -AccessViolationRetries 6 -RetryBuildExitOne
+    ) -AccessViolationRetries 6 `
+      -RejectOutputPattern '(?i)failed to strip|strip debug symbols.*failed|unable to strip'
     if ($AlsoBuildApk) {
       Invoke-FlutterChecked -Step "release APK build" -Arguments @(
         "build", "apk", "--release", "--target-platform", "android-arm64",
         "--obfuscate", "--split-debug-info=$stageSymbols",
         "--dart-define=ALLSHOPS_API_URL=$ApiUrl"
-      ) -AccessViolationRetries 6 -RetryBuildExitOne
+      ) -AccessViolationRetries 6 `
+        -RejectOutputPattern '(?i)failed to strip|strip debug symbols.*failed|unable to strip'
     }
   } finally {
     Pop-Location
   }
 
+  $stageBundle = Join-Path $stagingRoot "build\app\outputs\bundle\release\app-release.aab"
+  & python (Join-Path $PSScriptRoot "verify-mobile-release.py") $stageBundle `
+    --max-libflutter-mib 20 --max-bundle-mib 35
+  if ($LASTEXITCODE -ne 0) {
+    throw "Release bundle validation failed. The bundle will not be promoted."
+  }
+
   $bundleDestination = Join-Path $mobileRoot "build\app\outputs\bundle\release"
   New-Item -ItemType Directory -Force -Path $bundleDestination | Out-Null
-  Copy-Item -LiteralPath (Join-Path $stagingRoot "build\app\outputs\bundle\release\app-release.aab") -Destination $bundleDestination -Force
+  Copy-Item -LiteralPath $stageBundle -Destination $bundleDestination -Force
   if ($AlsoBuildApk) {
     $apkDestination = Join-Path $mobileRoot "build\app\outputs\flutter-apk"
     New-Item -ItemType Directory -Force -Path $apkDestination | Out-Null
