@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   android:
-    name: Clean signed Android release
+    name: Clean validated Android release
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     defaults:
@@ -122,4 +122,4 @@ jobs:
           name: AllShops-POS-1.0.5-build-6-symbols
           path: apps/mobile/build/release-symbols/1.0.5+6
           if-no-files-found: error
-          retention-days: 365
+          retention-days: 90
