@@ -20,6 +20,7 @@ jobs:
       ALLSHOPS_API_URL: https://api.allshopspos.com/api/v1
       RELEASE_VERSION: 1.0.5+6
       SYMBOLS_DIR: build/release-symbols/1.0.5+6
+      ALLSHOPS_ALLOW_UNSIGNED_CI_RELEASE: "true"
 
     steps:
       - uses: actions/checkout@v4
@@ -47,31 +48,6 @@ jobs:
           test -x "$sdkmanager"
           yes | "$sdkmanager" --licenses >/dev/null || true
           "$sdkmanager" "platforms;android-36" "build-tools;36.0.0" "ndk;29.0.13113456"
-
-      - name: Restore upload signing key
-        shell: bash
-        env:
-          UPLOAD_KEYSTORE_BASE64: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_BASE64 }}
-          UPLOAD_STORE_PASSWORD: ${{ secrets.ANDROID_UPLOAD_STORE_PASSWORD }}
-          UPLOAD_KEY_PASSWORD: ${{ secrets.ANDROID_UPLOAD_KEY_PASSWORD }}
-          UPLOAD_KEY_ALIAS: ${{ secrets.ANDROID_UPLOAD_KEY_ALIAS }}
-        run: |
-          set -euo pipefail
-          for value in UPLOAD_KEYSTORE_BASE64 UPLOAD_STORE_PASSWORD UPLOAD_KEY_PASSWORD UPLOAD_KEY_ALIAS; do
-            if [[ -z "${!value:-}" ]]; then
-              echo "::error::Required GitHub secret $value is not configured."
-              exit 1
-            fi
-          done
-          printf '%s' "$UPLOAD_KEYSTORE_BASE64" | base64 --decode > android/upload-keystore.jks
-          chmod 600 android/upload-keystore.jks
-          cat > android/key.properties <<EOF
-          storePassword=$UPLOAD_STORE_PASSWORD
-          keyPassword=$UPLOAD_KEY_PASSWORD
-          keyAlias=$UPLOAD_KEY_ALIAS
-          storeFile=../upload-keystore.jks
-          EOF
-          chmod 600 android/key.properties
 
       - name: Verify release version
         shell: bash
@@ -130,10 +106,10 @@ jobs:
             --max-bundle-mib 35 \
             --manifest build/app/outputs/bundle/release/release-manifest.json
 
-      - name: Upload signed AAB
+      - name: Upload validated unsigned AAB for offline signing
         uses: actions/upload-artifact@v4
         with:
-          name: AllShops-POS-1.0.5-build-6-aab
+          name: AllShops-POS-1.0.5-build-6-validated-unsigned-aab
           path: |
             apps/mobile/build/app/outputs/bundle/release/app-release.aab
             apps/mobile/build/app/outputs/bundle/release/release-manifest.json

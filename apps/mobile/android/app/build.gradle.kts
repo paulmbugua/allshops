@@ -10,6 +10,8 @@ plugins {
 val keystoreProperties = Properties()
 val keystorePropertiesFile = rootProject.file("key.properties")
 val hasReleaseSigning = keystorePropertiesFile.exists()
+val allowUnsignedCiRelease =
+    System.getenv("ALLSHOPS_ALLOW_UNSIGNED_CI_RELEASE")?.equals("true", ignoreCase = true) == true
 if (hasReleaseSigning) {
     FileInputStream(keystorePropertiesFile).use(keystoreProperties::load)
 }
@@ -78,7 +80,7 @@ gradle.taskGraph.whenReady {
             (it.name.contains("bundle", ignoreCase = true) ||
                 it.name.contains("assemble", ignoreCase = true))
     }
-    if (releaseRequested && !hasReleaseSigning) {
+    if (releaseRequested && !hasReleaseSigning && !allowUnsignedCiRelease) {
         throw GradleException(
             "Release signing is required. Copy android/key.properties.example to " +
                 "android/key.properties and point it at your private upload keystore.",
