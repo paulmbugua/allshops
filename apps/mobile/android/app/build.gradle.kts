@@ -9,12 +9,21 @@ plugins {
 
 val keystoreProperties = Properties()
 val keystorePropertiesFile = rootProject.file("key.properties")
-val hasReleaseSigning = keystorePropertiesFile.exists()
 val allowUnsignedCiRelease =
     System.getenv("ALLSHOPS_ALLOW_UNSIGNED_CI_RELEASE")?.equals("true", ignoreCase = true) == true
-if (hasReleaseSigning) {
+if (keystorePropertiesFile.exists()) {
     FileInputStream(keystorePropertiesFile).use(keystoreProperties::load)
 }
+// CI/Linux builders mount the same private upload key at a Unix path while
+// developer machines retain the path recorded in key.properties. Passwords
+// remain in the protected properties file and are never passed on the command
+// line or committed.
+val releaseStoreFilePath =
+    System.getenv("ALLSHOPS_UPLOAD_KEYSTORE") ?: keystoreProperties.getProperty("storeFile")
+val hasReleaseSigning =
+    keystorePropertiesFile.exists() &&
+        !releaseStoreFilePath.isNullOrBlank() &&
+        file(releaseStoreFilePath).exists()
 
 android {
     namespace = "com.allshops.allshops_mobile"
@@ -49,7 +58,7 @@ android {
             create("release") {
                 keyAlias = keystoreProperties.getProperty("keyAlias")
                 keyPassword = keystoreProperties.getProperty("keyPassword")
-                storeFile = keystoreProperties.getProperty("storeFile")?.let { file(it) }
+                storeFile = file(releaseStoreFilePath!!)
                 storePassword = keystoreProperties.getProperty("storePassword")
             }
         }
