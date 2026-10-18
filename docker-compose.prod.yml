@@ -159,6 +159,28 @@ services:
         aliases: [allshops-web]
     logging: *logging
 
+  cloudflared:
+    profiles: [cloudflare-tunnel]
+    image: cloudflare/cloudflared:2026.10.0
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:?CLOUDFLARE_TUNNEL_TOKEN is required}
+    command: ["tunnel", "--no-autoupdate", "--protocol", "quic", "run"]
+    depends_on:
+      api:
+        condition: service_healthy
+      web:
+        condition: service_healthy
+    restart: unless-stopped
+    mem_limit: 192m
+    cpus: 0.25
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    networks: [edge, egress]
+    logging: *logging
+
   caddy:
     profiles: [standalone-edge]
     image: caddy:2.10-alpine

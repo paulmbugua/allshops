@@ -3,6 +3,7 @@ set -eu
 
 ENV_FILE="${ENV_FILE:-ops/vps-production.env}"
 COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.prod.yml}"
+EDGE_MODE="${EDGE_MODE:-cloudflare-tunnel}"
 
 test -f "$ENV_FILE" || {
   printf 'Missing %s. Copy ops/vps-production.env.example and populate its secrets.\n' "$ENV_FILE" >&2
@@ -25,9 +26,20 @@ compose() {
   docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" "$@"
 }
 
-if [ -z "${CADDY_CONTAINER:-}" ] && docker inspect rivera-caddy-1 >/dev/null 2>&1; then
+if [ "$EDGE_MODE" = "caddy" ] && [ -z "${CADDY_CONTAINER:-}" ] && docker inspect rivera-caddy-1 >/dev/null 2>&1; then
   CADDY_CONTAINER=rivera-caddy-1
 fi
+
+case "$EDGE_MODE" in
+  cloudflare-tunnel)
+    grep -Eq '^CLOUDFLARE_TUNNEL_TOKEN=.+$' "$ENV_FILE" || {
+      printf 'CLOUDFLARE_TUNNEL_TOKEN is required when EDGE_MODE=cloudflare-tunnel.\n' >&2
+      exit 1
+    }
+    ;;
+  caddy) ;;
+  *) printf 'Unsupported EDGE_MODE: %s (use cloudflare-tunnel or caddy).\n' "$EDGE_MODE" >&2; exit 2 ;;
+esac
 
 for dependency in shared-postgres shared-pgbouncer shared-redis; do
   if [ "$(docker inspect -f '{{.State.Health.Status}}' "$dependency" 2>/dev/null || true)" != "healthy" ]; then
@@ -60,8 +72,10 @@ if [ "${SKIP_PREDEPLOY_BACKUP:-false}" != "true" ]; then
   SKIP_OFFSITE=true /opt/infrastructure/postgres/bin/backup-databases.sh allshops_db
 fi
 
-printf 'Deploying migration, API, worker, web, and HTTPS edge...\n'
-if [ -n "${CADDY_CONTAINER:-}" ]; then
+printf 'Deploying migration, API, worker, web, and edge...\n'
+if [ "$EDGE_MODE" = "cloudflare-tunnel" ]; then
+  compose --profile cloudflare-tunnel up -d --remove-orphans
+elif [ -n "${CADDY_CONTAINER:-}" ]; then
   compose up -d --remove-orphans
   CADDY_CONTAINER="$CADDY_CONTAINER" ./ops/attach-existing-caddy.sh
 else
@@ -69,12 +83,23 @@ else
 fi
 
 printf 'Waiting for public readiness...\n'
+expected_git_sha="$(awk -F= '$1 == "GIT_SHA" { print substr($0, index($0, "=") + 1); exit }' "$ENV_FILE")"
+test -n "$expected_git_sha" || {
+  printf 'GIT_SHA is required for immutable public readiness verification.\n' >&2
+  exit 1
+}
 attempt=0
-until curl --fail --silent --show-error https://api.allshopspos.com/api/v1/health/ready >/dev/null; do
+until version_payload="$(curl --fail --silent --show-error https://api.allshopspos.com/api/v1/version 2>/dev/null)" \
+  && printf '%s' "$version_payload" | grep -Fq "\"gitSha\":\"$expected_git_sha\"" \
+  && curl --fail --silent --show-error https://api.allshopspos.com/api/v1/health/ready >/dev/null; do
   attempt=$((attempt + 1))
   if [ "$attempt" -ge 30 ]; then
     compose ps
-    compose logs --tail=100 migrate api caddy
+    if [ "$EDGE_MODE" = "cloudflare-tunnel" ]; then
+      compose --profile cloudflare-tunnel logs --tail=100 migrate api cloudflared
+    else
+      compose logs --tail=100 migrate api caddy
+    fi
     exit 1
   fi
   sleep 5

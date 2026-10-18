@@ -9,7 +9,7 @@ PgBouncer and Redis are host infrastructure shared safely by multiple projects:
 - `https://allshopspos.com` and `https://www.allshopspos.com` — customer web application
 - `https://allshopspos.com/api/v1/*` — same-origin browser API proxy
 - `https://api.allshopspos.com/api/v1/*` — public API for Flutter and integrations
-- Rivera's existing Caddy — shared automatic HTTPS and reverse proxy
+- Dedicated Cloudflare Tunnel — outbound-only public edge and managed HTTPS
 - Next.js — private container port 3000
 - NestJS API — private container port 4000
 - PostgreSQL 17 — one database and least-privilege login per application
@@ -18,21 +18,31 @@ PgBouncer and Redis are host infrastructure shared safely by multiple projects:
 - Worker — private backend network plus a separate outbound network
 - One-shot migration container — must finish successfully before API/worker start
 
-Cloudflare Workers and Wrangler are deliberately not used. The web application is a stateful Next.js server and the backend already requires a VPS; putting the web container beside it is simpler, avoids a second runtime adapter, and preserves the tested standalone Next.js output. Cloudflare remains valuable as proxied DNS, DDoS/WAF protection, and the public edge.
+Cloudflare Workers and Wrangler are deliberately not used. A dedicated,
+remotely managed Cloudflare Tunnel connects Cloudflare to the private web and
+API containers. No application port or origin certificate is exposed on the
+host. The web application remains a stateful Next.js server beside the API.
 
-## 1. Prepare Cloudflare DNS
+## 1. Prepare the Cloudflare Tunnel
 
-Create three proxied `A` records in the `allshopspos.com` zone:
+Create a dedicated tunnel named `allshops-production`, then add these public
+hostnames in the tunnel dashboard. Cloudflare creates the proxied DNS records:
 
-| Type | Name  | Target          | Proxy   |
-| ---- | ----- | --------------- | ------- |
-| A    | `@`   | VPS public IPv4 | Proxied |
-| A    | `www` | VPS public IPv4 | Proxied |
-| A    | `api` | VPS public IPv4 | Proxied |
+| Public hostname | Internal service |
+| --- | --- |
+| `allshopspos.com` | `http://allshops-web:3000` |
+| `www.allshopspos.com` | `http://allshops-web:3000` |
+| `api.allshopspos.com` | `http://allshops-api:4000` |
 
-Set SSL/TLS mode to **Full (strict)**, enable Always Use HTTPS, and leave WebSockets enabled. Add a cache bypass rule for `api.allshopspos.com/*` and `allshopspos.com/api/*`; cache only immutable `/_next/static/*` assets. Do not expose ports 3000, 4000, 5432, or 6379 in the VPS firewall.
+Copy the generated connector token once into the private
+`ops/vps-production.env` as `CLOUDFLARE_TUNNEL_TOKEN`. Never commit or print it.
+Enable Always Use HTTPS and leave WebSockets enabled. Add a cache bypass rule
+for `api.allshopspos.com/*` and `allshopspos.com/api/*`; cache only immutable
+`/_next/static/*` assets. Do not expose ports 3000, 4000, 5432, 6379 or 6432.
 
-For the first certificate issuance, the two DNS records must already point at the VPS and inbound TCP 80/443 must be open. UDP 443 enables HTTP/3. Caddy stores certificates in the persistent `caddy_data` volume.
+The connector makes outbound QUIC/HTTPS connections, so the tunnel does not
+need inbound ports 80/443 or a Caddy certificate. Caddy remains an explicitly
+selected fallback (`EDGE_MODE=caddy`) for hosts that require it.
 
 ## 2. Prepare the VPS
 
@@ -83,13 +93,13 @@ secret only on the API container. Never commit either environment file.
 
 ## 3. Build and deploy
 
-Rivera already owns ports 80/443. AllShops automatically detects
-`rivera-caddy-1`, joins `allshops_edge`, and updates Rivera's Caddyfile
-idempotently. It never starts a second public proxy on that host.
+AllShops uses its dedicated tunnel container by default. It joins
+`allshops_edge`, reaches the web/API only by their Docker aliases, and has a
+separate outbound network for Cloudflare connectivity.
 
 ```bash
-chmod +x ops/attach-existing-caddy.sh ops/deploy-vps.sh
-CADDY_CONTAINER=rivera-caddy-1 ./ops/attach-existing-caddy.sh
+chmod +x ops/deploy-vps.sh
+./ops/deploy-vps.sh
 ```
 
 For a future dedicated VPS, omit `CADDY_CONTAINER` and the guarded deployment
@@ -105,11 +115,11 @@ docker compose --env-file ops/vps-production.env -f docker-compose.prod.yml up -
 
 The guarded rollout verifies all three shared dependencies, refuses an
 unverified legacy database cutover, creates a verified pre-deployment backup,
-runs migrations directly against PostgreSQL, deploys through PgBouncer, updates
-Caddy, and performs public health checks:
+runs migrations directly against PostgreSQL, deploys through PgBouncer, starts
+the dedicated tunnel, and performs public health checks:
 
 ```bash
-CADDY_CONTAINER=rivera-caddy-1 ./ops/deploy-vps.sh
+./ops/deploy-vps.sh
 ```
 
 On a new empty deployment only:
