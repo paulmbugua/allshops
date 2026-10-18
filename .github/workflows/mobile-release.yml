@@ -75,6 +75,7 @@ jobs:
             --release \
             --target-platform android-arm64 \
             --obfuscate \
+            --extra-gen-snapshot-options=--strip \
             --split-debug-info="$SYMBOLS_DIR/dart" \
             --dart-define="ALLSHOPS_API_URL=$ALLSHOPS_API_URL" \
             2>&1 | tee "$log_file"

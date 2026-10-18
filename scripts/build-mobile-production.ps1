@@ -138,6 +138,7 @@ try {
     Invoke-FlutterChecked -Step "staged flutter pub get" -Arguments $pubGetArguments -AccessViolationRetries 2
     Invoke-FlutterChecked -Step "Play Store app bundle build" -Arguments @(
       "build", "appbundle", "--release", "--target-platform", "android-arm64", "--obfuscate",
+      "--extra-gen-snapshot-options=--strip",
       "--split-debug-info=$stageSymbols",
       "--dart-define=ALLSHOPS_API_URL=$ApiUrl"
     ) -AccessViolationRetries 6 `
@@ -145,7 +146,7 @@ try {
     if ($AlsoBuildApk) {
       Invoke-FlutterChecked -Step "release APK build" -Arguments @(
         "build", "apk", "--release", "--target-platform", "android-arm64",
-        "--obfuscate", "--split-debug-info=$stageSymbols",
+        "--obfuscate", "--extra-gen-snapshot-options=--strip", "--split-debug-info=$stageSymbols",
         "--dart-define=ALLSHOPS_API_URL=$ApiUrl"
       ) -AccessViolationRetries 6 `
         -RejectOutputPattern '(?i)failed to strip|strip debug symbols.*failed|unable to strip|unobfuscated DWARF debugging information|use --strip to remove'
