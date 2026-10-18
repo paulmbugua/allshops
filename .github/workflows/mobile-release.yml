@@ -18,8 +18,8 @@ jobs:
         working-directory: apps/mobile
     env:
       ALLSHOPS_API_URL: https://api.allshopspos.com/api/v1
-      RELEASE_VERSION: 1.0.5+6
-      SYMBOLS_DIR: build/release-symbols/1.0.5+6
+      RELEASE_VERSION: 1.0.6+7
+      SYMBOLS_DIR: build/release-symbols/1.0.6+7
       ALLSHOPS_ALLOW_UNSIGNED_CI_RELEASE: "true"
 
     steps:
@@ -79,7 +79,7 @@ jobs:
             --dart-define="ALLSHOPS_API_URL=$ALLSHOPS_API_URL" \
             2>&1 | tee "$log_file"
 
-          if grep -Eiq 'failed to strip|strip debug symbols.*failed|unable to strip' "$log_file"; then
+          if grep -Eiq 'failed to strip|strip debug symbols.*failed|unable to strip|unobfuscated DWARF debugging information|use --strip to remove' "$log_file"; then
             echo "::error::Flutter reported a native debug-symbol stripping failure."
             exit 1
           fi
@@ -109,7 +109,7 @@ jobs:
       - name: Upload validated unsigned AAB for offline signing
         uses: actions/upload-artifact@v4
         with:
-          name: AllShops-POS-1.0.5-build-6-validated-unsigned-aab
+          name: AllShops-POS-1.0.6-build-7-validated-unsigned-aab
           path: |
             apps/mobile/build/app/outputs/bundle/release/app-release.aab
             apps/mobile/build/app/outputs/bundle/release/release-manifest.json
@@ -119,7 +119,7 @@ jobs:
       - name: Upload private crash-diagnostic symbols
         uses: actions/upload-artifact@v4
         with:
-          name: AllShops-POS-1.0.5-build-6-symbols
-          path: apps/mobile/build/release-symbols/1.0.5+6
+          name: AllShops-POS-1.0.6-build-7-symbols
+          path: apps/mobile/build/release-symbols/1.0.6+7
           if-no-files-found: error
           retention-days: 90

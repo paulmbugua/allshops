@@ -51,8 +51,18 @@ function Invoke-FlutterChecked {
   while ($true) {
     $attempt++
     $commandOutput = @()
-    & $dart $flutterSnapshot @Arguments 2>&1 | Tee-Object -Variable commandOutput
-    $exitCode = $LASTEXITCODE
+    # Windows PowerShell 5 wraps any native stderr line as an ErrorRecord. With
+    # the script-wide Stop preference, harmless javac/Gradle warnings would
+    # terminate the pipeline before we could evaluate the real process exit
+    # code and the explicit forbidden-warning patterns below.
+    $previousErrorPreference = $ErrorActionPreference
+    try {
+      $ErrorActionPreference = "Continue"
+      & $dart $flutterSnapshot @Arguments 2>&1 | Tee-Object -Variable commandOutput
+      $exitCode = $LASTEXITCODE
+    } finally {
+      $ErrorActionPreference = $previousErrorPreference
+    }
     if ($exitCode -eq 0) {
       $outputText = $commandOutput | Out-String
       if ($RejectOutputPattern -and $outputText -match $RejectOutputPattern) {
@@ -131,14 +141,14 @@ try {
       "--split-debug-info=$stageSymbols",
       "--dart-define=ALLSHOPS_API_URL=$ApiUrl"
     ) -AccessViolationRetries 6 `
-      -RejectOutputPattern '(?i)failed to strip|strip debug symbols.*failed|unable to strip'
+      -RejectOutputPattern '(?i)failed to strip|strip debug symbols.*failed|unable to strip|unobfuscated DWARF debugging information|use --strip to remove'
     if ($AlsoBuildApk) {
       Invoke-FlutterChecked -Step "release APK build" -Arguments @(
         "build", "apk", "--release", "--target-platform", "android-arm64",
         "--obfuscate", "--split-debug-info=$stageSymbols",
         "--dart-define=ALLSHOPS_API_URL=$ApiUrl"
       ) -AccessViolationRetries 6 `
-        -RejectOutputPattern '(?i)failed to strip|strip debug symbols.*failed|unable to strip'
+        -RejectOutputPattern '(?i)failed to strip|strip debug symbols.*failed|unable to strip|unobfuscated DWARF debugging information|use --strip to remove'
     }
   } finally {
     Pop-Location
