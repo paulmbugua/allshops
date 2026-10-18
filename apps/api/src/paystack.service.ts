@@ -253,7 +253,7 @@ export class PaystackService {
         message: "The cashier account needs an email address for card payment.",
       });
     const reference = `ASP-${randomUUID().replaceAll("-", "")}`;
-    const sourceCurrency = settings?.sourceCurrency ?? "QAR";
+    const sourceCurrency = settings?.sourceCurrency ?? "KES";
     const sourceAmountMinor = quote.totals.totalMinor;
     const currency = process.env.PAYSTACK_CURRENCY ?? "KES";
     const amountMinor = this.gatewayAmount(

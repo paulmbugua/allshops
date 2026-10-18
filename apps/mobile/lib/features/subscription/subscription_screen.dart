@@ -760,7 +760,7 @@ String _planAudience(String code) =>
       'BUSINESS': 'Busy stores, salons and service businesses',
       'GROWTH': 'Multi-branch businesses that need resilient operations',
     }[code] ??
-    'Growing Qatar businesses';
+    'Growing Kenyan businesses';
 
 class _PlanOutcome {
   const _PlanOutcome(this.icon, this.title, this.detail);
@@ -794,8 +794,8 @@ List<_PlanOutcome> _planOutcomes(String code) => [
   ),
   const _PlanOutcome(
     Icons.translate_rounded,
-    'English and Arabic',
-    'Switch language across web and mobile with RTL support.',
+    'English and Kiswahili',
+    'Switch language across web and mobile with one saved preference.',
   ),
 ];
 

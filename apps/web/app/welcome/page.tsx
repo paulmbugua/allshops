@@ -34,20 +34,20 @@ const copy = {
     tagline: "Beautiful service. Brilliantly simple.",
     ready: "Ready to serve you",
     secure: "Secure business workspace",
-    imageAlt: "Qatari professionals in a contemporary shop",
+    imageAlt: "Kenyan professionals in a contemporary shop",
   },
-  ar: {
-    preparing: "نجهّز متجرك…",
-    choose: "سجّل الدخول أولاً لاختيار المتجر.",
-    unavailable: "المتجر غير متاح حالياً.",
-    staff: "دخول الموظفين",
-    visit: "زيارة أول شوبس",
-    powered: "بدعم من أول شوبس",
-    kicker: "أهلاً وسهلاً بكم في",
-    tagline: "خدمة جميلة، ببساطة متقنة.",
-    ready: "جاهزون لخدمتكم",
-    secure: "مساحة عمل آمنة لأعمالك",
-    imageAlt: "محترفون قطريون في متجر عصري",
+  sw: {
+    preparing: "Tunaandaa biashara yako…",
+    choose: "Ingia kwanza ili uchague biashara.",
+    unavailable: "Biashara haipatikani kwa sasa.",
+    staff: "Wafanyakazi waingie",
+    visit: "Tembelea AllShops",
+    powered: "Inaendeshwa na AllShops",
+    kicker: "KARIBU",
+    tagline: "Huduma bora. Mfumo rahisi.",
+    ready: "Tuko tayari kukuhudumia",
+    secure: "Mfumo salama wa POS + ERP",
+    imageAlt: "Wafanyabiashara wa Kenya katika duka la kisasa",
   },
 } as const;
 
@@ -95,10 +95,10 @@ export default function ShopWelcomePage() {
     "--shop-accent": shop.brandAccentColor,
   } as CSSProperties;
   const displayName =
-    locale === "ar" ? (shop.arabicName ?? shop.name) : shop.name;
+    locale === "sw" ? (shop.arabicName ?? shop.name) : shop.name;
   const headline =
-    locale === "ar" ? displayName : (shop.welcomeHeadline ?? shop.name);
-  const arrow = locale === "ar" ? "←" : "→";
+    locale === "sw" ? displayName : (shop.welcomeHeadline ?? shop.name);
+  const arrow = "→";
   return (
     <main
       className="shop-welcome"
@@ -109,7 +109,7 @@ export default function ShopWelcomePage() {
     >
       <img
         className="shop-cultural-photo"
-        src="/images/qatar-commerce-hero.webp"
+        src="/images/kenya-commerce-hero.webp"
         alt={t.imageAlt}
       />
       <div className="shop-orb shop-orb-one" />
@@ -124,7 +124,7 @@ export default function ShopWelcomePage() {
           <div>
             <strong>{displayName}</strong>
             {shop.arabicName && locale === "en" && (
-              <small lang="ar" dir="rtl">
+              <small lang="sw" dir="ltr">
                 {shop.arabicName}
               </small>
             )}
@@ -141,7 +141,7 @@ export default function ShopWelcomePage() {
         <p className="shop-welcome-kicker">{t.kicker}</p>
         <h1 dir="auto">{headline}</h1>
         <p className="shop-tagline" dir="auto">
-          {locale === "ar" ? t.tagline : (shop.tagline ?? t.tagline)}
+          {locale === "sw" ? t.tagline : (shop.tagline ?? t.tagline)}
         </p>
         {shop.welcomeMessage && locale === "en" && (
           <p className="shop-message" dir="auto">

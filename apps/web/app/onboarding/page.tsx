@@ -34,8 +34,8 @@ export default function OnboardingPage() {
           businessType: data.get("businessType"),
           phone: data.get("businessPhone") || undefined,
           email: data.get("businessEmail") || undefined,
-          currency: "QAR",
-          timezone: "Asia/Qatar",
+          currency: "KES",
+          timezone: "Africa/Nairobi",
         }),
       });
       selectOrganization(organization.id);
@@ -45,7 +45,7 @@ export default function OnboardingPage() {
           name: data.get("branchName"),
           address: data.get("address") || undefined,
           phone: data.get("branchPhone") || undefined,
-          timezone: "Asia/Qatar",
+          timezone: "Africa/Nairobi",
         }),
       });
       window.location.assign("/dashboard");
@@ -145,7 +145,7 @@ export default function OnboardingPage() {
             <input name="branchPhone" />
           </label>
         </div>
-        <p className="muted">Currency: QAR · Timezone: Asia/Qatar</p>
+        <p className="muted">Currency: KES · Timezone: Africa/Nairobi</p>
         {error && <p className="error">{error}</p>}
         <button disabled={loading}>
           {loading ? "Creating workspace…" : "Complete setup"}

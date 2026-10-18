@@ -64,10 +64,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
-    String copy(String en, String ar) => isArabic ? ar : en;
+    final isArabic = Localizations.localeOf(context).languageCode == 'sw';
+    String copy(String en, String sw) => isArabic ? sw : en;
     return Scaffold(
-      appBar: AppBar(title: Text(copy('Create account', 'إنشاء حساب'))),
+      appBar: AppBar(title: Text(copy('Create account', 'Fungua akaunti'))),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -82,7 +82,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     const _RegistrationMark(),
                     const SizedBox(height: 22),
                     Text(
-                      copy('Build your business workspace', 'أنشئ مساحة عملك'),
+                      copy(
+                        'Build your POS + ERP workspace',
+                        'Jenga mfumo wako wa POS + ERP',
+                      ),
                       style: const TextStyle(
                         fontSize: 34,
                         height: 1.04,
@@ -95,7 +98,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     Text(
                       copy(
                         'One secure account for your branches, staff and daily operations.',
-                        'حساب آمن واحد لفروعك وموظفيك وعملياتك اليومية.',
+                        'Akaunti moja salama kwa matawi, wafanyakazi na shughuli zako zote.',
                       ),
                       style: TextStyle(
                         color: Colors.blueGrey.shade600,
@@ -109,11 +112,14 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       textInputAction: TextInputAction.next,
                       autofillHints: const [AutofillHints.name],
                       decoration: InputDecoration(
-                        labelText: copy('Full name', 'الاسم الكامل'),
+                        labelText: copy('Full name', 'Jina kamili'),
                         prefixIcon: const Icon(Icons.person_outline_rounded),
                       ),
                       validator: (value) => (value?.trim().length ?? 0) < 2
-                          ? copy('Enter your full name.', 'أدخل اسمك الكامل.')
+                          ? copy(
+                              'Enter your full name.',
+                              'Weka jina lako kamili.',
+                            )
                           : null,
                     ),
                     const SizedBox(height: 13),
@@ -123,10 +129,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       textInputAction: TextInputAction.next,
                       autofillHints: const [AutofillHints.email],
                       decoration: InputDecoration(
-                        labelText: copy(
-                          'Work email',
-                          'البريد الإلكتروني للعمل',
-                        ),
+                        labelText: copy('Work email', 'Barua pepe ya biashara'),
                         prefixIcon: const Icon(Icons.alternate_email_rounded),
                       ),
                       validator: (value) {
@@ -136,7 +139,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                             ).hasMatch(email)
                             ? copy(
                                 'Enter a valid email.',
-                                'أدخل بريداً إلكترونياً صحيحاً.',
+                                'Weka barua pepe sahihi.',
                               )
                             : null;
                       },
@@ -148,12 +151,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       textInputAction: TextInputAction.next,
                       autofillHints: const [AutofillHints.newPassword],
                       decoration: InputDecoration(
-                        labelText: copy('Password', 'كلمة المرور'),
+                        labelText: copy('Password', 'Nenosiri'),
                         prefixIcon: const Icon(Icons.lock_outline_rounded),
                         suffixIcon: IconButton(
                           tooltip: copy(
                             'Show or hide password',
-                            'إظهار أو إخفاء كلمة المرور',
+                            'Onyesha au ficha nenosiri',
                           ),
                           onPressed: () =>
                               setState(() => _hidePassword = !_hidePassword),
@@ -167,7 +170,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       validator: (value) => (value?.length ?? 0) < 8
                           ? copy(
                               'Use at least 8 characters.',
-                              'استخدم 8 أحرف على الأقل.',
+                              'Tumia angalau herufi 8.',
                             )
                           : null,
                     ),
@@ -180,14 +183,14 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       decoration: InputDecoration(
                         labelText: copy(
                           'Confirm password',
-                          'تأكيد كلمة المرور',
+                          'Thibitisha nenosiri',
                         ),
                         prefixIcon: const Icon(Icons.verified_user_outlined),
                       ),
                       validator: (value) => value != _password.text
                           ? copy(
                               'Passwords do not match.',
-                              'كلمتا المرور غير متطابقتين.',
+                              'Manenosiri hayalingani.',
                             )
                           : null,
                     ),
@@ -206,15 +209,18 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                           : const Icon(Icons.arrow_forward_rounded),
                       label: Text(
                         _busy
-                            ? copy('Creating account…', 'جارٍ إنشاء الحساب…')
-                            : copy('Create secure account', 'إنشاء حساب آمن'),
+                            ? copy('Creating account…', 'Inafungua akaunti…')
+                            : copy(
+                                'Create secure account',
+                                'Fungua akaunti salama',
+                              ),
                       ),
                     ),
                     const SizedBox(height: 12),
                     Text(
                       copy(
                         'We will email a secure activation link. Business setup stays locked until your email is verified.',
-                        'سنرسل رابط تفعيل آمن إلى بريدك. سيبقى إعداد النشاط مقفلاً حتى يتم التحقق من بريدك.',
+                        'Tutakutumia kiungo salama cha kuwezesha akaunti. Usanidi wa biashara utafunguliwa baada ya kuthibitisha barua pepe.',
                       ),
                       textAlign: TextAlign.center,
                       style: TextStyle(
@@ -231,7 +237,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       child: Text(
                         copy(
                           'Already registered? Sign in',
-                          'لديك حساب؟ سجّل الدخول',
+                          'Tayari una akaunti? Ingia',
                         ),
                       ),
                     ),
@@ -284,7 +290,7 @@ class _ActivationPendingScreenState
 
   @override
   Widget build(BuildContext context) {
-    final ar = Localizations.localeOf(context).languageCode == 'ar';
+    final ar = Localizations.localeOf(context).languageCode == 'sw';
     String copy(String en, String arabic) => ar ? arabic : en;
     final delivered = widget.emailSent || _sentAgain;
     return Scaffold(
@@ -313,7 +319,7 @@ class _ActivationPendingScreenState
                   ),
                   const SizedBox(height: 24),
                   Text(
-                    copy('Check your inbox', 'تحقق من بريدك الوارد'),
+                    copy('Check your inbox', 'Angalia barua pepe yako'),
                     textAlign: TextAlign.center,
                     style: const TextStyle(
                       fontSize: 34,
@@ -326,11 +332,11 @@ class _ActivationPendingScreenState
                     delivered
                         ? copy(
                             'We sent a secure activation link to\n${widget.email}',
-                            'أرسلنا رابط تفعيل آمن إلى\n${widget.email}',
+                            'Tumetuma kiungo salama cha uanzishaji kwa\n${widget.email}',
                           )
                         : copy(
                             'Your account was created, but the activation email could not be delivered. Please resend it.',
-                            'تم إنشاء حسابك، لكن تعذر إرسال رسالة التفعيل. يرجى إعادة الإرسال.',
+                            'Akaunti imefunguliwa, lakini ujumbe wa uanzishaji haukutumwa. Tafadhali utume tena.',
                           ),
                     textAlign: TextAlign.center,
                     style: TextStyle(
@@ -349,10 +355,7 @@ class _ActivationPendingScreenState
                       MaterialPageRoute(builder: (_) => const LoginScreen()),
                     ),
                     child: Text(
-                      copy(
-                        'I have activated — sign in',
-                        'تم التفعيل — تسجيل الدخول',
-                      ),
+                      copy('I have activated — sign in', 'Imewashwa — ingia'),
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -370,8 +373,8 @@ class _ActivationPendingScreenState
                             ? 'Activation email resent'
                             : 'Resend activation email',
                         _sentAgain
-                            ? 'تمت إعادة إرسال رسالة التفعيل'
-                            : 'إعادة إرسال رسالة التفعيل',
+                            ? 'Ujumbe wa uanzishaji umetumwa tena'
+                            : 'Tuma ujumbe wa uanzishaji tena',
                       ),
                     ),
                   ),
@@ -379,7 +382,7 @@ class _ActivationPendingScreenState
                   Text(
                     copy(
                       'For your security, shop creation becomes available only after email verification.',
-                      'لحمايتك، يصبح إنشاء المتجر متاحاً فقط بعد التحقق من البريد الإلكتروني.',
+                      'Kwa usalama wako, usanidi wa biashara unapatikana baada ya kuthibitisha barua pepe.',
                     ),
                     textAlign: TextAlign.center,
                     style: TextStyle(

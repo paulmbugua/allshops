@@ -2,9 +2,9 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "AllShops POS",
+    name: "AllShops POS + ERP",
     short_name: "AllShops",
-    description: "Qatar-first resilient point of sale",
+    description: "Kenya-ready POS and ERP for modern businesses",
     start_url: "/pos",
     display: "standalone",
     background_color: "#f6f4ef",

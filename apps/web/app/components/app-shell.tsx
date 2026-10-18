@@ -64,7 +64,7 @@ export function AppShell({
       ? any("shift.read", "shift.open", "shift.close")
       : pathname.startsWith("/alerts")
         ? any("alert.read", "alert.manage")
-    : hasAllPermissions(membership, ...permissionsForPath(pathname));
+        : hasAllPermissions(membership, ...permissionsForPath(pathname));
   async function leaveForWelcome(reason: "logout" | "idle" = "logout") {
     const organizationId = selectedOrganization();
     await Promise.race([
@@ -110,7 +110,8 @@ export function AppShell({
     >
       <aside>
         <Link className="brand" href="/dashboard">
-          AllShops
+          <span>AllShops</span>
+          <small>POS + ERP</small>
         </Link>
         <nav>
           {can("organization.read") && (

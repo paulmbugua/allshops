@@ -123,7 +123,7 @@ export default function CommissionRulesPage() {
               Type
               <select name="type">
                 <option value="PERCENTAGE">Percentage</option>
-                <option value="FIXED">Fixed QAR</option>
+                <option value="FIXED">Fixed KES</option>
               </select>
             </label>
             <label>

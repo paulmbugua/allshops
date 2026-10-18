@@ -128,7 +128,7 @@ export default function CustomerDetailPage() {
               </label>
               {customer.creditLimitMinor !== undefined && (
                 <label>
-                  Credit limit QAR
+                  Credit limit KES
                   <input
                     name="limit"
                     type="number"
@@ -164,7 +164,7 @@ export default function CustomerDetailPage() {
               </p>
               <div className="form-grid">
                 <label>
-                  Amount QAR
+                  Amount KES
                   <input
                     name="amount"
                     type="number"

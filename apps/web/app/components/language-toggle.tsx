@@ -15,7 +15,7 @@ export function LanguageToggle({
     <div
       className={`language-toggle${inverse ? " language-toggle-inverse" : ""}`}
       role="group"
-      aria-label={locale === "ar" ? "اختيار اللغة" : "Choose language"}
+      aria-label={locale === "sw" ? "Chagua lugha" : "Choose language"}
     >
       <span aria-hidden="true" className="language-globe">
         ◉
@@ -30,12 +30,12 @@ export function LanguageToggle({
       </button>
       <button
         type="button"
-        lang="ar"
-        className={locale === "ar" ? "active" : ""}
-        aria-pressed={locale === "ar"}
-        onClick={() => onChange("ar")}
+        lang="sw"
+        className={locale === "sw" ? "active" : ""}
+        aria-pressed={locale === "sw"}
+        onClick={() => onChange("sw")}
       >
-        عربي
+        SW
       </button>
     </div>
   );

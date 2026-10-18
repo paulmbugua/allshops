@@ -3,6 +3,7 @@ import { z } from "zod";
 const workerEnvironmentSchema = z.object({
   DATABASE_URL: z.string().min(1),
   REDIS_URL: z.string().url(),
+  REDIS_KEY_PREFIX: z.string().min(2).default("allshops:"),
   SUBSCRIPTION_GRACE_DAYS: z.coerce.number().int().positive().default(7),
   SUBSCRIPTION_JOB_INTERVAL_MINUTES: z.coerce
     .number()

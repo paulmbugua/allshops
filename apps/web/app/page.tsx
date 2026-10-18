@@ -11,16 +11,16 @@ const copy = {
     navigation: ["Why AllShops", "For your business", "Plans"],
     signIn: "Sign in",
     startFree: "Start free",
-    kicker: "Built for ambitious businesses in Qatar",
+    kicker: "Built in Kenya for ambitious African businesses",
     headline: "Your business,",
     headlineAccent: "in full colour.",
-    lede: "A beautiful, brilliantly simple POS and business workspace for the way you sell, stock and grow.",
+    lede: "A beautifully simple POS + ERP workspace for sales, inventory, purchasing, staff, services and every decision that grows your business.",
     trial: "Start your free trial",
     explore: "Explore the workspace",
-    proof: "Made for the way Qatar trades",
-    proofDetail: "QAR-ready · Arabic-friendly · human support",
-    imageAlt: "Qatari retail professionals using a modern point of sale",
-    imageCaption: "Designed around Qatar",
+    proof: "Made for the way Kenya does business",
+    proofDetail: "KES-ready · Kiswahili-friendly · human support",
+    imageAlt: "Kenyan retail professionals using AllShops POS and ERP",
+    imageCaption: "Built around Kenyan business",
     todaySales: "TODAY'S SALES",
     weeklyGrowth: "↑ 18.4% this week",
     live: "Live",
@@ -55,7 +55,7 @@ const copy = {
       [
         "◈",
         "Every branch in one view",
-        "See stock, sales and performance across your Qatar operation.",
+        "See stock, sales, purchasing and performance across every branch.",
       ],
       [
         "⌁",
@@ -73,88 +73,89 @@ const copy = {
     lighter: "Let's make business",
     lighterAccent: "feel lighter.",
     create: "Create your workspace",
-    care: "Built with care for Qatar's businesses.",
+    care: "Built with care for Kenya's businesses.",
     privacy: "Privacy",
     terms: "Terms",
     deletion: "Account deletion",
   },
-  ar: {
-    navigation: ["لماذا أول شوبس؟", "لنشاطك التجاري", "الباقات"],
-    signIn: "تسجيل الدخول",
-    startFree: "ابدأ مجاناً",
-    kicker: "صُمم للأعمال الطموحة في قطر",
-    headline: "أعمالك،",
-    headlineAccent: "بكل ألوان النجاح.",
-    lede: "نظام نقاط بيع ومساحة عمل جميلة وبسيطة، تساعدك على البيع وإدارة المخزون والنمو بثقة.",
-    trial: "ابدأ تجربتك المجانية",
-    explore: "استكشف مساحة العمل",
-    proof: "مصمم لأسلوب التجارة في قطر",
-    proofDetail: "بالريال القطري · واجهة عربية · دعم بشري",
-    imageAlt: "محترفون قطريون يستخدمون نظام نقاط بيع حديثاً",
-    imageCaption: "مصمم حول احتياجات قطر",
-    todaySales: "مبيعات اليوم",
-    weeklyGrowth: "↑ ١٨٫٤٪ هذا الأسبوع",
-    live: "متصل",
-    greeting: "صباح الخير، عائشة",
-    selling: "ماذا سنبيع اليوم؟",
-    search: "⌕  ابحث عن منتج أو امسح الباركود",
-    previewCategories: ["كل المنتجات", "المشروبات", "الوجبات", "الأكثر طلباً"],
-    products: ["مشروب التوت", "لاتيه الكراميل", "رقائق ملح البحر"],
-    currentOrder: "الطلب الحالي · ٣ منتجات",
-    payNow: "ادفع الآن",
-    workspaceFor: "مساحة عمل واحدة لـ",
+  sw: {
+    navigation: ["Kwa nini AllShops", "Kwa biashara yako", "Mipango"],
+    signIn: "Ingia",
+    startFree: "Anza bila malipo",
+    kicker: "Imejengwa Kenya kwa biashara zenye maono",
+    headline: "Biashara yako,",
+    headlineAccent: "ikiwa kamili.",
+    lede: "Mfumo rahisi wa POS + ERP unaounganisha mauzo, stoo, manunuzi, wafanyakazi na maamuzi ya kukuza biashara.",
+    trial: "Anza jaribio la bure",
+    explore: "Tembelea mfumo",
+    proof: "Imeundwa kwa biashara za Kenya",
+    proofDetail: "KES · Kiswahili · msaada wa kweli",
+    imageAlt: "Wafanyabiashara wa Kenya wakitumia AllShops POS na ERP",
+    imageCaption: "Kwa biashara za Kenya",
+    todaySales: "MAUZO YA LEO",
+    weeklyGrowth: "↑ 18.4% wiki hii",
+    live: "Mtandaoni",
+    greeting: "HABARI YA ASUBUHI, AISHA",
+    selling: "Tunauza nini leo?",
+    search: "⌕  Tafuta bidhaa au skani msimbo",
+    previewCategories: ["Bidhaa zote", "Vinywaji", "Vitafunio", "Maarufu"],
+    products: ["Juisi ya beri", "Kahawa ya karameli", "Viazi vya chumvi"],
+    currentOrder: "Oda ya sasa · bidhaa 3",
+    payNow: "Lipa sasa",
+    workspaceFor: "MFUMO MMOJA KWA",
     categories: [
-      "التجزئة",
-      "البقالات",
-      "الصالونات والخدمات",
-      "قطع السيارات",
-      "مواد البناء",
-      "الطباعة",
+      "Rejareja",
+      "Duka",
+      "Saluni na huduma",
+      "Vipuri",
+      "Hardware",
+      "Uchapishaji",
     ],
-    advantage: "مزايا أول شوبس",
-    tools: "أدوات قوية.",
-    joyful: "ومتعة في الاستخدام.",
-    toolsCopy: "نبسّط إدارة الأعمال لتتفرغ أنت وفريقك للحظات التي تصنع الفرق.",
-    learnMore: "اعرف المزيد",
+    advantage: "NGUVU YA ALLSHOPS",
+    tools: "Zana imara.",
+    joyful: "Rahisi kutumia.",
+    toolsCopy:
+      "Tunarahisisha uendeshaji wa biashara ili timu yako izingatie wateja na ukuaji.",
+    learnMore: "Jifunze zaidi",
     features: [
       [
         "✦",
-        "دفع سريع بلا تعقيد",
-        "واجهة كاشير مركّزة للنقد وأجهزة البنوك المحلية.",
+        "Malipo ya haraka",
+        "Hudumia pesa taslimu, mobile money na kadi kwa mtiririko rahisi.",
       ],
       [
         "◈",
-        "كل الفروع في شاشة واحدة",
-        "تابع المخزون والمبيعات والأداء في جميع فروعك داخل قطر.",
+        "Matawi yote kwa mtazamo mmoja",
+        "Ona stoo, mauzo, manunuzi na utendaji wa kila tawi.",
       ],
       [
         "⌁",
-        "جاهز حتى دون إنترنت",
-        "واصل البيع مع وضع عدم الاتصال والمزامنة الآمنة عند عودة الشبكة.",
+        "Endelea hata bila intaneti",
+        "Uza bila mtandao na usawazishe taarifa salama mtandao ukirudi.",
       ],
     ],
-    nextChapter: "مصمم لخطوتك القادمة",
-    firstSale: "من أول عملية بيع",
-    fullFlow: "إلى إدارة متكاملة.",
+    nextChapter: "KWA HATUA YAKO INAYOFUATA",
+    firstSale: "Kutoka mauzo ya kwanza",
+    fullFlow: "hadi ERP kamili.",
     businessCopy:
-      "ابدأ بمنفذ واحد، وكوّن فريقك، واربط كل تفاصيل عملك. يمنح أول شوبس أصحاب الأعمال رؤية واضحة وهادئة لاتخاذ القرار التالي.",
-    seeHow: "شاهد كيف يعمل",
-    ready: "نحن جاهزون عندما تكون جاهزاً",
-    lighter: "لنجعل إدارة أعمالك",
-    lighterAccent: "أخف وأسهل.",
-    create: "أنشئ مساحة عملك",
-    care: "صُمم بعناية لأعمال قطر.",
-    privacy: "الخصوصية",
-    terms: "الشروط",
-    deletion: "حذف الحساب",
+      "Anza na kaunta moja, jenga timu, na unganisha kila sehemu ya biashara. AllShops hukupa mwonekano safi wa kufanya maamuzi bora.",
+    seeHow: "Ona jinsi inavyofanya kazi",
+    ready: "TUKO TAYARI",
+    lighter: "Tuendeshe biashara",
+    lighterAccent: "kwa urahisi zaidi.",
+    create: "Fungua mfumo wako",
+    care: "Imejengwa kwa makini kwa biashara za Kenya.",
+    privacy: "Faragha",
+    terms: "Masharti",
+    deletion: "Futa akaunti",
   },
 } as const;
 
 export default function HomePage() {
   const { locale, direction, setLocale } = usePublicLocale();
   const t = copy[locale];
-  const arrow = locale === "ar" ? "↖" : "↗";
-  const forward = locale === "ar" ? "←" : "→";
+  const arrow = "↗";
+  const forward = "→";
   return (
     <main
       className="landing-page"
@@ -205,7 +206,7 @@ export default function HomePage() {
           </div>
           <div className="hero-proof">
             <div className="avatar-stack">
-              <span>خ</span>
+              <span>AM</span>
               <span>NR</span>
               <span>SA</span>
               <span>+</span>
@@ -217,13 +218,13 @@ export default function HomePage() {
           </div>
         </div>
         <div className="hero-visual">
-          <div className="qatar-hero-frame">
-            <img src="/images/qatar-commerce-hero.webp" alt={t.imageAlt} />
-            <span className="qatar-hero-caption">{t.imageCaption}</span>
+          <div className="kenya-hero-frame">
+            <img src="/images/kenya-commerce-hero.webp" alt={t.imageAlt} />
+            <span className="kenya-hero-caption">{t.imageCaption}</span>
           </div>
           <div className="receipt-float">
             <small>{t.todaySales}</small>
-            <strong>QAR 12,840</strong>
+            <strong>KES 128,400</strong>
             <span>{t.weeklyGrowth}</span>
           </div>
           <div className="pos-preview-card">
@@ -241,7 +242,7 @@ export default function HomePage() {
                   <small>{t.greeting}</small>
                   <h3>{t.selling}</h3>
                 </div>
-                <span className="preview-avatar">ع</span>
+                <span className="preview-avatar">A</span>
               </div>
               <div className="preview-search">{t.search}</div>
               <div className="preview-categories">
@@ -259,7 +260,7 @@ export default function HomePage() {
                       {["✦", "◒", "◆"][index]}
                     </span>
                     <b>{product}</b>
-                    <small>QAR {["8.00", "14.00", "6.50"][index]}</small>
+                    <small>KES {["180", "320", "150"][index]}</small>
                   </div>
                 ))}
               </div>
@@ -267,7 +268,7 @@ export default function HomePage() {
             <div className="preview-cart">
               <div>
                 <small>{t.currentOrder}</small>
-                <strong>QAR 28.50</strong>
+                <strong>KES 650</strong>
               </div>
               <button>
                 {t.payNow} <span>{forward}</span>

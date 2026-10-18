@@ -75,7 +75,7 @@ try {
       name: "Doha Main",
       code: `P3_${suffix.toUpperCase()}`,
       phone: "+974 5555 5555",
-      address: "Doha, Qatar",
+      address: "Nairobi, Kenya",
     });
   assert.equal(branchResponse.status, 201);
   const branchId = branchResponse.body.id as string;

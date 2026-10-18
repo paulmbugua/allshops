@@ -761,6 +761,15 @@ nav a:hover {
   background: #fffaf5;
   color: #17252a;
 }
+.app-layout aside .brand {
+  display: grid;
+  gap: 0.15rem;
+}
+.app-layout aside .brand small {
+  color: color-mix(in srgb, var(--brand-accent) 82%, white);
+  font-size: 0.58rem;
+  letter-spacing: 0.18em;
+}
 .landing-nav {
   display: flex;
   align-items: center;
@@ -2315,7 +2324,7 @@ body.pos-focus-mode .pos-layout {
   align-self: center;
   width: min(54rem, 90%);
   padding: 4rem 0;
-  animation: welcome-rise 700ms cubic-bezier(.2,.8,.2,1) both;
+  animation: welcome-rise 700ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 .shop-welcome-kicker {
   margin: 0 0 1rem;
@@ -2361,14 +2370,20 @@ body.pos-focus-mode .pos-layout {
   font-size: 1.3rem;
 }
 @keyframes welcome-rise {
-  from { opacity: 0; transform: translateY(1.5rem); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(1.5rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 .landing-hero .hero-copy {
-  animation: welcome-rise 700ms cubic-bezier(.2,.8,.2,1) both;
+  animation: welcome-rise 700ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 .landing-hero .hero-visual {
-  animation: welcome-rise 850ms 90ms cubic-bezier(.2,.8,.2,1) both;
+  animation: welcome-rise 850ms 90ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 .shop-welcome blockquote {
   margin: 2.5rem 0 0;
@@ -2479,18 +2494,18 @@ body.pos-focus-mode .pos-layout {
   }
 }
 
-/* Contemporary Qatar visual language */
-.qatar-hero-frame {
+/* Contemporary Kenyan business visual language */
+.kenya-hero-frame {
   position: absolute;
   inset: 1rem 0 0 1rem;
   overflow: hidden;
   border-radius: 2rem;
-  background: #6f1738;
+  background: #0b5d46;
   box-shadow:
-    1rem 1.2rem 0 #8d1b46,
+    1rem 1.2rem 0 #15803d,
     0 2rem 5rem rgb(23 37 42 / 20%);
 }
-.qatar-hero-frame::after {
+.kenya-hero-frame::after {
   position: absolute;
   inset: 0;
   background:
@@ -2498,12 +2513,12 @@ body.pos-focus-mode .pos-layout {
     linear-gradient(0deg, rgb(23 37 42 / 42%), transparent 40%);
   content: "";
 }
-.qatar-hero-frame img {
+.kenya-hero-frame img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
-.qatar-hero-caption {
+.kenya-hero-caption {
   position: absolute;
   z-index: 2;
   right: 1.25rem;
@@ -2584,7 +2599,7 @@ body.pos-focus-mode .pos-layout {
   mix-blend-mode: soft-light;
 }
 @media (max-width: 800px) {
-  .qatar-hero-frame {
+  .kenya-hero-frame {
     inset: 0;
   }
   .hero-visual .pos-preview-card {
@@ -3171,8 +3186,12 @@ a,
 .card,
 input,
 select {
-  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease,
-    background-color 160ms ease, color 160ms ease;
+  transition:
+    transform 160ms ease,
+    box-shadow 160ms ease,
+    border-color 160ms ease,
+    background-color 160ms ease,
+    color 160ms ease;
 }
 button:hover:not(:disabled),
 a:hover,
@@ -3201,27 +3220,69 @@ select:focus-visible {
   color: #f6b935;
   font-size: 1.5rem;
   font-style: normal;
-  animation: celebration-pop 900ms cubic-bezier(.2,.9,.3,1) both;
+  animation: celebration-pop 900ms cubic-bezier(0.2, 0.9, 0.3, 1) both;
 }
-.celebration-sparkles i:nth-child(1) { left: 12%; top: 18%; animation-delay: 80ms; }
-.celebration-sparkles i:nth-child(2) { left: 23%; top: 75%; animation-delay: 160ms; color: #f35f45; }
-.celebration-sparkles i:nth-child(3) { left: 82%; top: 20%; animation-delay: 220ms; }
-.celebration-sparkles i:nth-child(4) { left: 90%; top: 65%; animation-delay: 120ms; color: #35b77d; }
-.celebration-sparkles i:nth-child(5) { left: 8%; top: 52%; animation-delay: 280ms; }
-.celebration-sparkles i:nth-child(6) { left: 75%; top: 82%; animation-delay: 200ms; color: #f35f45; }
+.celebration-sparkles i:nth-child(1) {
+  left: 12%;
+  top: 18%;
+  animation-delay: 80ms;
+}
+.celebration-sparkles i:nth-child(2) {
+  left: 23%;
+  top: 75%;
+  animation-delay: 160ms;
+  color: #f35f45;
+}
+.celebration-sparkles i:nth-child(3) {
+  left: 82%;
+  top: 20%;
+  animation-delay: 220ms;
+}
+.celebration-sparkles i:nth-child(4) {
+  left: 90%;
+  top: 65%;
+  animation-delay: 120ms;
+  color: #35b77d;
+}
+.celebration-sparkles i:nth-child(5) {
+  left: 8%;
+  top: 52%;
+  animation-delay: 280ms;
+}
+.celebration-sparkles i:nth-child(6) {
+  left: 75%;
+  top: 82%;
+  animation-delay: 200ms;
+  color: #f35f45;
+}
 @keyframes celebration-pop {
-  from { opacity: 0; transform: translateY(12px) scale(.4) rotate(-20deg); }
-  55% { opacity: 1; transform: translateY(-6px) scale(1.2) rotate(10deg); }
-  to { opacity: .2; transform: translateY(-30px) scale(.8) rotate(24deg); }
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.4) rotate(-20deg);
+  }
+  55% {
+    opacity: 1;
+    transform: translateY(-6px) scale(1.2) rotate(10deg);
+  }
+  to {
+    opacity: 0.2;
+    transform: translateY(-30px) scale(0.8) rotate(24deg);
+  }
 }
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
+  *,
+  *::before,
+  *::after {
     animation-duration: 1ms !important;
     animation-iteration-count: 1 !important;
     scroll-behavior: auto !important;
     transition-duration: 1ms !important;
   }
-  button:hover:not(:disabled), a:hover, .card:hover { transform: none; }
+  button:hover:not(:disabled),
+  a:hover,
+  .card:hover {
+    transform: none;
+  }
 }
 
 .app-language-toggle {
@@ -3341,10 +3402,9 @@ html[dir="rtl"] textarea {
   background: rgb(255 255 255 / 12%);
 }
 .reconciliation-row {
-  grid-template-columns: minmax(12rem, 2fr) repeat(
-      4,
-      minmax(6rem, 1fr)
-    ) auto auto;
+  grid-template-columns:
+    minmax(12rem, 2fr) repeat(4, minmax(6rem, 1fr))
+    auto auto;
 }
 
 @media (max-width: 760px) {
@@ -3520,7 +3580,10 @@ html[dir="rtl"] textarea {
     width: 100%;
     height: min(17.5rem, 38vh);
     max-height: 17.5rem;
-    grid-template-columns: minmax(10rem, 0.8fr) minmax(22rem, 1.8fr) minmax(8.5rem, 0.65fr);
+    grid-template-columns: minmax(10rem, 0.8fr) minmax(22rem, 1.8fr) minmax(
+        8.5rem,
+        0.65fr
+      );
     grid-template-rows: auto minmax(0, 1fr);
     gap: 0.45rem 0.7rem;
     padding: 0.65rem;
@@ -3636,7 +3699,11 @@ html[dir="rtl"] textarea {
   }
   body::before {
     background:
-      radial-gradient(circle at 100% 0, rgb(109 23 56 / 10%), transparent 25rem),
+      radial-gradient(
+        circle at 100% 0,
+        rgb(109 23 56 / 10%),
+        transparent 25rem
+      ),
       radial-gradient(circle at 0 100%, rgb(243 95 69 / 9%), transparent 22rem),
       #f8f5f1;
   }
@@ -3861,7 +3928,11 @@ html[dir="rtl"] textarea {
   position: relative;
   overflow: hidden;
   background:
-    radial-gradient(circle at 12% 10%, rgb(255 207 92 / 30%), transparent 24rem),
+    radial-gradient(
+      circle at 12% 10%,
+      rgb(255 207 92 / 30%),
+      transparent 24rem
+    ),
     radial-gradient(circle at 90% 90%, rgb(243 95 69 / 20%), transparent 25rem),
     linear-gradient(145deg, #6d1738 0 34%, #172c2b 34% 100%);
 }
@@ -3900,7 +3971,7 @@ html[dir="rtl"] .auth-page {
 }
 
 /* Public pricing page: high-contrast plan cards that remain readable over the
-   Qatar-inspired welcome background. */
+   Kenyan-inspired welcome background. */
 .pricing-page {
   align-items: center;
   padding: clamp(1rem, 3vw, 2.5rem);
@@ -3986,9 +4057,15 @@ html[dir="rtl"] .auth-page {
   box-shadow: 0 1.2rem 2.5rem rgb(255 181 72 / 22%);
   transform: translateY(-0.45rem);
 }
-.pricing-plan-business::before { background: #ef654c; }
-.pricing-plan-growth::before { background: #8169d7; }
-.pricing-plan-enterprise::before { background: #d34568; }
+.pricing-plan-business::before {
+  background: #ef654c;
+}
+.pricing-plan-growth::before {
+  background: #8169d7;
+}
+.pricing-plan-enterprise::before {
+  background: #d34568;
+}
 .pricing-badge {
   position: absolute;
   top: 0.75rem;
@@ -4014,9 +4091,18 @@ html[dir="rtl"] .auth-page {
   font-size: 1.25rem;
   font-weight: 900;
 }
-.pricing-plan-business .pricing-plan-mark { background: #ffe4bc; color: #a85b00; }
-.pricing-plan-growth .pricing-plan-mark { background: #ebe5ff; color: #6046b4; }
-.pricing-plan-enterprise .pricing-plan-mark { background: #ffe2e8; color: #a72d4b; }
+.pricing-plan-business .pricing-plan-mark {
+  background: #ffe4bc;
+  color: #a85b00;
+}
+.pricing-plan-growth .pricing-plan-mark {
+  background: #ebe5ff;
+  color: #6046b4;
+}
+.pricing-plan-enterprise .pricing-plan-mark {
+  background: #ffe2e8;
+  color: #a72d4b;
+}
 .pricing-plan-code {
   color: #6a8178;
   font-size: 0.64rem;
@@ -4048,7 +4134,10 @@ html[dir="rtl"] .auth-page {
   font-size: 1.45rem;
   letter-spacing: -0.04em;
 }
-.pricing-price span { color: #6d8279; font-size: 0.72rem; }
+.pricing-price span {
+  color: #6d8279;
+  font-size: 0.72rem;
+}
 .pricing-plan-audience {
   display: grid;
   gap: 0.2rem;
@@ -4066,7 +4155,11 @@ html[dir="rtl"] .auth-page {
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
-.pricing-plan-audience strong { color: #263f37; font-size: 0.74rem; line-height: 1.35; }
+.pricing-plan-audience strong {
+  color: #263f37;
+  font-size: 0.74rem;
+  line-height: 1.35;
+}
 .pricing-limits {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -4075,12 +4168,38 @@ html[dir="rtl"] .auth-page {
   border-radius: 0.75rem;
   background: #eff7f3;
 }
-.pricing-limits span { display: grid; gap: 0.1rem; color: #60766e; font-size: 0.62rem; }
-.pricing-limits strong { color: #1d4b3e; font-size: 0.82rem; }
-.pricing-includes { flex: 1; margin: 0.9rem 0 1rem; }
-.pricing-includes ul { display: grid; gap: 0.45rem; margin: 0.55rem 0 0; padding: 0; list-style: none; }
-.pricing-includes li { color: #2d4b41; font-size: 0.72rem; line-height: 1.3; }
-.pricing-includes li::before { margin-right: 0.4rem; color: #16805c; content: "✓"; font-weight: 950; }
+.pricing-limits span {
+  display: grid;
+  gap: 0.1rem;
+  color: #60766e;
+  font-size: 0.62rem;
+}
+.pricing-limits strong {
+  color: #1d4b3e;
+  font-size: 0.82rem;
+}
+.pricing-includes {
+  flex: 1;
+  margin: 0.9rem 0 1rem;
+}
+.pricing-includes ul {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0.55rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+.pricing-includes li {
+  color: #2d4b41;
+  font-size: 0.72rem;
+  line-height: 1.3;
+}
+.pricing-includes li::before {
+  margin-right: 0.4rem;
+  color: #16805c;
+  content: "✓";
+  font-weight: 950;
+}
 .pricing-cta {
   display: flex;
   align-items: center;
@@ -4094,9 +4213,19 @@ html[dir="rtl"] .auth-page {
   font-weight: 900;
   text-decoration: none;
 }
-.pricing-cta:hover { background: #8c2149; }
-.pricing-cta span { color: #ffcf5c; font-size: 1rem; }
-.pricing-annual { margin-top: 0.55rem; color: #71887f; font-size: 0.62rem; text-align: center; }
+.pricing-cta:hover {
+  background: #8c2149;
+}
+.pricing-cta span {
+  color: #ffcf5c;
+  font-size: 1rem;
+}
+.pricing-annual {
+  margin-top: 0.55rem;
+  color: #71887f;
+  font-size: 0.62rem;
+  text-align: center;
+}
 .pricing-footer {
   display: flex;
   justify-content: center;
@@ -4105,19 +4234,46 @@ html[dir="rtl"] .auth-page {
   color: #c6ddd3;
   font-size: 0.78rem;
 }
-.pricing-footer a { color: #ffcf5c; font-weight: 850; }
-html[dir="rtl"] .pricing-plan-audience { border-right: 0.2rem solid #ef654c; border-left: 0; border-radius: 0.6rem 0 0 0.6rem; }
-html[dir="rtl"] .pricing-includes li::before { margin-right: 0; margin-left: 0.4rem; }
+.pricing-footer a {
+  color: #ffcf5c;
+  font-weight: 850;
+}
+html[dir="rtl"] .pricing-plan-audience {
+  border-right: 0.2rem solid #ef654c;
+  border-left: 0;
+  border-radius: 0.6rem 0 0 0.6rem;
+}
+html[dir="rtl"] .pricing-includes li::before {
+  margin-right: 0;
+  margin-left: 0.4rem;
+}
 @media (max-width: 1050px) {
-  .pricing-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .pricing-plan-business { transform: none; }
+  .pricing-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .pricing-plan-business {
+    transform: none;
+  }
 }
 @media (max-width: 680px) {
-  .pricing-heading { align-items: stretch; flex-direction: column; gap: 1rem; }
-  .pricing-assurance { white-space: normal; }
-  .pricing-grid { grid-template-columns: 1fr; }
-  .pricing-plan-top p { min-height: 0; }
-  .pricing-footer { align-items: center; flex-direction: column; }
+  .pricing-heading {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  .pricing-assurance {
+    white-space: normal;
+  }
+  .pricing-grid {
+    grid-template-columns: 1fr;
+  }
+  .pricing-plan-top p {
+    min-height: 0;
+  }
+  .pricing-footer {
+    align-items: center;
+    flex-direction: column;
+  }
 }
 @media (max-width: 600px) {
   .auth-page {

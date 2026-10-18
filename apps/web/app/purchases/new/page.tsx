@@ -151,7 +151,7 @@ export default function NewPurchasePage() {
               <input name="invoice" />
             </label>
             <label>
-              Header discount QAR
+              Header discount KES
               <input
                 name="discount"
                 type="number"
@@ -212,7 +212,7 @@ export default function NewPurchasePage() {
                 />
               </label>
               <label>
-                Unit cost QAR
+                Unit cost KES
                 <input
                   type="number"
                   min="0"
@@ -230,7 +230,7 @@ export default function NewPurchasePage() {
                 />
               </label>
               <label>
-                Discount QAR
+                Discount KES
                 <input
                   type="number"
                   min="0"
@@ -248,7 +248,7 @@ export default function NewPurchasePage() {
                 />
               </label>
               <label>
-                Tax QAR
+                Tax KES
                 <input
                   type="number"
                   min="0"

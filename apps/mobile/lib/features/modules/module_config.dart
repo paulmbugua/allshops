@@ -104,7 +104,7 @@ final moduleConfigs = <String, ModuleConfig>{
     subtitleKeys: ['sku', 'barcode', 'type'],
     createFields: [
       FormFieldSpec('name', 'Product name', required: true),
-      FormFieldSpec('arabicName', 'Arabic name'),
+      FormFieldSpec('arabicName', 'Local / Kiswahili name'),
       FormFieldSpec('imageUrl', 'Product image', kind: FieldKind.image),
       FormFieldSpec(
         'type',
@@ -138,8 +138,8 @@ final moduleConfigs = <String, ModuleConfig>{
       ),
       FormFieldSpec('sku', 'SKU'),
       FormFieldSpec('barcode', 'Barcode'),
-      FormFieldSpec('costMinor', 'Cost (QAR)', kind: FieldKind.money),
-      FormFieldSpec('priceMinor', 'Selling price (QAR)', kind: FieldKind.money),
+      FormFieldSpec('costMinor', 'Cost (KES)', kind: FieldKind.money),
+      FormFieldSpec('priceMinor', 'Selling price (KES)', kind: FieldKind.money),
       FormFieldSpec(
         'trackInventory',
         'Track inventory',
@@ -159,7 +159,7 @@ final moduleConfigs = <String, ModuleConfig>{
     color: Color(0xFFE5814E),
     createFields: [
       FormFieldSpec('name', 'Name', required: true),
-      FormFieldSpec('arabicName', 'Arabic name'),
+      FormFieldSpec('arabicName', 'Local / Kiswahili name'),
       FormFieldSpec('description', 'Description'),
     ],
   ),
@@ -232,11 +232,11 @@ final moduleConfigs = <String, ModuleConfig>{
         'language',
         'Language',
         kind: FieldKind.choice,
-        options: ['en', 'ar'],
+        options: ['en', 'sw'],
       ),
       FormFieldSpec(
         'creditLimitMinor',
-        'Credit limit (QAR)',
+        'Credit limit (KES)',
         kind: FieldKind.money,
       ),
       FormFieldSpec('notes', 'Notes'),
@@ -300,7 +300,7 @@ final moduleConfigs = <String, ModuleConfig>{
       ),
       FormFieldSpec(
         'amountMinor',
-        'Amount (QAR)',
+        'Amount (KES)',
         kind: FieldKind.money,
         required: true,
       ),

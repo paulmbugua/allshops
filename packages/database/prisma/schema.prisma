@@ -291,8 +291,8 @@ model Organization {
   registrationNumber String?
   email              String?
   phone              String?
-  currency           String             @default("QAR")
-  timezone           String             @default("Asia/Qatar")
+  currency           String             @default("KES")
+  timezone           String             @default("Africa/Nairobi")
   logoUrl            String?
   welcomeHeadline    String?
   tagline            String?
@@ -376,7 +376,7 @@ model Branch {
   phone          String?
   email          String?
   address        String?
-  timezone       String   @default("Asia/Qatar")
+  timezone       String   @default("Africa/Nairobi")
   isActive       Boolean  @default(true)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
@@ -729,7 +729,7 @@ model Plan {
   description       String?
   monthlyPriceMinor Int
   annualPriceMinor  Int
-  currency          String   @default("QAR")
+  currency          String   @default("KES")
   isPublic          Boolean  @default(true)
   isActive          Boolean  @default(true)
   sortOrder         Int      @default(0)
@@ -781,7 +781,7 @@ model Subscription {
   pendingPlanId      String?            @db.Uuid
   status             SubscriptionStatus
   billingInterval    BillingInterval    @default(MONTHLY)
-  currency           String             @default("QAR")
+  currency           String             @default("KES")
   currentPeriodStart DateTime?
   currentPeriodEnd   DateTime?
   trialStartedAt     DateTime?
@@ -1195,7 +1195,7 @@ model Sale {
   paidMinor       Int               @default(0)
   changeMinor     Int               @default(0)
   balanceMinor    Int               @default(0)
-  currency        String            @default("QAR")
+  currency        String            @default("KES")
   discountType    DiscountType?
   discountValue   Int?
   customerName    String?
@@ -1505,9 +1505,9 @@ model PaystackPaymentIntent {
   requestHash       String
   status            PaystackPaymentStatus @default(INITIALIZING)
   sourceAmountMinor Int
-  sourceCurrency    String                @default("QAR")
+  sourceCurrency    String                @default("KES")
   amountMinor       Int
-  currency          String                @default("QAR")
+  currency          String                @default("KES")
   checkoutJson      Json
   priceSnapshotJson Json
   authorizationUrl  String?
@@ -1585,7 +1585,7 @@ model Purchase {
   totalMinor            Int
   paidMinor             Int            @default(0)
   balanceMinor          Int
-  currency              String         @default("QAR")
+  currency              String         @default("KES")
   purchaseDate          DateTime
   expectedDate          DateTime?
   receivedAt            DateTime?
@@ -1775,7 +1775,7 @@ model Expense {
   branchId       String        @db.Uuid
   categoryId     String        @db.Uuid
   amountMinor    Int
-  currency       String        @default("QAR")
+  currency       String        @default("KES")
   paymentMethod  PaymentMethod
   expenseDate    DateTime
   description    String?

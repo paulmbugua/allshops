@@ -4,6 +4,7 @@ x-app-environment: &app-environment
   NODE_ENV: production
   DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
   REDIS_URL: ${REDIS_URL:?REDIS_URL is required}
+  REDIS_KEY_PREFIX: ${REDIS_KEY_PREFIX:-allshops:}
   APP_URL: ${APP_URL:-https://allshopspos.com}
   API_URL: ${API_URL:-https://api.allshopspos.com}
   CORS_ORIGINS: ${CORS_ORIGINS:-https://allshopspos.com,https://www.allshopspos.com}
@@ -36,56 +37,18 @@ x-logging: &logging
     max-file: "5"
 
 services:
-  postgres:
-    image: postgres:17-alpine
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB:-allshops}
-      POSTGRES_USER: ${POSTGRES_USER:-allshops}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
-    restart: unless-stopped
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-    networks: [data]
-    logging: *logging
-
-  redis:
-    image: redis:7.4-alpine
-    environment:
-      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
-    command:
-      [
-        "sh",
-        "-c",
-        'exec redis-server --appendonly yes --maxmemory-policy noeviction --requirepass "$$REDIS_PASSWORD"',
-      ]
-    restart: unless-stopped
-    volumes:
-      - redis_data:/data
-    healthcheck:
-      test: ["CMD-SHELL", 'redis-cli -a "$$REDIS_PASSWORD" ping | grep PONG']
-      interval: 10s
-      timeout: 3s
-      retries: 10
-    networks: [data]
-    logging: *logging
-
   migrate:
     image: ${REGISTRY:-ghcr.io/paulmbugua}/allshops-migrate:${IMAGE_TAG:?IMAGE_TAG is required}
     build:
       context: .
       dockerfile: docker/migrate.Dockerfile
     environment:
-      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
-    depends_on:
-      postgres:
-        condition: service_healthy
+      # Prisma migrations must bypass transaction pooling.
+      DATABASE_URL: ${DIRECT_DATABASE_URL:?DIRECT_DATABASE_URL is required}
     restart: "no"
-    networks: [data]
+    mem_limit: 1g
+    cpus: 1.50
+    networks: [shared_backend]
     logging: *logging
 
   api:
@@ -110,9 +73,9 @@ services:
     depends_on:
       migrate:
         condition: service_completed_successfully
-      redis:
-        condition: service_healthy
     restart: unless-stopped
+    mem_limit: 1g
+    cpus: 1.50
     volumes:
       - product_images:/data/product-images
     healthcheck:
@@ -130,7 +93,7 @@ services:
     networks:
       edge:
         aliases: [allshops-api]
-      data: {}
+      shared_backend: {}
     logging: *logging
 
   worker:
@@ -147,9 +110,9 @@ services:
     depends_on:
       migrate:
         condition: service_completed_successfully
-      redis:
-        condition: service_healthy
     restart: unless-stopped
+    mem_limit: 768m
+    cpus: 1.00
     healthcheck:
       test:
         [
@@ -162,7 +125,7 @@ services:
       timeout: 5s
       start_period: 20s
       retries: 5
-    networks: [data]
+    networks: [shared_backend, egress]
     logging: *logging
 
   web:
@@ -175,6 +138,8 @@ services:
         NEXT_PUBLIC_APP_VERSION: ${APP_VERSION:-0.0.0}
         NEXT_PUBLIC_GIT_SHA: ${GIT_SHA:-unknown}
     restart: unless-stopped
+    mem_limit: 768m
+    cpus: 1.00
     healthcheck:
       test:
         [
@@ -214,35 +179,21 @@ services:
       web:
         condition: service_healthy
     restart: unless-stopped
+    mem_limit: 256m
+    cpus: 0.50
     networks: [edge]
     logging: *logging
-
-  backup:
-    image: postgres:17-alpine
-    profiles: ["operations"]
-    environment:
-      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
-      BACKUP_DIRECTORY: /backups
-      MINIMUM_BACKUP_BYTES: ${MINIMUM_BACKUP_BYTES:-1024}
-    volumes:
-      - ./ops/backup-postgres.sh:/usr/local/bin/backup-postgres:ro
-      - postgres_backups:/backups
-    entrypoint: ["/bin/sh", "/usr/local/bin/backup-postgres"]
-    depends_on:
-      postgres:
-        condition: service_healthy
-    networks: [data]
 
 networks:
   edge:
     name: allshops_edge
-  data:
-    internal: true
+  shared_backend:
+    name: shared_backend
+    external: true
+  egress:
+    name: allshops_egress
 
 volumes:
-  postgres_data:
-  postgres_backups:
-  redis_data:
   caddy_data:
   caddy_config:
   product_images:

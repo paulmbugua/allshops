@@ -199,7 +199,7 @@ export default function ProductPage() {
                       <input name="barcode" />
                     </label>
                     <label>
-                      Price override (QAR)
+                      Price override (KES)
                       <input name="price" inputMode="decimal" />
                     </label>
                   </div>

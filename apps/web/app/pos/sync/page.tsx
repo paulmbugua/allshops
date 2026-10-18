@@ -117,7 +117,7 @@ export default function OfflineSyncPage() {
                   (sum, payment) => sum + payment.amountMinor,
                   0,
                 ) / 100}{" "}
-                QAR
+                KES
               </span>
               <span>{sale.status}</span>
               <span>Attempts {sale.attemptCount ?? 0}</span>
@@ -157,7 +157,7 @@ export default function OfflineSyncPage() {
                     (sum, payment) => sum + payment.amountMinor,
                     0,
                   ) / 100}{" "}
-                  QAR
+                  KES
                 </span>
                 <span>
                   {conflict.conflictCode}: {conflict.conflictMessage}

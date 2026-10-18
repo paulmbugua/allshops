@@ -777,7 +777,7 @@ export default function PosPage() {
                     onChange={(event) => setDiscountType(event.target.value)}
                   >
                     <option value="">No discount</option>
-                    <option value="FIXED">Fixed QAR</option>
+                    <option value="FIXED">Fixed KES</option>
                     <option value="PERCENTAGE">Percentage</option>
                   </select>
                   <input
@@ -865,7 +865,7 @@ export default function PosPage() {
               {splitTender && (
                 <div className="cash-panel split-payment-panel">
                   <label>
-                    Cash portion (QAR)
+                    Cash portion (KES)
                     <input
                       type="number"
                       min="0.01"
@@ -884,7 +884,7 @@ export default function PosPage() {
               {tenderMode === "CASH" && (
                 <div className="cash-panel">
                 <label>
-                  Cash received (QAR)
+                  Cash received (KES)
                   <input
                     type="number"
                     min={total / 100}
@@ -904,7 +904,7 @@ export default function PosPage() {
                     >
                       {value === total / 100
                         ? "Exact"
-                        : `${value.toFixed(2)} QAR`}
+                        : `KES ${value.toFixed(2)}`}
                     </button>
                   ))}
                 </div>
@@ -931,7 +931,7 @@ export default function PosPage() {
                     onChange={(event) => setLocalBank(event.target.value)}
                   >
                     <option>QNB</option>
-                    <option>Doha Bank</option>
+                    <option>Mobile money / bank terminal</option>
                     <option>Commercial Bank</option>
                     <option>QIB</option>
                     <option>Dukhan Bank</option>

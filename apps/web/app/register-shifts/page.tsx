@@ -55,18 +55,18 @@ export default function RegisterShiftsPage() {
       <span className="eyebrow">Cash control</span><h2>{openShift ? "Shift in progress" : "Open a register shift"}</h2>
       {!openShift && membership?.permissions.includes("shift.open") && <div className="form-grid">
         <label>Branch<select value={branchId} disabled={Boolean(membership.branchId)} onChange={(event) => setBranchId(event.target.value)}>{branches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}</select></label>
-        <label>Opening float (QAR)<input type="number" min="0" value={opening} onChange={(event) => setOpening(event.target.value)} /></label>
+        <label>Opening float (KES)<input type="number" min="0" value={opening} onChange={(event) => setOpening(event.target.value)} /></label>
         <button onClick={() => void open()}>Open register</button>
       </div>}
       {openShift && <div className="context-grid">
         <div><small>Opening float</small><strong>{formatMinorCurrency(openShift.openingCashMinor)}</strong></div>
         {membership?.permissions.includes("shift.cash_movement") && <>
-          <label>Cash in (QAR)<input type="number" min="0" value={cashIn} onChange={(event) => setCashIn(event.target.value)} /></label>
-          <label>Cash out (QAR)<input type="number" min="0" value={cashOut} onChange={(event) => setCashOut(event.target.value)} /></label>
+          <label>Cash in (KES)<input type="number" min="0" value={cashIn} onChange={(event) => setCashIn(event.target.value)} /></label>
+          <label>Cash out (KES)<input type="number" min="0" value={cashOut} onChange={(event) => setCashOut(event.target.value)} /></label>
           <label>Reason<input value={movementReason} onChange={(event) => setMovementReason(event.target.value)} /></label>
           <div><button className="secondary" onClick={() => void addMovement("CASH_IN")}>Record cash in</button> <button className="secondary" onClick={() => void addMovement("CASH_OUT")}>Record cash out</button></div>
         </>}
-        {membership?.permissions.includes("shift.close") && <><label>Counted drawer (QAR)<input type="number" min="0" value={counted} onChange={(event) => setCounted(event.target.value)} /></label><button onClick={() => void close()}>Close shift</button></>}
+        {membership?.permissions.includes("shift.close") && <><label>Counted drawer (KES)<input type="number" min="0" value={counted} onChange={(event) => setCounted(event.target.value)} /></label><button onClick={() => void close()}>Close shift</button></>}
       </div>}
       {message && <p className="notice">{message}</p>}
     </section>

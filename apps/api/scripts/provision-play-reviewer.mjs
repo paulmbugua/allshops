@@ -92,8 +92,8 @@ try {
         organizationId: organization.id,
         name: "Doha Review Branch",
         code: "DOHA-001",
-        address: "Doha, Qatar",
-        timezone: "Asia/Qatar",
+        address: "Nairobi, Kenya",
+        timezone: "Africa/Nairobi",
       },
     });
 
@@ -137,7 +137,7 @@ try {
         planId: plan.id,
         status: "ACTIVE",
         billingInterval: "ANNUAL",
-        currency: "QAR",
+        currency: "KES",
         currentPeriodStart: periodStart,
         currentPeriodEnd: periodEnd,
         activatedAt: periodStart,

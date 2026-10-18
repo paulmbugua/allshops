@@ -65,7 +65,7 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(
       title: Text(
-        tr(context, 'Users & roles', 'المستخدمون والأدوار'),
+        tr(context, 'Users & roles', 'Watumiaji na majukumu'),
         style: const TextStyle(fontWeight: FontWeight.w900),
       ),
       actions: [

@@ -13,287 +13,217 @@ import {
   DISPLAY_LANGUAGE_KEY,
 } from "../lib/public-locale";
 
-type Language = "en" | "ar";
+type Language = "en" | "sw";
 type LanguageContextValue = {
   language: Language;
   setLanguage: (value: Language) => void;
   t: (english: string) => string;
 };
+
 const translations: Record<string, string> = {
-  Dashboard: "لوحة المعلومات",
-  Sales: "المبيعات",
-  "Point of Sale": "نقطة البيع",
-  "Offline sync": "المزامنة دون اتصال",
-  "Sales history": "سجل المبيعات",
-  Reports: "التقارير",
-  "End-of-day cash-up": "تسوية نهاية اليوم",
-  Services: "الخدمات",
-  Appointments: "المواعيد",
-  Staff: "الموظفون",
-  Commissions: "العمولات",
-  "Commission rules": "قواعد العمولة",
-  Catalogue: "الكتالوج",
-  Products: "المنتجات",
-  Categories: "الفئات",
-  Brands: "العلامات التجارية",
-  Units: "الوحدات",
-  Inventory: "المخزون",
-  Movements: "الحركات",
-  Transfers: "التحويلات",
-  Purchasing: "المشتريات",
-  Purchases: "أوامر الشراء",
-  Suppliers: "الموردون",
-  Customers: "العملاء",
-  "Customers & credit": "العملاء والائتمان",
-  Expenses: "المصروفات",
-  "Expense history": "سجل المصروفات",
-  Settings: "الإعدادات",
-  Business: "المنشأة",
-  Branches: "الفروع",
-  Users: "المستخدمون",
-  "POS devices": "أجهزة نقاط البيع",
-  Subscription: "الاشتراك",
-  "Help & diagnostics": "المساعدة والتشخيص",
-  "Sign out": "تسجيل الخروج",
-  "Loading your access…": "جارٍ تحميل صلاحياتك…",
-  "Restricted workspace": "مساحة عمل مقيّدة",
-  "Access not assigned": "لم يتم تعيين الصلاحية",
-  "Your role does not include the permission required for this area. Ask an owner or administrator to update your role.":
-    "لا يتضمن دورك الصلاحية المطلوبة لهذه المنطقة. اطلب من المالك أو المسؤول تحديث دورك.",
-  English: "English",
-  Arabic: "العربية",
-  "Users & roles": "المستخدمون والأدوار",
-  "End-of-day reconciliation": "تسوية نهاية اليوم",
-  Purchase: "أمر شراء",
-  "Support diagnostics": "الدعم والتشخيص",
-  "Expense categories": "فئات المصروفات",
-  "Appointment details": "تفاصيل الموعد",
-  Customer: "العميل",
-  "New customer": "عميل جديد",
-  "New purchase": "أمر شراء جديد",
-  Supplier: "المورد",
-  "Held sale": "عملية بيع معلّقة",
-  "Staff profile": "ملف الموظف",
-  "New supplier": "مورد جديد",
-  "Business settings": "إعدادات المنشأة",
-  "New staff member": "موظف جديد",
-  Product: "المنتج",
-  "New product": "منتج جديد",
-  "Stock movements": "حركات المخزون",
-  "Subscription payment": "دفع الاشتراك",
-  "Stock transfers": "تحويلات المخزون",
-  "Offline synchronization": "المزامنة دون اتصال",
-  Transfer: "التحويل",
-  "Post stock movement": "تسجيل حركة مخزون",
-  "Merchant access": "دخول التاجر",
-  "Welcome back": "مرحباً بعودتك",
-  Email: "البريد الإلكتروني",
-  "Email address": "عنوان البريد الإلكتروني",
-  Password: "كلمة المرور",
-  "Forgot password?": "هل نسيت كلمة المرور؟",
-  "Forgot your password?": "هل نسيت كلمة المرور؟",
-  "Resend activation": "إعادة إرسال التفعيل",
-  "Sign in": "تسجيل الدخول",
-  "Signing in…": "جارٍ تسجيل الدخول…",
-  "New to AllShops?": "جديد في AllShops؟",
-  "Create an account": "إنشاء حساب",
-  "Create account": "إنشاء الحساب",
-  "Full name": "الاسم الكامل",
-  "Confirm password": "تأكيد كلمة المرور",
-  "Already registered?": "لديك حساب بالفعل؟",
-  "Check your inbox": "تحقق من بريدك الوارد",
-  "Activate your account": "فعّل حسابك",
-  "Continue to sign in": "المتابعة إلى تسجيل الدخول",
-  "Account activation": "تفعيل الحساب",
-  "Activate account": "تفعيل الحساب",
-  "Resend activation email": "إعادة إرسال رسالة التفعيل",
-  "Secure account recovery": "استعادة آمنة للحساب",
-  "Send reset link": "إرسال رابط إعادة التعيين",
-  "Sending…": "جارٍ الإرسال…",
-  "Return to sign in": "العودة إلى تسجيل الدخول",
-  "Protected password reset": "إعادة تعيين محمية لكلمة المرور",
-  "Reset password": "إعادة تعيين كلمة المرور",
-  "New password": "كلمة المرور الجديدة",
-  "Business onboarding": "إعداد المنشأة",
-  "Set up your business": "إعداد منشأتك",
-  "Business name": "اسم المنشأة",
-  "Business type": "نوع النشاط",
-  "Business phone": "هاتف المنشأة",
-  "Business email": "بريد المنشأة",
-  Retail: "تجزئة",
-  Grocery: "بقالة",
-  "Restaurant / café": "مطعم / مقهى",
-  Salon: "صالون",
-  Barbershop: "حلاقة",
-  "General services": "خدمات عامة",
-  Other: "أخرى",
-  "First branch": "الفرع الأول",
-  "Branch name": "اسم الفرع",
-  Address: "العنوان",
-  Phone: "الهاتف",
-  "Complete setup": "إكمال الإعداد",
-  "Creating workspace…": "جارٍ إنشاء مساحة العمل…",
-  "Currency: QAR · Timezone: Asia/Qatar": "العملة: ر.ق · المنطقة الزمنية: قطر",
-  "The branch ID is generated automatically from its name.":
-    "يتم إنشاء رمز الفرع تلقائياً من اسمه.",
-  "Shop identity": "هوية المتجر",
-  "Welcome screen": "شاشة الترحيب",
-  "Preview welcome screen": "معاينة شاشة الترحيب",
-  "Company logo": "شعار المنشأة",
-  "Legal name": "الاسم القانوني",
-  "Arabic name": "الاسم العربي",
-  "Welcome headline": "عنوان الترحيب",
-  Tagline: "العبارة التعريفية",
-  Motto: "الشعار النصي",
-  "Welcome message": "رسالة الترحيب",
-  "Idle timeout (minutes)": "مهلة الخمول (بالدقائق)",
-  "Primary colour": "اللون الأساسي",
-  "Accent colour": "اللون المميز",
-  "Save changes": "حفظ التغييرات",
-  "Saving…": "جارٍ الحفظ…",
-  "Business details saved.": "تم حفظ بيانات المنشأة.",
-  "Loading…": "جارٍ التحميل…",
-  Loading: "جارٍ التحميل",
-  Search: "بحث",
-  Apply: "تطبيق",
-  Select: "اختيار",
-  Save: "حفظ",
-  Cancel: "إلغاء",
-  Confirm: "تأكيد",
-  Complete: "إكمال",
-  Delete: "حذف",
-  Edit: "تعديل",
-  Add: "إضافة",
-  New: "جديد",
-  Name: "الاسم",
-  Status: "الحالة",
-  Date: "التاريخ",
-  Description: "الوصف",
-  Reference: "المرجع",
-  Amount: "المبلغ",
-  Quantity: "الكمية",
-  Price: "السعر",
-  Cost: "التكلفة",
-  Total: "الإجمالي",
-  Subtotal: "الإجمالي الفرعي",
-  Discount: "الخصم",
-  Tax: "الضريبة",
-  Payment: "الدفع",
-  "Payment method": "طريقة الدفع",
-  Cash: "نقداً",
-  CASH: "نقداً",
-  CARD: "بطاقة",
-  "Local bank card": "بطاقة بنكية محلية",
-  "Walk-in customer": "عميل مباشر",
-  Cart: "السلة",
-  "Scan or select a product.": "امسح أو اختر منتجاً.",
-  "Scanner ready": "الماسح جاهز",
-  "Live register": "صندوق نشط",
-  "Sale complete": "اكتملت عملية البيع",
-  "Current stock": "المخزون الحالي",
-  "Stock item": "صنف مخزون",
-  "Non-stock item": "صنف غير مخزني",
-  "Low stock": "مخزون منخفض",
-  "Healthy stock": "مخزون جيد",
-  "Create draft purchase": "إنشاء مسودة شراء",
-  "Receive stock": "استلام المخزون",
-  "Record payment": "تسجيل دفعة",
-  "Record expense": "تسجيل مصروف",
-  "Add user": "إضافة مستخدم",
-  "Add branch": "إضافة فرع",
-  "Add service": "إضافة خدمة",
-  "Book appointment": "حجز موعد",
-  "Daily branch cash-up": "تسوية الفرع اليومية",
-  "Submit end-of-day cash-up": "إرسال تسوية نهاية اليوم",
-  "Expected cash": "النقد المتوقع",
-  Counted: "المبلغ المعدود",
-  Variance: "الفرق",
-  "Gross profit": "إجمالي الربح",
-  "Net sales": "صافي المبيعات",
-  "Total sales": "إجمالي المبيعات",
-  "Average sale": "متوسط البيع",
-  "Billing history": "سجل الفواتير",
-  "AllShops plans": "باقات AllShops",
-  "Frequently asked questions": "الأسئلة الشائعة",
-  "Answers for your workspace": "إجابات لمساحة عملك",
-  "No answers match that search.": "لا توجد إجابات مطابقة للبحث.",
-  "Try again": "حاول مرة أخرى",
-  "All branches": "كل الفروع",
-  "All statuses": "كل الحالات",
-  "All types": "كل الأنواع",
-  "All stock": "كل المخزون",
-  "Choose branch": "اختر الفرع",
-  "Select branch": "اختر الفرع",
-  "Select supplier": "اختر المورد",
-  "Select service": "اختر الخدمة",
-  "Select staff": "اختر الموظف",
-  "Select category": "اختر الفئة",
-  "Product image": "صورة المنتج",
-  "Unit price": "سعر الوحدة",
-  "Unit cost": "تكلفة الوحدة",
-  "Credit limit": "حد الائتمان",
-  "Customer outstanding": "مديونية العميل",
-  "Supplier outstanding": "المستحق للمورد",
-  "Opening stock": "المخزون الافتتاحي",
-  "Adjustment in": "تسوية إضافة",
-  "Adjustment out": "تسوية خصم",
-  "Confirm movement": "تأكيد الحركة",
-  "New stock transfer": "تحويل مخزون جديد",
-  From: "من",
-  To: "إلى",
-  Role: "الدور",
-  Branch: "الفرع",
-  Active: "نشط",
-  Inactive: "غير نشط",
-  Paid: "مدفوع",
-  Outstanding: "مستحق",
-  "Plans built for Qatar businesses": "باقات مصممة لأعمال قطر",
-  "Choose the way your business grows": "اختر الطريقة المناسبة لنمو أعمالك",
-  "Every plan includes secure cloud access, Arabic-ready experiences and automatic updates.":
-    "تشمل كل باقة وصولاً سحابياً آمناً وتجربة عربية وتحديثات تلقائية.",
-  Monthly: "شهري",
-  Annual: "سنوي",
-  "2 months free": "شهران مجاناً",
-  "Most popular": "الأكثر طلباً",
-  "BEST FOR": "الأنسب لـ",
-  "Independent shops and first-time POS teams":
-    "المتاجر المستقلة وفرق نقاط البيع الجديدة",
-  "Busy stores, salons and service businesses":
-    "المتاجر النشطة والصالونات وشركات الخدمات",
-  "Multi-branch businesses that need resilient operations":
-    "الأعمال متعددة الفروع التي تحتاج تشغيلاً موثوقاً",
-  "Growing Qatar businesses": "الأعمال القطرية النامية",
-  "Simple daily selling": "بيع يومي بسيط",
-  "Products, checkout, customers, stock and essential reports.":
-    "المنتجات والدفع والعملاء والمخزون والتقارير الأساسية.",
-  "Complete operations": "تشغيل متكامل",
-  "Purchasing, expenses, credit, profit, staff and appointments.":
-    "المشتريات والمصروفات والائتمان والأرباح والموظفون والمواعيد.",
-  "Scale without disruption": "توسع دون انقطاع",
-  "Offline POS, multi-branch control and deeper performance insight.":
-    "نقاط بيع دون اتصال وتحكم متعدد الفروع ورؤية أعمق للأداء.",
-  "Secure cloud workspace": "مساحة عمل سحابية آمنة",
-  "Role-based access, automatic updates and protected business data.":
-    "صلاحيات حسب الدور وتحديثات تلقائية وحماية لبيانات المنشأة.",
-  "English and Arabic": "الإنجليزية والعربية",
-  "Switch language across web and mobile with RTL support.":
-    "بدّل اللغة في الويب والجوال مع دعم اتجاه الكتابة من اليمين.",
-  "Current plan": "الباقة الحالية",
-  "Owner approval required": "موافقة المالك مطلوبة",
-  Unlimited: "غير محدود",
+  Dashboard: "Dashibodi",
+  Sales: "Mauzo",
+  "Point of Sale": "Sehemu ya mauzo",
+  "Offline sync": "Usawazishaji bila mtandao",
+  "Sales history": "Historia ya mauzo",
+  Reports: "Ripoti",
+  "End-of-day cash-up": "Hesabu ya mwisho wa siku",
+  Services: "Huduma",
+  Appointments: "Miadi",
+  Staff: "Wafanyakazi",
+  Commissions: "Kamisheni",
+  "Commission rules": "Kanuni za kamisheni",
+  Catalogue: "Katalogi",
+  Products: "Bidhaa",
+  Categories: "Aina",
+  Brands: "Chapa",
+  Units: "Vipimo",
+  Inventory: "Stoo",
+  Movements: "Miamala ya stoo",
+  Transfers: "Uhamisho",
+  Purchasing: "Manunuzi",
+  Purchases: "Manunuzi",
+  Suppliers: "Wasambazaji",
+  Customers: "Wateja",
+  "Customers & credit": "Wateja na mikopo",
+  Expenses: "Gharama",
+  "Expense history": "Historia ya gharama",
+  Settings: "Mipangilio",
+  Business: "Biashara",
+  Branches: "Matawi",
+  Users: "Watumiaji",
+  "POS devices": "Vifaa vya POS",
+  Subscription: "Usajili",
+  "Help & diagnostics": "Msaada na uchunguzi",
+  "Sign out": "Ondoka",
+  "Loading your access…": "Inapakia ruhusa zako…",
+  "Restricted workspace": "Sehemu yenye vizuizi",
+  "Access not assigned": "Ruhusa haijapangwa",
+  "Users & roles": "Watumiaji na majukumu",
+  "End-of-day reconciliation": "Upatanisho wa mwisho wa siku",
+  Purchase: "Ununuzi",
+  "Support diagnostics": "Msaada na uchunguzi",
+  "Expense categories": "Aina za gharama",
+  Customer: "Mteja",
+  "New customer": "Mteja mpya",
+  "New purchase": "Ununuzi mpya",
+  Supplier: "Msambazaji",
+  "Held sale": "Mauzo yaliyoshikiliwa",
+  Product: "Bidhaa",
+  "New product": "Bidhaa mpya",
+  "Stock movements": "Miamala ya stoo",
+  "Stock transfers": "Uhamisho wa stoo",
+  "Welcome back": "Karibu tena",
+  Email: "Barua pepe",
+  "Email address": "Anwani ya barua pepe",
+  Password: "Nenosiri",
+  "Forgot password?": "Umesahau nenosiri?",
+  "Forgot your password?": "Umesahau nenosiri?",
+  "Resend activation": "Tuma uanzishaji tena",
+  "Sign in": "Ingia",
+  "Signing in…": "Inaingia…",
+  "Create an account": "Fungua akaunti",
+  "Create account": "Fungua akaunti",
+  "Full name": "Jina kamili",
+  "Confirm password": "Thibitisha nenosiri",
+  "Check your inbox": "Angalia barua pepe yako",
+  "Activate your account": "Washa akaunti yako",
+  "Continue to sign in": "Endelea kuingia",
+  "Account activation": "Uanzishaji wa akaunti",
+  "Send reset link": "Tuma kiungo cha kubadili nenosiri",
+  "Reset password": "Badili nenosiri",
+  "New password": "Nenosiri jipya",
+  "Business onboarding": "Usanidi wa biashara",
+  "Set up your business": "Sanidi biashara yako",
+  "Business name": "Jina la biashara",
+  "Business type": "Aina ya biashara",
+  "Business phone": "Simu ya biashara",
+  "Business email": "Barua pepe ya biashara",
+  Retail: "Rejareja",
+  Grocery: "Duka la vyakula",
+  "Restaurant / café": "Mkahawa",
+  Salon: "Saluni",
+  Barbershop: "Kinyozi",
+  "General services": "Huduma za jumla",
+  Other: "Nyingine",
+  "First branch": "Tawi la kwanza",
+  "Branch name": "Jina la tawi",
+  Address: "Anwani",
+  Phone: "Simu",
+  "Complete setup": "Kamilisha usanidi",
+  "Creating workspace…": "Inatengeneza mfumo…",
+  "Currency: KES · Timezone: Africa/Nairobi":
+    "Sarafu: KES · Saa: Africa/Nairobi",
+  "Local / Kiswahili name": "Jina la Kiswahili",
+  "Shop identity": "Utambulisho wa biashara",
+  "Welcome screen": "Skrini ya kukaribisha",
+  "Company logo": "Nembo ya kampuni",
+  "Legal name": "Jina la kisheria",
+  Tagline: "Kauli mbiu",
+  "Save changes": "Hifadhi mabadiliko",
+  "Saving…": "Inahifadhi…",
+  "Business details saved.": "Maelezo ya biashara yamehifadhiwa.",
+  "Loading…": "Inapakia…",
+  Loading: "Inapakia",
+  Search: "Tafuta",
+  Apply: "Tumia",
+  Select: "Chagua",
+  Save: "Hifadhi",
+  Cancel: "Ghairi",
+  Confirm: "Thibitisha",
+  Complete: "Kamilisha",
+  Delete: "Futa",
+  Edit: "Hariri",
+  Add: "Ongeza",
+  New: "Mpya",
+  Name: "Jina",
+  Status: "Hali",
+  Date: "Tarehe",
+  Description: "Maelezo",
+  Reference: "Rejeleo",
+  Amount: "Kiasi",
+  Quantity: "Idadi",
+  Price: "Bei",
+  Cost: "Gharama",
+  Total: "Jumla",
+  Subtotal: "Jumla ndogo",
+  Discount: "Punguzo",
+  Tax: "Kodi",
+  Payment: "Malipo",
+  "Payment method": "Njia ya malipo",
+  Cash: "Pesa taslimu",
+  CASH: "PESA TASLIMU",
+  CARD: "KADI",
+  "Local bank card": "Kadi ya benki",
+  "Walk-in customer": "Mteja wa dukani",
+  Cart: "Kikapu",
+  "Scan or select a product.": "Skani au chagua bidhaa.",
+  "Scanner ready": "Skana iko tayari",
+  "Live register": "Kaunta iko wazi",
+  "Sale complete": "Mauzo yamekamilika",
+  "Current stock": "Stoo ya sasa",
+  "Low stock": "Stoo iko chini",
+  "Healthy stock": "Stoo iko sawa",
+  "Create draft purchase": "Tengeneza rasimu ya ununuzi",
+  "Receive stock": "Pokea bidhaa",
+  "Record payment": "Rekodi malipo",
+  "Record expense": "Rekodi gharama",
+  "Add user": "Ongeza mtumiaji",
+  "Add branch": "Ongeza tawi",
+  "Book appointment": "Weka miadi",
+  "Daily branch cash-up": "Hesabu ya kila siku ya tawi",
+  "Expected cash": "Pesa inayotarajiwa",
+  Counted: "Iliyohesabiwa",
+  Variance: "Tofauti",
+  "Gross profit": "Faida ghafi",
+  "Net sales": "Mauzo halisi",
+  "Total sales": "Jumla ya mauzo",
+  "Average sale": "Wastani wa mauzo",
+  "Billing history": "Historia ya malipo",
+  "AllShops plans": "Mipango ya AllShops",
+  "Frequently asked questions": "Maswali yanayoulizwa mara kwa mara",
+  "Try again": "Jaribu tena",
+  "All branches": "Matawi yote",
+  "Choose branch": "Chagua tawi",
+  "Select branch": "Chagua tawi",
+  "Select supplier": "Chagua msambazaji",
+  "Select service": "Chagua huduma",
+  "Select staff": "Chagua mfanyakazi",
+  "Select category": "Chagua aina",
+  "Product image": "Picha ya bidhaa",
+  "Unit price": "Bei ya kipimo",
+  "Unit cost": "Gharama ya kipimo",
+  "Credit limit": "Kikomo cha mkopo",
+  "Opening stock": "Stoo ya kuanzia",
+  From: "Kutoka",
+  To: "Kwenda",
+  Role: "Wajibu",
+  Branch: "Tawi",
+  Active: "Inatumika",
+  Inactive: "Haitumiki",
+  Paid: "Imelipwa",
+  Outstanding: "Bado kulipwa",
+  "Plans built for Kenyan businesses": "Mipango kwa biashara za Kenya",
+  "Choose the way your business grows": "Chagua njia ya kukuza biashara yako",
+  Monthly: "Kila mwezi",
+  Annual: "Kila mwaka",
+  "2 months free": "Miezi 2 bila malipo",
+  "Most popular": "Maarufu zaidi",
+  "Current plan": "Mpango wa sasa",
+  Unlimited: "Bila kikomo",
 };
 
 const dynamicTranslations: Array<[RegExp, (...parts: string[]) => string]> = [
-  [/^Create (.+)$/i, (value) => `إنشاء ${translations[value] ?? value}`],
-  [/^New (.+)$/i, (value) => `${translations[value] ?? value} جديد`],
-  [/^Select (.+)$/i, (value) => `اختر ${translations[value] ?? value}`],
-  [/^Add (.+)$/i, (value) => `إضافة ${translations[value] ?? value}`],
+  [/^Create (.+)$/i, (value) => `Tengeneza ${translations[value] ?? value}`],
+  [/^New (.+)$/i, (value) => `${translations[value] ?? value} mpya`],
+  [/^Select (.+)$/i, (value) => `Chagua ${translations[value] ?? value}`],
+  [/^Add (.+)$/i, (value) => `Ongeza ${translations[value] ?? value}`],
+  [/^Loading (.+)…$/i, (value) => `Inapakia ${translations[value] ?? value}…`],
   [
-    /^Loading (.+)…$/i,
-    (value) => `جارٍ تحميل ${translations[value] ?? value}…`,
+    /^Page (\d+) of (\d+)$/i,
+    (page, total) => `Ukurasa ${page} kati ya ${total}`,
   ],
-  [/^Page (\d+) of (\d+)$/i, (page, total) => `الصفحة ${page} من ${total}`],
-  [/^(\d+) items?$/i, (count) => `${count} عنصر`],
+  [/^(\d+) items?$/i, (count) => `Bidhaa ${count}`],
 ];
 
 export function translateText(english: string) {
@@ -308,20 +238,19 @@ export function translateText(english: string) {
   return english;
 }
 
+const sourceText = new WeakMap<Text, string>();
+
 function LocalizedDocument({ language }: { language: Language }) {
   useEffect(() => {
-    const originals = new WeakMap<Text, string>();
-    const attributeOriginals = new WeakMap<Element, Map<string, string>>();
-    const localizedMutations = new WeakSet<Text>();
     const attributes = ["placeholder", "title", "aria-label"];
     let applying = false;
     const translateNode = (root: Node) => {
       applying = true;
-      const textNodes: Text[] = [];
-      if (root.nodeType === Node.TEXT_NODE) textNodes.push(root as Text);
+      const nodes: Text[] = [];
+      if (root.nodeType === Node.TEXT_NODE) nodes.push(root as Text);
       const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
-      while (walker.nextNode()) textNodes.push(walker.currentNode as Text);
-      for (const node of textNodes) {
+      while (walker.nextNode()) nodes.push(walker.currentNode as Text);
+      for (const node of nodes) {
         const parent = node.parentElement;
         if (
           !parent ||
@@ -330,14 +259,9 @@ function LocalizedDocument({ language }: { language: Language }) {
           )
         )
           continue;
-        if (!originals.has(node)) originals.set(node, node.data);
-        const original = originals.get(node) ?? node.data;
-        const localized =
-          language === "ar" ? translateText(original) : original;
-        if (node.data !== localized) {
-          localizedMutations.add(node);
-          node.data = localized;
-        }
+        if (!sourceText.has(node)) sourceText.set(node, node.data);
+        const original = sourceText.get(node) ?? node.data;
+        node.data = language === "sw" ? translateText(original) : original;
       }
       const elements =
         root.nodeType === Node.ELEMENT_NODE
@@ -346,19 +270,15 @@ function LocalizedDocument({ language }: { language: Language }) {
       for (const element of elements) {
         if (element.closest("[data-no-translate], [data-manual-locale]"))
           continue;
-        let saved = attributeOriginals.get(element);
-        if (!saved) {
-          saved = new Map();
-          attributeOriginals.set(element, saved);
-        }
         for (const attribute of attributes) {
-          const current = element.getAttribute(attribute);
-          if (current === null) continue;
-          if (!saved.has(attribute)) saved.set(attribute, current);
-          const original = saved.get(attribute) ?? current;
+          const original =
+            element.getAttribute(`data-i18n-${attribute}`) ??
+            element.getAttribute(attribute);
+          if (original === null) continue;
+          element.setAttribute(`data-i18n-${attribute}`, original);
           element.setAttribute(
             attribute,
-            language === "ar" ? translateText(original) : original,
+            language === "sw" ? translateText(original) : original,
           );
         }
       }
@@ -367,27 +287,14 @@ function LocalizedDocument({ language }: { language: Language }) {
     translateNode(document.body);
     const observer = new MutationObserver((records) => {
       if (applying) return;
-      for (const record of records) {
-        if (record.type === "characterData") {
-          if (localizedMutations.has(record.target as Text)) {
-            localizedMutations.delete(record.target as Text);
-            continue;
-          }
-          originals.delete(record.target as Text);
-          translateNode(record.target);
-        }
-        record.addedNodes.forEach(translateNode);
-      }
+      for (const record of records) record.addedNodes.forEach(translateNode);
     });
-    observer.observe(document.body, {
-      childList: true,
-      characterData: true,
-      subtree: true,
-    });
+    observer.observe(document.body, { childList: true, subtree: true });
     return () => observer.disconnect();
   }, [language]);
   return null;
 }
+
 const LanguageContext = createContext<LanguageContextValue>({
   language: "en",
   setLanguage: () => undefined,
@@ -398,18 +305,17 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   const [language, setLanguageState] = useState<Language>("en");
   useEffect(() => {
     const saved = window.localStorage.getItem(DISPLAY_LANGUAGE_KEY);
-    if (saved === "ar" || saved === "en") setLanguageState(saved);
-    const syncLanguage = (event: Event) => {
+    if (saved === "sw" || saved === "en") setLanguageState(saved);
+    const sync = (event: Event) => {
       const next = (event as CustomEvent<Language>).detail;
-      if (next === "ar" || next === "en") setLanguageState(next);
+      if (next === "sw" || next === "en") setLanguageState(next);
     };
-    window.addEventListener(DISPLAY_LANGUAGE_EVENT, syncLanguage);
-    return () =>
-      window.removeEventListener(DISPLAY_LANGUAGE_EVENT, syncLanguage);
+    window.addEventListener(DISPLAY_LANGUAGE_EVENT, sync);
+    return () => window.removeEventListener(DISPLAY_LANGUAGE_EVENT, sync);
   }, []);
   useEffect(() => {
     document.documentElement.lang = language;
-    document.documentElement.dir = language === "ar" ? "rtl" : "ltr";
+    document.documentElement.dir = "ltr";
     window.localStorage.setItem(DISPLAY_LANGUAGE_KEY, language);
   }, [language]);
   const value = useMemo<LanguageContextValue>(
@@ -421,7 +327,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
           new CustomEvent(DISPLAY_LANGUAGE_EVENT, { detail: next }),
         );
       },
-      t: (english) => (language === "ar" ? translateText(english) : english),
+      t: (english) => (language === "sw" ? translateText(english) : english),
     }),
     [language],
   );
@@ -447,11 +353,11 @@ export function LanguageToggle() {
         EN
       </button>
       <button
-        className={language === "ar" ? "active" : ""}
-        onClick={() => setLanguage("ar")}
+        className={language === "sw" ? "active" : ""}
+        onClick={() => setLanguage("sw")}
         type="button"
       >
-        ع
+        SW
       </button>
     </div>
   );

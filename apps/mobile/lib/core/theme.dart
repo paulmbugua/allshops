@@ -2,18 +2,21 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 abstract final class AllShopsTheme {
-  static const coral = Color(0xFFF35F45);
+  static const coral = Color(0xFFBB1E10);
   static const ink = Color(0xFF172C2B);
   static const mint = Color(0xFF35B77D);
   static const sun = Color(0xFFFFCF5C);
-  static const qatarMaroon = Color(0xFF6D1738);
-  static const qatarSand = Color(0xFFF3DFC1);
+  static const kenyaGreen = Color(0xFF0B5D46);
+  static const kenyaGold = Color(0xFFF2C14E);
+  // Compatibility aliases keep older widgets on the refreshed Kenyan palette.
+  static const qatarMaroon = kenyaGreen;
+  static const qatarSand = kenyaGold;
   static const canvas = Color(0xFFF7F9F6);
   static ThemeData get light => ThemeData(
     useMaterial3: true,
     colorScheme: ColorScheme.fromSeed(
-      seedColor: qatarMaroon,
-      primary: qatarMaroon,
+      seedColor: kenyaGreen,
+      primary: kenyaGreen,
       secondary: mint,
       surface: Colors.white,
     ),
@@ -31,7 +34,7 @@ abstract final class AllShopsTheme {
     ),
     cardTheme: CardThemeData(
       elevation: 1,
-      shadowColor: qatarMaroon.withValues(alpha: .08),
+      shadowColor: kenyaGreen.withValues(alpha: .08),
       color: Colors.white,
       margin: EdgeInsets.zero,
       shape: const RoundedRectangleBorder(
@@ -50,7 +53,7 @@ abstract final class AllShopsTheme {
     ),
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
-        backgroundColor: qatarMaroon,
+        backgroundColor: kenyaGreen,
         foregroundColor: Colors.white,
         minimumSize: const Size(64, 54),
         shape: const StadiumBorder(),
@@ -58,22 +61,22 @@ abstract final class AllShopsTheme {
       ),
     ),
     floatingActionButtonTheme: const FloatingActionButtonThemeData(
-      backgroundColor: qatarMaroon,
+      backgroundColor: kenyaGreen,
       foregroundColor: Colors.white,
     ),
     navigationBarTheme: NavigationBarThemeData(
       backgroundColor: Colors.white,
-      indicatorColor: qatarSand,
+      indicatorColor: kenyaGold.withValues(alpha: .55),
       labelTextStyle: WidgetStateProperty.resolveWith(
         (states) => TextStyle(
-          color: states.contains(WidgetState.selected) ? qatarMaroon : ink,
+          color: states.contains(WidgetState.selected) ? kenyaGreen : ink,
           fontWeight: FontWeight.w800,
         ),
       ),
     ),
     chipTheme: ChipThemeData(
-      backgroundColor: qatarSand.withValues(alpha: .48),
-      selectedColor: qatarMaroon,
+      backgroundColor: kenyaGold.withValues(alpha: .28),
+      selectedColor: kenyaGreen,
       side: BorderSide.none,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
     ),

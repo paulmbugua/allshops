@@ -59,7 +59,7 @@ export default function BranchSettingsPage() {
             name: data.get("name"),
             address: data.get("address") || undefined,
             phone: data.get("phone") || undefined,
-            timezone: "Asia/Qatar",
+            timezone: "Africa/Nairobi",
           }),
         },
       );

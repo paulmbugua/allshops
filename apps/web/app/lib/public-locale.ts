@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-export type PublicLocale = "en" | "ar";
+export type PublicLocale = "en" | "sw";
 
 // Public and authenticated surfaces intentionally share one preference. A
 // language selected before sign-in must follow the user into the workspace.
@@ -14,12 +14,12 @@ export function usePublicLocale() {
 
   useEffect(() => {
     const saved = window.localStorage.getItem(DISPLAY_LANGUAGE_KEY);
-    if (saved === "ar" || saved === "en") {
+    if (saved === "sw" || saved === "en") {
       setLocaleState(saved);
       return;
     }
-    if (window.navigator.language.toLowerCase().startsWith("ar")) {
-      setLocaleState("ar");
+    if (window.navigator.language.toLowerCase().startsWith("sw")) {
+      setLocaleState("sw");
     }
   }, []);
 
@@ -33,7 +33,7 @@ export function usePublicLocale() {
 
   return {
     locale,
-    direction: locale === "ar" ? ("rtl" as const) : ("ltr" as const),
+    direction: "ltr" as const,
     setLocale,
   };
 }

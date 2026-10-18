@@ -1,0 +1,100 @@
+name: shared-infrastructure
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: shared-postgres
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: infra_admin
+      POSTGRES_PASSWORD: ${POSTGRES_ADMIN_PASSWORD:?POSTGRES_ADMIN_PASSWORD is required}
+      POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256 --auth-local=trust
+    command: ["postgres", "-c", "config_file=/etc/postgresql/postgresql.conf"]
+    restart: unless-stopped
+    shm_size: 1gb
+    mem_limit: 3g
+    cpus: 2.0
+    volumes:
+      - shared_postgres_data:/var/lib/postgresql/data
+      - ./config/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U infra_admin -d postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    networks:
+      shared_backend:
+        aliases: [shared-postgres]
+    logging: *logging
+
+  pgbouncer:
+    build:
+      context: ./pgbouncer
+    container_name: shared-pgbouncer
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    mem_limit: 192m
+    cpus: 0.50
+    volumes:
+      - ./config/pgbouncer.ini:/etc/pgbouncer/pgbouncer.ini:ro
+      - ./secrets/pgbouncer-users.txt:/run/secrets-source/pgbouncer-users.txt:ro
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -h 127.0.0.1 -p 6432 -U infra_admin -d pgbouncer",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    networks:
+      shared_backend:
+        aliases: [shared-pgbouncer]
+    logging: *logging
+
+  redis:
+    image: redis:7.4-alpine
+    container_name: shared-redis
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
+    command:
+      - sh
+      - -ec
+      - exec redis-server --appendonly yes --appendfsync everysec --maxmemory 384mb --maxmemory-policy noeviction --requirepass "$$REDIS_PASSWORD"
+    restart: unless-stopped
+    mem_limit: 512m
+    cpus: 0.75
+    volumes:
+      - shared_redis_data:/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          'redis-cli --no-auth-warning -a "$$REDIS_PASSWORD" ping | grep -q PONG',
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+    networks:
+      shared_backend:
+        aliases: [shared-redis]
+    logging: *logging
+
+networks:
+  shared_backend:
+    name: shared_backend
+    internal: true
+
+volumes:
+  shared_postgres_data:
+    name: shared_postgres_data
+  shared_redis_data:
+    name: shared_redis_data

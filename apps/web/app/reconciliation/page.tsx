@@ -36,9 +36,9 @@ type Daily = {
   aggregate: ReconciliationRow & { submittedCount: number };
 };
 
-const todayQatar = () =>
+const todayKenya = () =>
   new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Qatar",
+    timeZone: "Africa/Nairobi",
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
@@ -50,7 +50,7 @@ export default function ReconciliationPage() {
   const [membership, setMembership] = useState<Membership>();
   const [branches, setBranches] = useState<Branch[]>([]);
   const [branchId, setBranchId] = useState("");
-  const [date, setDate] = useState(todayQatar);
+  const [date, setDate] = useState(todayKenya);
   const [report, setReport] = useState<Daily>();
   const [message, setMessage] = useState("");
   const canApprove =
@@ -132,7 +132,7 @@ export default function ReconciliationPage() {
   return (
     <AppShell title="End-of-day reconciliation">
       <section className="card reconciliation-hero">
-        <span className="eyebrow">Cash control · Qatar business day</span>
+        <span className="eyebrow">Cash control · Kenya business day</span>
         <h2>Daily branch cash-up</h2>
         <div className="form-grid">
           <label>
@@ -214,7 +214,7 @@ export default function ReconciliationPage() {
             <form className="form compact" onSubmit={submit}>
               <div className="form-grid">
                 <label>
-                  Counted cash (QAR)
+                  Counted cash (KES)
                   <input
                     name="countedCash"
                     type="number"

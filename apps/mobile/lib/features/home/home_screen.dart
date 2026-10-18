@@ -60,23 +60,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       NavigationDestination(
         icon: Icon(Icons.space_dashboard_outlined),
         selectedIcon: Icon(Icons.space_dashboard_rounded),
-        label: tr(context, 'Home', 'الرئيسية'),
+        label: tr(context, 'Home', 'Nyumbani'),
       ),
       if (canUsePos)
         NavigationDestination(
           icon: Icon(Icons.point_of_sale_outlined),
           selectedIcon: Icon(Icons.point_of_sale_rounded),
-          label: tr(context, 'POS', 'نقطة البيع'),
+          label: tr(context, 'POS', 'Mauzo'),
         ),
       if (widget.membership.hasPermission('inventory.read'))
         NavigationDestination(
           icon: Icon(Icons.inventory_2_outlined),
-          label: tr(context, 'Stock', 'المخزون'),
+          label: tr(context, 'Stock', 'Stoo'),
         ),
       if (widget.membership.hasPermission('report.dashboard'))
         NavigationDestination(
           icon: Icon(Icons.insights_outlined),
-          label: tr(context, 'Reports', 'التقارير'),
+          label: tr(context, 'Reports', 'Ripoti'),
         ),
     ];
     final selectedIndex = index.clamp(0, pages.length - 1);
@@ -177,10 +177,10 @@ class DashboardTab extends StatelessWidget {
                   PopupMenuButton<String>(
                     onSelected: (value) {
                       if (value == 'logout') onLogout();
-                      if (value == 'language-en' || value == 'language-ar') {
+                      if (value == 'language-en' || value == 'language-sw') {
                         AppLanguageScope.of(
                           context,
-                        ).setLanguage(value.endsWith('ar') ? 'ar' : 'en');
+                        ).setLanguage(value.endsWith('sw') ? 'sw' : 'en');
                       }
                     },
                     itemBuilder: (_) => [
@@ -204,17 +204,17 @@ class DashboardTab extends StatelessWidget {
                       ),
                       const PopupMenuDivider(),
                       PopupMenuItem(
-                        value: AppLanguageScope.of(context).isArabic
+                        value: AppLanguageScope.of(context).isSwahili
                             ? 'language-en'
-                            : 'language-ar',
+                            : 'language-sw',
                         child: Row(
                           children: [
                             const Icon(Icons.language_rounded),
                             const SizedBox(width: 10),
                             Text(
-                              AppLanguageScope.of(context).isArabic
+                              AppLanguageScope.of(context).isSwahili
                                   ? 'English'
-                                  : 'العربية',
+                                  : 'Kiswahili',
                             ),
                           ],
                         ),
@@ -252,7 +252,7 @@ class DashboardTab extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '${tr(context, 'Good day', 'مرحباً')}، ${user.name.split(' ').first}',
+                    '${tr(context, 'Good day', 'Habari')}, ${user.name.split(' ').first}',
                     style: const TextStyle(
                       fontSize: 13,
                       color: Colors.blueGrey,
@@ -295,7 +295,7 @@ class DashboardTab extends StatelessWidget {
                                 tr(
                                   context,
                                   'Ready to sell?',
-                                  'هل أنت مستعد للبيع؟',
+                                  'Uko tayari kuuza?',
                                 ),
                                 style: TextStyle(
                                   color: Colors.white,
@@ -308,7 +308,7 @@ class DashboardTab extends StatelessWidget {
                                 tr(
                                   context,
                                   'Fast checkout. Cash or local card. Offline-safe.',
-                                  'دفع سريع نقداً أو بالبطاقة المحلية، مع دعم العمل دون اتصال.',
+                                  'Malipo ya haraka kwa pesa, mobile money au kadi, hata bila mtandao.',
                                 ),
                                 style: TextStyle(
                                   color: Color(0xFFAEC5BD),
@@ -338,7 +338,11 @@ class DashboardTab extends StatelessWidget {
             padding: EdgeInsets.fromLTRB(20, 5, 20, 10),
             sliver: SliverToBoxAdapter(
               child: Text(
-                tr(context, 'Your workspace', 'مساحة عملك'),
+                tr(
+                  context,
+                  'Your POS + ERP workspace',
+                  'Mfumo wako wa POS + ERP',
+                ),
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
               ),
             ),
@@ -401,7 +405,7 @@ class DashboardTab extends StatelessWidget {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            tr(context, 'Open workspace', 'فتح مساحة العمل'),
+                            tr(context, 'Open workspace', 'Fungua mfumo'),
                             style: TextStyle(
                               color: Colors.blueGrey,
                               fontSize: 10,

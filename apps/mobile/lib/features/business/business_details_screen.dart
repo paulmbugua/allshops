@@ -93,7 +93,7 @@ class _BusinessDetailsScreenState extends ConsumerState<BusinessDetailsScreen> {
       message = tr(
         context,
         'Business details saved.',
-        'تم حفظ بيانات المنشأة.',
+        'Maelezo ya biashara yamehifadhiwa.',
       );
     } catch (error) {
       message = apiErrorMessage(error);
@@ -107,7 +107,7 @@ class _BusinessDetailsScreenState extends ConsumerState<BusinessDetailsScreen> {
     final language = AppLanguageScope.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: Text(tr(context, 'Business details', 'بيانات المنشأة')),
+        title: Text(tr(context, 'Business details', 'Maelezo ya biashara')),
       ),
       body: loading
           ? const Center(child: CircularProgressIndicator())
@@ -148,7 +148,7 @@ class _BusinessDetailsScreenState extends ConsumerState<BusinessDetailsScreen> {
                           tr(
                             context,
                             'Identity, contact details and display language.',
-                            'الهوية وبيانات التواصل ولغة العرض.',
+                            'Utambulisho, mawasiliano na lugha ya mfumo.',
                           ),
                           style: const TextStyle(color: Color(0xFFE8D8C4)),
                         ),
@@ -163,7 +163,11 @@ class _BusinessDetailsScreenState extends ConsumerState<BusinessDetailsScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            tr(context, 'Display language', 'لغة العرض'),
+                            tr(
+                              context,
+                              'Display language',
+                              'Lugha ya kuonyesha',
+                            ),
                             style: const TextStyle(
                               fontSize: 17,
                               fontWeight: FontWeight.w900,
@@ -174,7 +178,7 @@ class _BusinessDetailsScreenState extends ConsumerState<BusinessDetailsScreen> {
                             tr(
                               context,
                               'This choice applies instantly across the app and is kept after sign out.',
-                              'يُطبق هذا الاختيار فوراً في كامل التطبيق ويُحفظ بعد تسجيل الخروج.',
+                              'Chaguo hili linatumika mara moja kote na kuhifadhiwa baada ya kuondoka.',
                             ),
                             style: const TextStyle(color: Colors.blueGrey),
                           ),
@@ -187,9 +191,9 @@ class _BusinessDetailsScreenState extends ConsumerState<BusinessDetailsScreen> {
                                 label: Text('English'),
                               ),
                               ButtonSegment(
-                                value: 'ar',
+                                value: 'sw',
                                 icon: Icon(Icons.translate_rounded),
-                                label: Text('العربية'),
+                                label: Text('Kiswahili'),
                               ),
                             ],
                             selected: {language.language},
@@ -210,27 +214,30 @@ class _BusinessDetailsScreenState extends ConsumerState<BusinessDetailsScreen> {
                           children: [
                             _field(
                               name,
-                              tr(context, 'Business name', 'اسم المنشأة'),
+                              tr(context, 'Business name', 'Jina la biashara'),
                               required: true,
                             ),
                             _field(
                               arabicName,
-                              tr(context, 'Arabic name', 'الاسم العربي'),
-                              textDirection: TextDirection.rtl,
+                              tr(
+                                context,
+                                'Local / Kiswahili name',
+                                'Jina la Kiswahili',
+                              ),
                             ),
                             _field(
                               phone,
-                              tr(context, 'Phone', 'الهاتف'),
+                              tr(context, 'Phone', 'Simu'),
                               keyboardType: TextInputType.phone,
                             ),
                             _field(
                               email,
-                              tr(context, 'Email', 'البريد الإلكتروني'),
+                              tr(context, 'Email', 'Barua pepe'),
                               keyboardType: TextInputType.emailAddress,
                             ),
                             _field(
                               tagline,
-                              tr(context, 'Tagline', 'العبارة التعريفية'),
+                              tr(context, 'Tagline', 'Kauli mbiu'),
                             ),
                             if (message != null) ...[
                               const SizedBox(height: 4),
@@ -254,7 +261,9 @@ class _BusinessDetailsScreenState extends ConsumerState<BusinessDetailsScreen> {
                                     tr(
                                       context,
                                       saving ? 'Saving…' : 'Save changes',
-                                      saving ? 'جارٍ الحفظ…' : 'حفظ التغييرات',
+                                      saving
+                                          ? 'Inahifadhi…'
+                                          : 'Hifadhi mabadiliko',
                                     ),
                                   ),
                                 ),
@@ -287,7 +296,7 @@ class _BusinessDetailsScreenState extends ConsumerState<BusinessDetailsScreen> {
       decoration: InputDecoration(labelText: label),
       validator: required
           ? (value) => value == null || value.trim().isEmpty
-                ? tr(context, 'Required', 'مطلوب')
+                ? tr(context, 'Required', 'Inahitajika')
                 : null
           : null,
     ),

@@ -12,6 +12,14 @@ type ScopedFaq = SupportFaq & { anyPermission?: string[]; roles?: string[] };
 
 const faqs: ScopedFaq[] = [
   {
+    id: "pos-erp-workspace",
+    category: "Getting started",
+    question: "Is AllShops only a point-of-sale app?",
+    answer:
+      "No. AllShops combines POS with practical ERP operations: catalogue, inventory, purchasing, suppliers, customer credit, expenses, staff, appointments, branch controls, reconciliation and management reports share one permission-aware workspace on web and mobile.",
+    platforms: ["WEB", "MOBILE"],
+  },
+  {
     id: "sign-in",
     category: "Getting started",
     question: "How do I sign in on web or mobile?",
@@ -49,7 +57,7 @@ const faqs: ScopedFaq[] = [
     category: "Point of sale",
     question: "How is cash change calculated?",
     answer:
-      "Choose Cash and enter the amount received. The change or remaining amount is shown before checkout. Confirm it with the customer, then complete the sale; configured web registers can print automatically.",
+      "Choose Cash and enter the amount received in KES. The change or remaining amount is shown before checkout. For external mobile-money or bank-terminal payments, record the approved reference before completing the sale; configured web registers can print automatically.",
     platforms: ["WEB", "MOBILE"],
     anyPermission: ["payment.record"],
   },

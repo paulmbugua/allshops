@@ -1,6 +1,10 @@
-# AllShops Qatar
+# AllShops Kenya
 
-AllShops is a Qatar-first, multi-tenant POS and small-business operating platform. The repository implements Phases 0–9: foundation, authentication/tenancy/RBAC, catalogue/inventory, POS sales, procurement and credit, services and appointments, reporting, offline-first POS synchronization, SaaS subscriptions/entitlements, and production hardening/operations.
+AllShops is a Kenya-first, multi-tenant POS and ERP workspace for retail and
+service businesses. It combines catalogue, inventory, purchasing, POS sales,
+customers and credit, appointments, staff, reconciliation, reporting,
+offline-first synchronization, subscriptions, role-based access, and production
+operations in one web and mobile platform.
 
 Production rollout: [Docker VPS deployment](docs/operations/deployment.md) for `allshopspos.com`, `www.allshopspos.com`, and `api.allshopspos.com`, and [Flutter Google Play release](docs/operations/mobile-play-release.md) for the signed Android API 36 app bundle.
 
@@ -115,7 +119,11 @@ Every organization route resolves active membership and database-backed permissi
 
 Phase 2 adds organization-scoped categories, brands, units, products, and lightweight product variants. Categories support parent/child hierarchies. SKU and barcode values are optional and unique within a merchant catalogue. Product types are `STOCK_ITEM`, `SERVICE`, and `NON_STOCK_ITEM`; only stock-tracked stock items accept inventory movements.
 
-Costs and selling prices are integer minor units. For example, QAR 15.50 is persisted as `1550`. Variant-specific cost and price values override the parent product when present; `null` means the variant inherits the product value. Arabic names are stored as Unicode text. Product image URLs are supported, while upload/storage infrastructure remains deferred.
+Costs and selling prices are integer minor units. For example, KES 15.50 is
+persisted as `1550`. Variant-specific cost and price values override the parent
+product when present; `null` means the variant inherits the product value.
+Localized names are stored as Unicode text and product image uploads are served
+through the protected application media path.
 
 Catalogue endpoints under `/api/v1/organizations/:organizationId` provide paginated categories, brands, units, products, filters, and variants. Merchant pages are available at `/products`, `/products/new`, `/products/:id`, `/categories`, `/brands`, and `/units`.
 
@@ -143,7 +151,13 @@ OWNER and ADMIN receive all Phase 2 permissions. MANAGER receives catalogue and 
 
 ## Phase 3 POS and sales
 
-The `/pos` workspace provides branch-aware product search and keyboard barcode scanning, cart quantity merging, available-stock hints, held carts, authorized discounts, flexible Qatar tender capture, double-submit protection, and receipt handoff. Cashiers can record cash or approval from a local card terminal such as QNB or Doha Bank. Paystack is not a merchant POS tender. Sales history is available at `/sales`; held and completed sale detail is at `/sales/:id`; the browser-printable bilingual 80 mm receipt is at `/sales/:id/receipt`.
+The `/pos` workspace provides branch-aware product search and keyboard barcode
+scanning, cart quantity merging, available-stock hints, held carts, authorized
+discounts, Kenyan cash and local-card tender capture, double-submit protection,
+and receipt handoff. Paystack is used for AllShops subscription billing, not as a
+merchant POS tender. Sales history is available at `/sales`; held and completed
+sale detail is at `/sales/:id`; the browser-printable 80 mm receipt is at
+`/sales/:id/receipt`.
 
 API routes under `/api/v1/organizations/:organizationId` include `/pos/products`, `/sales/checkout`, `/sales`, `/sales/held`, `/sales/:saleId`, and explicit `complete`, `cancel`, and `receipt` operations. Checkout and held-sale completion require a UUID `Idempotency-Key`. Missing keys are rejected.
 

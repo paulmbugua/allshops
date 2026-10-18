@@ -71,7 +71,7 @@ class _ModuleScreenState extends ConsumerState<ModuleScreen> {
             foregroundColor: Colors.white,
             onPressed: _create,
             icon: const Icon(Icons.add_rounded),
-            label: Text(tr(context, 'New', 'جديد')),
+            label: Text(tr(context, 'New', 'Mpya')),
           ),
     body: FutureBuilder<dynamic>(
       future: data,
@@ -287,7 +287,7 @@ class _RecordCard extends StatelessWidget {
               ),
               if (amount is num)
                 Text(
-                  'QAR ${(amount / 100).toStringAsFixed(2)}',
+                  'KES ${(amount / 100).toStringAsFixed(2)}',
                   style: TextStyle(
                     color: config.color,
                     fontWeight: FontWeight.w900,

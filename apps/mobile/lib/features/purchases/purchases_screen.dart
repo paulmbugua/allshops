@@ -497,7 +497,7 @@ class _PurchaseCreateSheetState extends ConsumerState<_PurchaseCreateSheet> {
                   ),
                   onChanged: (_) => setState(() {}),
                   decoration: const InputDecoration(
-                    labelText: 'Order discount (QAR)',
+                    labelText: 'Order discount (KES)',
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -697,7 +697,7 @@ class _PurchaseLineCard extends StatelessWidget {
     onChanged: (_) => onChanged(),
     decoration: InputDecoration(
       labelText: label,
-      suffixText: label == 'Quantity' ? null : 'QAR',
+      suffixText: label == 'Quantity' ? null : 'KES',
     ),
   );
 }
@@ -1291,7 +1291,7 @@ class _SupplierPaymentSheetState extends ConsumerState<_SupplierPaymentSheet> {
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             decoration: const InputDecoration(
               labelText: 'Amount',
-              prefixText: 'QAR ',
+              prefixText: 'KES ',
             ),
           ),
           const SizedBox(height: 10),
@@ -1560,7 +1560,7 @@ String _compact(double value) => value == value.roundToDouble()
 
 String _money(dynamic value) {
   final minor = value is num ? value.toInt() : int.tryParse('$value') ?? 0;
-  return 'QAR ${(minor / 100).toStringAsFixed(2)}';
+  return 'KES ${(minor / 100).toStringAsFixed(2)}';
 }
 
 String _date(dynamic value) {

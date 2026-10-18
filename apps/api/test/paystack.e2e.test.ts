@@ -7,7 +7,7 @@ import { AppModule } from "../src/app.module.js";
 import { configureApi } from "../src/configure-api.js";
 
 process.env.PAYSTACK_SECRET_KEY = "sk_test_allshops_test_only";
-process.env.PAYSTACK_CURRENCY = "QAR";
+process.env.PAYSTACK_CURRENCY = "KES";
 process.env.PAYSTACK_SUBSCRIPTION_CALLBACK_URL =
   "http://localhost:3000/settings/subscription/payment-return";
 
@@ -65,8 +65,7 @@ try {
     .send({ planCode: paidPlan.code, billingInterval: "MONTHLY" });
   const bill = selected.body.billingRecord;
   process.env.PAYSTACK_CURRENCY = "KES";
-  process.env.PAYSTACK_QAR_TO_KES_RATE = "30";
-  const gatewayAmountMinor = bill.amountMinor * 30;
+  const gatewayAmountMinor = bill.amountMinor;
   globalThis.fetch = (async (_input, init) => {
     initializedBody = JSON.parse(String(init?.body)) as Record<string, unknown>;
     return new Response(
@@ -92,7 +91,7 @@ try {
   assert.equal(initializedBody?.amount, String(gatewayAmountMinor));
   assert.equal(initializedBody?.currency, "KES");
   assert.equal(subscriptionIntent.body.sourceAmountMinor, bill.amountMinor);
-  assert.equal(subscriptionIntent.body.sourceCurrency, "QAR");
+  assert.equal(subscriptionIntent.body.sourceCurrency, "KES");
   assert.deepEqual(initializedBody?.channels, ["card"]);
   assert.equal(
     JSON.parse(String(initializedBody?.metadata)).purpose,

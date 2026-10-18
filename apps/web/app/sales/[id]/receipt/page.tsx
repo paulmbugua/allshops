@@ -46,7 +46,7 @@ export default function ReceiptPage() {
         <header>
           <h1>{sale.organization?.name}</h1>
           {sale.organization?.arabicName && (
-            <p lang="ar">{sale.organization.arabicName}</p>
+            <p lang="sw">{sale.organization.arabicName}</p>
           )}
           <p>
             {sale.branch.name}
@@ -139,7 +139,7 @@ export default function ReceiptPage() {
         )}
         <footer>
           <p>Thank you</p>
-          <p lang="ar">شكراً لكم</p>
+          <p lang="sw">Asante sana</p>
         </footer>
       </article>
       <div className="print-actions">

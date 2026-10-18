@@ -24,7 +24,7 @@ class AppLanguageScope extends InheritedWidget {
   });
   final String language;
   final ValueChanged<String> setLanguage;
-  bool get isArabic => language == 'ar';
+  bool get isSwahili => language == 'sw';
   static AppLanguageScope of(BuildContext context) =>
       context.dependOnInheritedWidgetOfExactType<AppLanguageScope>()!;
   @override
@@ -32,72 +32,72 @@ class AppLanguageScope extends InheritedWidget {
       language != oldWidget.language;
 }
 
-String tr(BuildContext context, String english, String arabic) =>
-    AppLanguageScope.of(context).isArabic ? arabic : english;
+String tr(BuildContext context, String english, String swahili) =>
+    AppLanguageScope.of(context).isSwahili ? swahili : english;
 
-const _arabicLabels = <String, String>{
-  'Products': 'المنتجات',
-  'Sales': 'المبيعات',
-  'Customers': 'العملاء',
-  'Purchases': 'أوامر الشراء',
-  'Suppliers': 'الموردون',
-  'Expenses': 'المصروفات',
-  'Expense categories': 'فئات المصروفات',
-  'Appointments': 'المواعيد',
-  'Staff': 'الموظفون',
-  'Commissions': 'العمولات',
-  'Commission rules': 'قواعد العمولة',
-  'Branches': 'الفروع',
-  'Users': 'المستخدمون',
-  'Devices': 'الأجهزة',
-  'Subscription': 'الاشتراك',
-  'Billing': 'الفوترة',
-  'Sync conflicts': 'تعارضات المزامنة',
-  'Readiness': 'الجاهزية',
-  'Support diagnostics': 'الدعم والتشخيص',
-  'Current stock': 'المخزون الحالي',
-  'Transfers': 'التحويلات',
-  'Movements': 'الحركات',
-  'Categories': 'الفئات',
-  'Brands': 'العلامات التجارية',
-  'Units': 'الوحدات',
-  'End-of-day cash-up': 'تسوية نهاية اليوم',
-  'Reports': 'التقارير',
-  'Dashboard': 'لوحة المعلومات',
-  'Profit': 'الأرباح',
-  'Payments': 'المدفوعات',
-  'Inventory': 'المخزون',
-  'New': 'جديد',
-  'Search': 'بحث',
-  'Name': 'الاسم',
-  'Full name': 'الاسم الكامل',
-  'Email': 'البريد الإلكتروني',
-  'Phone': 'الهاتف',
-  'Address': 'العنوان',
-  'Role': 'الدور',
-  'Branch': 'الفرع',
-  'Status': 'الحالة',
-  'Notes': 'ملاحظات',
-  'Quantity': 'الكمية',
-  'Price': 'السعر',
-  'Cost': 'التكلفة',
-  'Product': 'المنتج',
-  'Category': 'الفئة',
-  'Brand': 'العلامة التجارية',
-  'Reference': 'المرجع',
-  'Payment method': 'طريقة الدفع',
-  'Date': 'التاريخ',
-  'Description': 'الوصف',
-  'Business details': 'بيانات المنشأة',
-  'Open workspace': 'فتح مساحة العمل',
-  'Display language': 'لغة العرض',
-  'Save changes': 'حفظ التغييرات',
-  'Required': 'مطلوب',
+const _swahiliLabels = <String, String>{
+  'Products': 'Bidhaa',
+  'Sales': 'Mauzo',
+  'Customers': 'Wateja',
+  'Purchases': 'Manunuzi',
+  'Suppliers': 'Wasambazaji',
+  'Expenses': 'Gharama',
+  'Expense categories': 'Aina za gharama',
+  'Appointments': 'Miadi',
+  'Staff': 'Wafanyakazi',
+  'Commissions': 'Kamisheni',
+  'Commission rules': 'Kanuni za kamisheni',
+  'Branches': 'Matawi',
+  'Users': 'Watumiaji',
+  'Devices': 'Vifaa',
+  'Subscription': 'Usajili',
+  'Billing': 'Malipo',
+  'Sync conflicts': 'Migongano ya usawazishaji',
+  'Readiness': 'Utayari',
+  'Support diagnostics': 'Msaada na uchunguzi',
+  'Current stock': 'Stoo ya sasa',
+  'Transfers': 'Uhamisho',
+  'Movements': 'Miamala ya stoo',
+  'Categories': 'Aina',
+  'Brands': 'Chapa',
+  'Units': 'Vipimo',
+  'End-of-day cash-up': 'Hesabu ya mwisho wa siku',
+  'Reports': 'Ripoti',
+  'Dashboard': 'Dashibodi',
+  'Profit': 'Faida',
+  'Payments': 'Malipo',
+  'Inventory': 'Stoo',
+  'New': 'Mpya',
+  'Search': 'Tafuta',
+  'Name': 'Jina',
+  'Full name': 'Jina kamili',
+  'Email': 'Barua pepe',
+  'Phone': 'Simu',
+  'Address': 'Anwani',
+  'Role': 'Wajibu',
+  'Branch': 'Tawi',
+  'Status': 'Hali',
+  'Notes': 'Maelezo',
+  'Quantity': 'Idadi',
+  'Price': 'Bei',
+  'Cost': 'Gharama',
+  'Product': 'Bidhaa',
+  'Category': 'Aina',
+  'Brand': 'Chapa',
+  'Reference': 'Rejeleo',
+  'Payment method': 'Njia ya malipo',
+  'Date': 'Tarehe',
+  'Description': 'Maelezo',
+  'Business details': 'Maelezo ya biashara',
+  'Open workspace': 'Fungua mfumo',
+  'Display language': 'Lugha ya kuonyesha',
+  'Save changes': 'Hifadhi mabadiliko',
+  'Required': 'Inahitajika',
 };
 
 String translateLabel(BuildContext context, String english) =>
-    AppLanguageScope.of(context).isArabic
-    ? _arabicLabels[english] ?? english
+    AppLanguageScope.of(context).isSwahili
+    ? _swahiliLabels[english] ?? english
     : english;
 
 class AllShopsApp extends StatefulWidget {
@@ -116,7 +116,7 @@ class _AllShopsAppState extends State<AllShopsApp> {
         .read(key: 'allshops_display_language')
         .timeout(const Duration(seconds: 2))
         .then((value) {
-          if (mounted && (value == 'en' || value == 'ar')) {
+          if (mounted && (value == 'en' || value == 'sw')) {
             setState(() => language = value!);
           }
         })
@@ -124,7 +124,7 @@ class _AllShopsAppState extends State<AllShopsApp> {
   }
 
   void setLanguage(String value) {
-    if (value != 'en' && value != 'ar') return;
+    if (value != 'en' && value != 'sw') return;
     setState(() => language = value);
     unawaited(
       storage
@@ -139,11 +139,11 @@ class _AllShopsAppState extends State<AllShopsApp> {
     language: language,
     setLanguage: setLanguage,
     child: MaterialApp(
-      title: 'AllShops POS',
+      title: 'AllShops POS + ERP',
       debugShowCheckedModeBanner: false,
       theme: AllShopsTheme.light,
       locale: Locale(language),
-      supportedLocales: const [Locale('en'), Locale('ar')],
+      supportedLocales: const [Locale('en'), Locale('sw')],
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
       navigatorObservers: [AppNavigationObserver()],
       home: const SessionGate(),

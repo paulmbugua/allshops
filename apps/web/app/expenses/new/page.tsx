@@ -93,7 +93,7 @@ export default function NewExpensePage() {
               </select>
             </label>
             <label>
-              Amount QAR
+              Amount KES
               <input
                 name="amount"
                 type="number"

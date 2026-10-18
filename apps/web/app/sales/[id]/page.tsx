@@ -200,7 +200,7 @@ export default function SalePage() {
                         onChange={(event) => setLocalBank(event.target.value)}
                       >
                         <option>QNB</option>
-                        <option>Doha Bank</option>
+                        <option>Mobile money / bank terminal</option>
                         <option>Commercial Bank</option>
                         <option>QIB</option>
                         <option>Dukhan Bank</option>

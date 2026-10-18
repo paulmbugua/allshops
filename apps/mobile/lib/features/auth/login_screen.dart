@@ -61,7 +61,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         error = tr(
           context,
           'Enter your email address first.',
-          'أدخل بريدك الإلكتروني أولاً.',
+          'Weka barua pepe yako kwanza.',
         );
       });
       return;
@@ -107,7 +107,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 ),
                 const SizedBox(height: 28),
                 Text(
-                  tr(context, 'Welcome back', 'مرحباً بعودتك'),
+                  tr(context, 'Welcome back', 'Karibu tena'),
                   style: const TextStyle(
                     fontSize: 40,
                     fontWeight: FontWeight.w900,
@@ -119,7 +119,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   tr(
                     context,
                     'Sign in to open your AllShops workspace.',
-                    'سجّل الدخول لفتح مساحة عمل AllShops.',
+                    'Ingia ili ufungue mfumo wako wa AllShops POS + ERP.',
                   ),
                   style: TextStyle(
                     color: Colors.blueGrey.shade500,
@@ -132,11 +132,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   keyboardType: TextInputType.emailAddress,
                   textInputAction: TextInputAction.next,
                   decoration: InputDecoration(
-                    labelText: tr(
-                      context,
-                      'Email address',
-                      'البريد الإلكتروني',
-                    ),
+                    labelText: tr(context, 'Email address', 'Barua pepe'),
                     prefixIcon: const Icon(Icons.alternate_email_rounded),
                   ),
                 ),
@@ -146,7 +142,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   obscureText: true,
                   onSubmitted: (_) => submit(),
                   decoration: InputDecoration(
-                    labelText: tr(context, 'Password', 'كلمة المرور'),
+                    labelText: tr(context, 'Password', 'Nenosiri'),
                     prefixIcon: const Icon(Icons.lock_outline_rounded),
                   ),
                 ),
@@ -159,7 +155,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ),
                     ),
                     child: Text(
-                      tr(context, 'Forgot password?', 'هل نسيت كلمة المرور؟'),
+                      tr(context, 'Forgot password?', 'Umesahau nenosiri?'),
                     ),
                   ),
                 ),
@@ -174,26 +170,30 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ? tr(
                               context,
                               'Activation email sent',
-                              'تم إرسال رسالة التفعيل',
+                              'Ujumbe wa uanzishaji umetumwa',
                             )
-                          : tr(context, 'Activate your account', 'فعّل حسابك'),
+                          : tr(
+                              context,
+                              'Activate your account',
+                              'Washa akaunti yako',
+                            ),
                       message: activationSent
                           ? tr(
                               context,
                               'Check your inbox and spam folder, open the secure activation link, then return here to sign in.',
-                              'تحقق من بريدك الوارد ومجلد الرسائل غير المرغوب فيها، وافتح رابط التفعيل الآمن، ثم عد لتسجيل الدخول.',
+                              'Angalia kikasha na barua taka, fungua kiungo salama cha uanzishaji, kisha urudi kuingia.',
                             )
                           : tr(
                               context,
                               'Before signing in, open the secure activation link we sent to your email.',
-                              'قبل تسجيل الدخول، افتح رابط التفعيل الآمن الذي أرسلناه إلى بريدك الإلكتروني.',
+                              'Kabla ya kuingia, fungua kiungo salama tulichotuma kwa barua pepe.',
                             ),
                       actionLabel: resending
-                          ? tr(context, 'Sending…', 'جارٍ الإرسال…')
+                          ? tr(context, 'Sending…', 'Inatuma…')
                           : tr(
                               context,
                               'Resend activation email',
-                              'إعادة إرسال رسالة التفعيل',
+                              'Tuma ujumbe wa uanzishaji tena',
                             ),
                       onAction: resending ? null : resendActivation,
                     ),
@@ -206,7 +206,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       title: tr(
                         context,
                         'Unable to sign in',
-                        'تعذر تسجيل الدخول',
+                        'Imeshindikana kuingia',
                       ),
                       message: error!,
                     ),
@@ -216,8 +216,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   onPressed: busy ? null : submit,
                   child: Text(
                     busy
-                        ? tr(context, 'Signing in…', 'جارٍ تسجيل الدخول…')
-                        : tr(context, 'Sign in securely', 'تسجيل دخول آمن'),
+                        ? tr(context, 'Signing in…', 'Inaingia…')
+                        : tr(context, 'Sign in securely', 'Ingia kwa usalama'),
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -233,7 +233,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     tr(
                       context,
                       'New business? Create account',
-                      'نشاط جديد؟ أنشئ حساباً',
+                      'Biashara mpya? Fungua akaunti',
                     ),
                   ),
                 ),
@@ -242,7 +242,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   tr(
                     context,
                     'Your access follows the same roles, branch restrictions and subscription controls as AllShops Web.',
-                    'تتبع صلاحياتك الأدوار وقيود الفروع وضوابط الاشتراك نفسها في الويب.',
+                    'Ruhusa, matawi na udhibiti wa usajili ni sawa kwenye wavuti na simu.',
                   ),
                   textAlign: TextAlign.center,
                   style: TextStyle(color: Colors.blueGrey, fontSize: 12),

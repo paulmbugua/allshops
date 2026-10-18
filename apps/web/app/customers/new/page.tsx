@@ -58,11 +58,11 @@ export default function NewCustomerPage() {
               <select name="language">
                 <option value="">Not set</option>
                 <option value="en">English</option>
-                <option value="ar">Arabic</option>
+                <option value="sw">Kiswahili</option>
               </select>
             </label>
             <label>
-              Credit limit QAR
+              Credit limit KES
               <input name="limit" type="number" min="0" step="0.01" />
             </label>
           </div>

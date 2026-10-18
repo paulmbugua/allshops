@@ -15,6 +15,7 @@ export class WorkerService
   private readonly logger = new Logger(WorkerService.name);
   private readonly redis = new Redis(process.env.REDIS_URL!, {
     lazyConnect: true,
+    keyPrefix: process.env.REDIS_KEY_PREFIX ?? "allshops:",
   });
   private timer?: NodeJS.Timeout;
   private healthServer?: Server;

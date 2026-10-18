@@ -104,7 +104,7 @@ export function ReferenceManager({
             {kind === "categories" && (
               <>
                 <label>
-                  Arabic name
+                  Local / Kiswahili name
                   <input name="arabicName" dir="auto" />
                 </label>
                 <label>

@@ -1369,7 +1369,7 @@ export class Phase5Service {
 
   private localParts(value: Date) {
     const parts = new Intl.DateTimeFormat("en-CA", {
-      timeZone: "Asia/Qatar",
+      timeZone: "Africa/Nairobi",
       weekday: "short",
       year: "numeric",
       month: "2-digit",

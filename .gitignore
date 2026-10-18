@@ -35,3 +35,7 @@ apps/mobile/build/
 # VPS production secrets
 ops/vps-production.env
 ops/windows/vps-production.env
+ops/shared-infrastructure/.env
+ops/shared-infrastructure/secrets/
+ops/shared-infrastructure/backups/
+.shared-migration-verified

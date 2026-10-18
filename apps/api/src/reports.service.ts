@@ -384,7 +384,7 @@ export class ReportsService {
     >();
     for (const sale of sales) {
       const key = new Intl.DateTimeFormat("en-CA", {
-        timeZone: "Asia/Qatar",
+        timeZone: "Africa/Nairobi",
         year: "numeric",
         month: "2-digit",
         day: "2-digit",
@@ -417,19 +417,38 @@ export class ReportsService {
     });
     const refunds = await prisma.saleRefund.groupBy({
       by: ["method"],
-      where: { organizationId: tenant.organizationId, status: "COMPLETED", createdAt: { gte: from, lt: to }, sale: { status: "COMPLETED", ...(branchId ? { branchId } : {}) } },
+      where: {
+        organizationId: tenant.organizationId,
+        status: "COMPLETED",
+        createdAt: { gte: from, lt: to },
+        sale: { status: "COMPLETED", ...(branchId ? { branchId } : {}) },
+      },
       _count: { _all: true },
       _sum: { amountMinor: true },
     });
     const refundByMethod = new Map(refunds.map((row) => [row.method, row]));
-    const collectedMinor = records.reduce(
-      (sum, row) => sum + (row._sum.amountMinor ?? 0),
-      0,
-    ) - refunds.reduce((sum, row) => sum + (row._sum.amountMinor ?? 0), 0);
-    const methods = [...new Set([...records.map((row) => row.method), ...refunds.map((row) => row.method)])].map((method) => {
+    const collectedMinor =
+      records.reduce((sum, row) => sum + (row._sum.amountMinor ?? 0), 0) -
+      refunds.reduce((sum, row) => sum + (row._sum.amountMinor ?? 0), 0);
+    const methods = [
+      ...new Set([
+        ...records.map((row) => row.method),
+        ...refunds.map((row) => row.method),
+      ]),
+    ].map((method) => {
       const payment = records.find((row) => row.method === method);
       const refund = refundByMethod.get(method);
-      return { method, transactionCount: (payment?._count._all ?? 0) - (refund?._count._all ?? 0), amountMinor: (payment?._sum.amountMinor ?? 0) - (refund?._sum.amountMinor ?? 0), percentage: percentage((payment?._sum.amountMinor ?? 0) - (refund?._sum.amountMinor ?? 0), collectedMinor) };
+      return {
+        method,
+        transactionCount:
+          (payment?._count._all ?? 0) - (refund?._count._all ?? 0),
+        amountMinor:
+          (payment?._sum.amountMinor ?? 0) - (refund?._sum.amountMinor ?? 0),
+        percentage: percentage(
+          (payment?._sum.amountMinor ?? 0) - (refund?._sum.amountMinor ?? 0),
+          collectedMinor,
+        ),
+      };
     });
     return {
       period: this.period(input),
@@ -1161,7 +1180,7 @@ export class ReportsService {
     return {
       from: from.toISOString(),
       toExclusive: to.toISOString(),
-      timezone: "Asia/Qatar",
+      timezone: "Africa/Nairobi",
     };
   }
 }

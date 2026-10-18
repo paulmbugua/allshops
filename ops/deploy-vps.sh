@@ -25,18 +25,39 @@ compose() {
   docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" "$@"
 }
 
+if [ -z "${CADDY_CONTAINER:-}" ] && docker inspect rivera-caddy-1 >/dev/null 2>&1; then
+  CADDY_CONTAINER=rivera-caddy-1
+fi
+
+for dependency in shared-postgres shared-pgbouncer shared-redis; do
+  if [ "$(docker inspect -f '{{.State.Health.Status}}' "$dependency" 2>/dev/null || true)" != "healthy" ]; then
+    printf 'Shared dependency %s is not healthy. Install/check /opt/infrastructure/postgres first.\n' "$dependency" >&2
+    exit 1
+  fi
+done
+docker network inspect shared_backend >/dev/null 2>&1 || {
+  printf 'Missing private shared_backend Docker network.\n' >&2
+  exit 1
+}
+
+legacy_postgres="$(docker ps -aq \
+  --filter label=com.docker.compose.project=allshops-production \
+  --filter label=com.docker.compose.service=postgres | head -n 1)"
+if [ -n "$legacy_postgres" ] && [ ! -f .shared-migration-verified ]; then
+  printf 'Legacy AllShops PostgreSQL was detected. Refusing to switch before a verified migration.\n' >&2
+  printf 'Run ./ops/migrate-allshops-to-shared-postgres.sh, review its checks, then redeploy.\n' >&2
+  exit 1
+fi
+
 printf 'Validating production Compose configuration...\n'
 compose config --quiet
 
 printf 'Building immutable production services...\n'
 compose build --pull web api worker migrate
 
-printf 'Starting private data services...\n'
-compose up -d postgres redis
-
 if [ "${SKIP_PREDEPLOY_BACKUP:-false}" != "true" ]; then
   printf 'Creating verified pre-deployment PostgreSQL backup...\n'
-  compose --profile operations run --rm backup
+  SKIP_OFFSITE=true /opt/infrastructure/postgres/bin/backup-databases.sh allshops_db
 fi
 
 printf 'Deploying migration, API, worker, web, and HTTPS edge...\n'

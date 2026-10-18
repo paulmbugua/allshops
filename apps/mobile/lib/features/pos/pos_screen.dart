@@ -417,7 +417,7 @@ class _PosScreenState extends ConsumerState<PosScreen> {
         setState(() {
           message = enteredMinor < 0
               ? 'Enter a valid cash amount before completing the sale.'
-              : 'Cash received is ${(totalMinor - enteredMinor) / 100} QAR short.';
+              : 'Cash received is KES ${(totalMinor - enteredMinor) / 100} short.';
         });
         return;
       }
@@ -887,7 +887,7 @@ class _CartSheet extends StatelessWidget {
                 style: TextStyle(color: Color(0xFFAEC5BD), fontSize: 11),
               ),
               Text(
-                '${(totalMinor / 100).toStringAsFixed(2)} QAR',
+                'KES ${(totalMinor / 100).toStringAsFixed(2)}',
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 20,
@@ -1042,7 +1042,7 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      '${(entry.value.totalMinor / 100).toStringAsFixed(2)} QAR',
+                      'KES ${(entry.value.totalMinor / 100).toStringAsFixed(2)}',
                       style: const TextStyle(fontWeight: FontWeight.w900),
                     ),
                     IconButton(
@@ -1062,7 +1062,7 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
                 ),
                 const Spacer(),
                 Text(
-                  '${(totalMinor / 100).toStringAsFixed(2)} QAR',
+                  'KES ${(totalMinor / 100).toStringAsFixed(2)}',
                   style: const TextStyle(
                     fontSize: 25,
                     fontWeight: FontWeight.w900,
@@ -1110,8 +1110,8 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
                               decimal: true,
                             ),
                             decoration: const InputDecoration(
-                              labelText: 'Cash received (QAR)',
-                              prefixText: 'QAR ',
+                              labelText: 'Cash received (KES)',
+                              prefixText: 'KES ',
                             ),
                           ),
                           const SizedBox(height: 10),
@@ -1124,7 +1124,7 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
                                     label: Text(
                                       amount == totalMinor
                                           ? 'Exact'
-                                          : '${amount / 100} QAR',
+                                          : 'KES ${amount / 100}',
                                     ),
                                     onPressed: () {
                                       cash.text = (amount / 100)
@@ -1157,7 +1157,7 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
                             items:
                                 const [
                                       'QNB',
-                                      'Doha Bank',
+                                      'Mobile money / bank terminal',
                                       'Commercial Bank',
                                       'QIB',
                                       'Dukhan Bank',
@@ -1185,7 +1185,7 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
                           ),
                           const SizedBox(height: 9),
                           Text(
-                            'Record exactly ${(totalMinor / 100).toStringAsFixed(2)} QAR after the terminal approves the card.',
+                            'Record exactly KES ${(totalMinor / 100).toStringAsFixed(2)} after the payment terminal approves the transaction.',
                             style: const TextStyle(
                               color: Color(0xFF536C64),
                               fontSize: 12,
@@ -1256,8 +1256,8 @@ class _CashResult extends StatelessWidget {
         : receivedMinor == null
         ? 'Enter cash received to calculate change'
         : shortfallMinor > 0
-        ? 'Short by ${(shortfallMinor / 100).toStringAsFixed(2)} QAR'
-        : 'Change due ${(changeMinor / 100).toStringAsFixed(2)} QAR';
+        ? 'Short by KES ${(shortfallMinor / 100).toStringAsFixed(2)}'
+        : 'Change due KES ${(changeMinor / 100).toStringAsFixed(2)}';
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
@@ -1328,7 +1328,7 @@ class _ProductTile extends StatelessWidget {
       button: true,
       enabled: !outOfStock,
       label:
-          '${product.name}, $identity, ${(product.priceMinor / 100).toStringAsFixed(2)} QAR',
+          '${product.name}, $identity, KES ${(product.priceMinor / 100).toStringAsFixed(2)}',
       child: Opacity(
         opacity: outOfStock ? .48 : 1,
         child: Card(
@@ -1379,7 +1379,7 @@ class _ProductTile extends StatelessWidget {
                             border: Border.all(color: Colors.white30),
                           ),
                           child: Text(
-                            '${(product.priceMinor / 100).toStringAsFixed(2)} QAR',
+                            'KES ${(product.priceMinor / 100).toStringAsFixed(2)}',
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 9,

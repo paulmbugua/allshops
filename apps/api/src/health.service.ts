@@ -15,6 +15,7 @@ export class HealthService implements OnModuleDestroy {
       lazyConnect: true,
       maxRetriesPerRequest: 1,
       retryStrategy: () => null,
+      keyPrefix: process.env.REDIS_KEY_PREFIX ?? "allshops:",
     },
   );
 

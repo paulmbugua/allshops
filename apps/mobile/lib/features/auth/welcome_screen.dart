@@ -28,7 +28,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   static const _languageKey = 'allshops_display_language';
   String language = 'en';
 
-  bool get isArabic => language == 'ar';
+  bool get isArabic => language == 'sw';
 
   @override
   void initState() {
@@ -45,7 +45,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     } on Object {
       // Language restoration is optional and must never block the welcome UI.
     }
-    if (mounted && (saved == 'ar' || saved == 'en')) {
+    if (mounted && (saved == 'sw' || saved == 'en')) {
       setState(() => language = saved!);
     }
   }
@@ -68,16 +68,16 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     context: context,
     locale: Locale(language),
     child: Directionality(
-      textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr,
+      textDirection: TextDirection.ltr,
       child: Scaffold(
         backgroundColor: AllShopsTheme.qatarMaroon,
         body: Stack(
           fit: StackFit.expand,
           children: [
             Image.asset(
-              'assets/culture/qatar-shop-welcome.webp',
+              'assets/culture/kenya-shop-welcome.webp',
               fit: BoxFit.cover,
-              alignment: isArabic ? Alignment.topLeft : Alignment.topCenter,
+              alignment: Alignment.topCenter,
               filterQuality: FilterQuality.high,
             ),
             const DecoratedBox(
@@ -116,131 +116,126 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                           minHeight: constraints.maxHeight - 44,
                         ),
                         child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  child: _Brand(
+                                    shopName: widget.shopName,
+                                    isArabic: isArabic,
+                                  ),
+                                ),
+                                _LanguageToggle(
+                                  language: language,
+                                  onChanged: _setLanguage,
+                                ),
+                              ],
+                            ),
+                            SizedBox(
+                              height: constraints.maxHeight > 700 ? 72 : 24,
+                            ),
+                            ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 520),
+                              child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Expanded(
-                                    child: _Brand(
-                                      shopName: widget.shopName,
-                                      isArabic: isArabic,
+                                  _QatarWelcomeBadge(isArabic: isArabic),
+                                  const SizedBox(height: 18),
+                                  Text(
+                                    widget.shopName == null
+                                        ? isArabic
+                                              ? 'Biashara ya kisasa,\niliyojengwa Kenya.'
+                                              : 'Modern business,\nbuilt for Kenya.'
+                                        : isArabic
+                                        ? 'Karibu kwenye\n${widget.shopName}.'
+                                        : 'Welcome to\n${widget.shopName}.',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: constraints.maxWidth > 600
+                                          ? 54
+                                          : 42,
+                                      height: isArabic ? 1.12 : .98,
+                                      letterSpacing: isArabic ? -.5 : -1.8,
+                                      fontWeight: FontWeight.w900,
                                     ),
                                   ),
-                                  _LanguageToggle(
-                                    language: language,
-                                    onChanged: _setLanguage,
+                                  const SizedBox(height: 14),
+                                  Text(
+                                    isArabic
+                                        ? 'Mfumo rahisi wa POS + ERP kwa watu wanaohudumia, kuuza na kukuza biashara Kenya kila siku.'
+                                        : 'One beautifully simple POS + ERP workspace for the people building Kenya every day.',
+                                    style: TextStyle(
+                                      color: Colors.white.withValues(
+                                        alpha: .76,
+                                      ),
+                                      fontSize: 15,
+                                      height: 1.6,
+                                    ),
                                   ),
+                                  const SizedBox(height: 24),
+                                  if (widget.startupUnavailable) ...[
+                                    _StartupNotice(
+                                      isArabic: isArabic,
+                                      timedOut: widget.startupTimedOut,
+                                      onRetry: widget.onRetryStartup,
+                                    ),
+                                    const SizedBox(height: 14),
+                                  ],
+                                  FilledButton(
+                                    style: FilledButton.styleFrom(
+                                      minimumSize: const Size.fromHeight(58),
+                                      backgroundColor: AllShopsTheme.qatarSand,
+                                      foregroundColor:
+                                          AllShopsTheme.qatarMaroon,
+                                    ),
+                                    onPressed: () => Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (_) => const LoginScreen(),
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Text(
+                                          isArabic
+                                              ? 'Wafanyakazi waingie'
+                                              : 'Staff sign in',
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.w900,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 10),
+                                        Icon(
+                                          isArabic
+                                              ? Icons.arrow_back_rounded
+                                              : Icons.arrow_forward_rounded,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  _OwnerWelcomeCard(
+                                    isArabic: isArabic,
+                                    onCreateAccount: () =>
+                                        Navigator.of(context).push(
+                                          MaterialPageRoute(
+                                            builder: (_) =>
+                                                const RegisterScreen(),
+                                          ),
+                                        ),
+                                  ),
+                                  const SizedBox(height: 14),
+                                  _TrustLine(isArabic: isArabic),
                                 ],
                               ),
-                              SizedBox(
-                                height: constraints.maxHeight > 700 ? 72 : 24,
-                              ),
-                              ConstrainedBox(
-                                constraints: const BoxConstraints(
-                                  maxWidth: 520,
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    _QatarWelcomeBadge(isArabic: isArabic),
-                                    const SizedBox(height: 18),
-                                    Text(
-                                      widget.shopName == null
-                                          ? isArabic
-                                                ? 'أعمال عصرية،\nبروح قطر.'
-                                                : 'Modern business,\nrooted in Qatar.'
-                                          : isArabic
-                                          ? 'مرحباً بكم في\n${widget.shopName}.'
-                                          : 'Welcome to\n${widget.shopName}.',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: constraints.maxWidth > 600
-                                            ? 54
-                                            : 42,
-                                        height: isArabic ? 1.12 : .98,
-                                        letterSpacing: isArabic ? -.5 : -1.8,
-                                        fontWeight: FontWeight.w900,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 14),
-                                    Text(
-                                      isArabic
-                                          ? 'مساحة عمل جميلة وبسيطة لكل من يخدم ويبيع ويساهم في نمو قطر كل يوم.'
-                                          : 'A beautifully simple workspace for the people who serve, sell and grow Qatar every day.',
-                                      style: TextStyle(
-                                        color: Colors.white.withValues(
-                                          alpha: .76,
-                                        ),
-                                        fontSize: 15,
-                                        height: 1.6,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 24),
-                                    if (widget.startupUnavailable) ...[
-                                      _StartupNotice(
-                                        isArabic: isArabic,
-                                        timedOut: widget.startupTimedOut,
-                                        onRetry: widget.onRetryStartup,
-                                      ),
-                                      const SizedBox(height: 14),
-                                    ],
-                                    FilledButton(
-                                      style: FilledButton.styleFrom(
-                                        minimumSize: const Size.fromHeight(58),
-                                        backgroundColor:
-                                            AllShopsTheme.qatarSand,
-                                        foregroundColor:
-                                            AllShopsTheme.qatarMaroon,
-                                      ),
-                                      onPressed: () =>
-                                          Navigator.of(context).push(
-                                            MaterialPageRoute(
-                                              builder: (_) =>
-                                                  const LoginScreen(),
-                                            ),
-                                          ),
-                                      child: Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          Text(
-                                            isArabic
-                                                ? 'دخول الموظفين'
-                                                : 'Staff sign in',
-                                            style: const TextStyle(
-                                              fontWeight: FontWeight.w900,
-                                            ),
-                                          ),
-                                          const SizedBox(width: 10),
-                                          Icon(
-                                            isArabic
-                                                ? Icons.arrow_back_rounded
-                                                : Icons.arrow_forward_rounded,
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    const SizedBox(height: 12),
-                                    _OwnerWelcomeCard(
-                                      isArabic: isArabic,
-                                      onCreateAccount: () =>
-                                          Navigator.of(context).push(
-                                            MaterialPageRoute(
-                                              builder: (_) =>
-                                                  const RegisterScreen(),
-                                            ),
-                                          ),
-                                    ),
-                                    const SizedBox(height: 14),
-                                    _TrustLine(isArabic: isArabic),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(height: 22),
-                              _QatarFooterMotif(isArabic: isArabic),
-                            ],
-                          ),
+                            ),
+                            const SizedBox(height: 22),
+                            _QatarFooterMotif(isArabic: isArabic),
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -304,7 +299,7 @@ class _OwnerWelcomeCard extends StatelessWidget {
                 children: [
                   Text(
                     isArabic
-                        ? 'هل أنت مالك نشاط جديد؟'
+                        ? 'Unaanzisha biashara mpya?'
                         : 'Opening a new business?',
                     style: const TextStyle(
                       color: Colors.white,
@@ -315,7 +310,7 @@ class _OwnerWelcomeCard extends StatelessWidget {
                   const SizedBox(height: 3),
                   Text(
                     isArabic
-                        ? 'أنشئ حسابك وأطلق أول فرع بخطوات بسيطة.'
+                        ? 'Fungua akaunti na tawi lako la kwanza kwa hatua rahisi.'
                         : 'Create your account and launch your first branch in a few guided steps.',
                     style: const TextStyle(
                       color: Colors.white70,
@@ -339,7 +334,7 @@ class _OwnerWelcomeCard extends StatelessWidget {
           onPressed: onCreateAccount,
           icon: const Icon(Icons.add_business_rounded, size: 19),
           label: Text(
-            isArabic ? 'إنشاء حساب أعمال' : 'Create business account',
+            isArabic ? 'Fungua akaunti ya biashara' : 'Create business account',
             style: const TextStyle(fontWeight: FontWeight.w900),
           ),
         ),
@@ -360,8 +355,8 @@ class _TrustLine extends StatelessWidget {
       Flexible(
         child: Text(
           isArabic
-              ? 'آمن • بالريال القطري • لكل فروعك'
-              : 'Secure • QAR-ready • Built for every branch',
+              ? 'Salama • KES • Kwa kila tawi'
+              : 'Secure • KES-ready • Built for every branch',
           style: const TextStyle(
             color: Colors.white54,
             fontSize: 11,
@@ -381,8 +376,8 @@ class _QatarFooterMotif extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Semantics(
     label: isArabic
-        ? 'صُمم في قطر للأعمال الطموحة'
-        : 'Designed in Qatar for ambitious businesses',
+        ? 'Imeundwa Kenya kwa biashara zenye maono'
+        : 'Designed in Kenya for ambitious businesses',
     child: SizedBox(
       height: 92,
       width: double.infinity,
@@ -403,8 +398,8 @@ class _QatarFooterMotif extends StatelessWidget {
               ),
               child: Text(
                 isArabic
-                    ? 'صُمم في قطر • لينمو معك'
-                    : 'DESIGNED IN QATAR • BUILT TO GROW',
+                    ? 'IMEUNDWA KENYA • KUKUA NAWE'
+                    : 'DESIGNED IN KENYA • BUILT TO GROW',
                 style: TextStyle(
                   color: AllShopsTheme.qatarSand.withValues(alpha: .78),
                   fontSize: 8,
@@ -511,8 +506,8 @@ class _StartupNotice extends StatelessWidget {
           child: Text(
             isArabic
                 ? timedOut
-                      ? 'استغرقت استعادة الجلسة وقتاً طويلاً. يمكنك تسجيل الدخول أو المحاولة مرة أخرى.'
-                      : 'تعذر الوصول إلى الخدمة. يمكنك المتابعة إلى تسجيل الدخول أو المحاولة مرة أخرى.'
+                      ? 'Kurejesha kipindi kumechukua muda. Unaweza kuingia au ujaribu tena.'
+                      : 'Huduma haipatikani kwa sasa. Unaweza kuingia au ujaribu tena.'
                 : timedOut
                 ? 'Session recovery took too long. You can sign in or try again.'
                 : 'The service is temporarily unreachable. You can sign in or try again.',
@@ -528,7 +523,7 @@ class _StartupNotice extends StatelessWidget {
           TextButton.icon(
             onPressed: onRetry,
             icon: const Icon(Icons.refresh_rounded, size: 18),
-            label: Text(isArabic ? 'إعادة' : 'Retry'),
+            label: Text(isArabic ? 'Jaribu tena' : 'Retry'),
           ),
       ],
     ),
@@ -544,7 +539,7 @@ class _LanguageToggle extends StatelessWidget {
   Widget build(BuildContext context) => Directionality(
     textDirection: TextDirection.ltr,
     child: Semantics(
-      label: language == 'ar' ? 'اختيار اللغة' : 'Choose language',
+      label: language == 'sw' ? 'Chagua lugha' : 'Choose language',
       child: Container(
         padding: const EdgeInsets.all(4),
         decoration: BoxDecoration(
@@ -561,9 +556,9 @@ class _LanguageToggle extends StatelessWidget {
               onTap: () => onChanged('en'),
             ),
             _LanguageChoice(
-              label: 'عربي',
-              selected: language == 'ar',
-              onTap: () => onChanged('ar'),
+              label: 'SW',
+              selected: language == 'sw',
+              onTap: () => onChanged('sw'),
             ),
           ],
         ),
@@ -656,7 +651,7 @@ class _Brand extends StatelessWidget {
               ),
             ),
             Text(
-              isArabic ? 'نقطة بيع • قطر' : 'POINT OF SALE • QATAR',
+              isArabic ? 'POS + ERP • KENYA' : 'POS + ERP • KENYA',
               style: TextStyle(
                 color: Colors.white60,
                 fontSize: 8,
@@ -683,7 +678,7 @@ class _QatarWelcomeBadge extends StatelessWidget {
       borderRadius: BorderRadius.circular(99),
     ),
     child: Text(
-      isArabic ? 'أهلاً وسهلاً  •  مرحباً' : 'أهلاً وسهلاً  •  WELCOME',
+      isArabic ? 'KARIBU  •  BIASHARA YAKO' : 'KARIBU  •  WELCOME',
       style: TextStyle(
         color: AllShopsTheme.qatarSand,
         fontSize: 11,

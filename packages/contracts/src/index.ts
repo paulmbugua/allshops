@@ -31,8 +31,8 @@ export const createOrganizationSchema = z.object({
   registrationNumber: z.string().trim().max(80).optional(),
   email: z.string().trim().toLowerCase().email().optional(),
   phone: z.string().trim().min(6).max(30).optional(),
-  currency: z.literal("QAR").default("QAR"),
-  timezone: z.literal("Asia/Qatar").default("Asia/Qatar"),
+  currency: z.literal("KES").default("KES"),
+  timezone: z.literal("Africa/Nairobi").default("Africa/Nairobi"),
 });
 
 export const updateOrganizationSchema = createOrganizationSchema
@@ -40,8 +40,8 @@ export const updateOrganizationSchema = createOrganizationSchema
   .partial()
   .extend({
     businessType: businessTypeSchema.optional(),
-    currency: z.literal("QAR").optional(),
-    timezone: z.literal("Asia/Qatar").optional(),
+    currency: z.literal("KES").optional(),
+    timezone: z.literal("Africa/Nairobi").optional(),
     logoUrl: z.string().url().max(2048).nullable().optional(),
     welcomeHeadline: z.string().trim().max(120).nullable().optional(),
     tagline: z.string().trim().max(180).nullable().optional(),
@@ -64,7 +64,7 @@ export const createBranchSchema = z.object({
   phone: z.string().min(6).max(30).optional(),
   email: z.string().email().optional(),
   address: z.string().max(300).optional(),
-  timezone: z.literal("Asia/Qatar").default("Asia/Qatar"),
+  timezone: z.literal("Africa/Nairobi").default("Africa/Nairobi"),
 });
 
 export const updateBranchSchema = createBranchSchema
@@ -467,11 +467,16 @@ export const refundSchema = z.object({
   reason: z.string().trim().min(2).max(500),
   reference: optionalNullableText(120),
   replacementSaleId: identifier.nullable().optional(),
-  items: z.array(z.object({
-    saleItemId: identifier,
-    quantity: quantitySchema,
-    amountMinor: z.number().int().positive().max(2_147_483_647),
-  })).min(1).max(200),
+  items: z
+    .array(
+      z.object({
+        saleItemId: identifier,
+        quantity: quantitySchema,
+        amountMinor: z.number().int().positive().max(2_147_483_647),
+      }),
+    )
+    .min(1)
+    .max(200),
 });
 export const openShiftSchema = z.object({
   branchId: identifier,
@@ -903,7 +908,7 @@ export const commissionListSchema = paginationSchema.extend({
 
 // Phase 6 reporting contracts. Dates are inclusive at the API boundary; the
 // reporting service normalizes dateTo to an exclusive upper bound.
-const qatarReportDateSchema = z.preprocess(
+const businessReportDateSchema = z.preprocess(
   (value) =>
     typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)
       ? new Date(`${value}T00:00:00+03:00`)
@@ -913,8 +918,8 @@ const qatarReportDateSchema = z.preprocess(
 export const reportDateRangeSchema = z
   .object({
     branchId: identifier.optional(),
-    dateFrom: qatarReportDateSchema.optional(),
-    dateTo: qatarReportDateSchema.optional(),
+    dateFrom: businessReportDateSchema.optional(),
+    dateTo: businessReportDateSchema.optional(),
   })
   .refine(
     (value) =>
@@ -978,8 +983,8 @@ export const commissionReportFilterSchema = reportDateRangeSchema.and(
 export const reportExportSchema = z.object({
   format: z.literal("csv").default("csv"),
   branchId: identifier.optional(),
-  dateFrom: qatarReportDateSchema.optional(),
-  dateTo: qatarReportDateSchema.optional(),
+  dateFrom: businessReportDateSchema.optional(),
+  dateTo: businessReportDateSchema.optional(),
 });
 
 export const registerDeviceSchema = z.object({
@@ -1272,8 +1277,8 @@ export function decimalCurrencyToMinor(value: string): number {
 
 export function formatMinorCurrency(
   value: number,
-  currency = "QAR",
-  locale = "en-QA",
+  currency = "KES",
+  locale = "en-KE",
 ): string {
   return new Intl.NumberFormat(locale, { style: "currency", currency }).format(
     value / 100,

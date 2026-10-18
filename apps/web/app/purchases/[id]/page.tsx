@@ -182,7 +182,7 @@ export default function PurchaseDetailPage() {
               <h2>Record supplier payment</h2>
               <div className="form-grid">
                 <label>
-                  Amount QAR
+                  Amount KES
                   <input
                     name="amount"
                     type="number"

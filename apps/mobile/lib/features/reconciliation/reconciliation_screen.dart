@@ -485,7 +485,7 @@ class _CashDeclarationSheetState extends ConsumerState<_CashDeclarationSheet> {
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             decoration: const InputDecoration(
               labelText: 'Counted cash',
-              prefixText: 'QAR ',
+              prefixText: 'KES ',
             ),
           ),
           const SizedBox(height: 10),
@@ -543,4 +543,4 @@ class _Metric extends StatelessWidget {
 
 int _int(dynamic value) =>
     value is num ? value.toInt() : int.tryParse('$value') ?? 0;
-String _money(dynamic value) => 'QAR ${(_int(value) / 100).toStringAsFixed(2)}';
+String _money(dynamic value) => 'KES ${(_int(value) / 100).toStringAsFixed(2)}';

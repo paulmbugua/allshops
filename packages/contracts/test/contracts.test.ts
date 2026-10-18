@@ -74,7 +74,7 @@ assert.equal(
     countedCashMinor: 125050,
   }).success,
   true,
-  "cashier reconciliation uses a Qatar business date and integer minor units",
+  "cashier reconciliation uses a Kenya business date and integer minor units",
 );
 
 console.log("Contracts tests passed (9 assertions).");

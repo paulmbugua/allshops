@@ -183,7 +183,7 @@ export default function BusinessSettingsPage() {
                 />
               </label>
               <label>
-                Arabic name
+                Local / Kiswahili name
                 <input
                   name="arabicName"
                   defaultValue={organization.arabicName ?? ""}

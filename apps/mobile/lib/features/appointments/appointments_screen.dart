@@ -841,7 +841,7 @@ class _AppointmentPaymentState extends State<_AppointmentPayment> {
                 decimal: true,
               ),
               decoration: const InputDecoration(
-                labelText: 'Cash received (QAR)',
+                labelText: 'Cash received (KES)',
               ),
             ),
           if (method == 'CARD')
@@ -976,7 +976,7 @@ String _dateTime(String? value) {
 }
 
 String _money(dynamic minor) =>
-    'QAR ${(((minor as num?)?.toInt() ?? 0) / 100).toStringAsFixed(2)}';
+    'KES ${(((minor as num?)?.toInt() ?? 0) / 100).toStringAsFixed(2)}';
 Color _statusColor(String status) => switch (status) {
   'COMPLETED' => const Color(0xFF23845F),
   'IN_PROGRESS' => const Color(0xFF376FC1),

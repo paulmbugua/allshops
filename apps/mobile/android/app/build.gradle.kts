@@ -41,7 +41,7 @@ android {
         // flag during build.
         versionCode = flutter.versionCode
         versionName = flutter.versionName
-        manifestPlaceholders["appLabel"] = "AllShops POS"
+        manifestPlaceholders["appLabel"] = "AllShops POS + ERP"
     }
 
     signingConfigs {
@@ -60,7 +60,7 @@ android {
             // Keep the development build separate from the Play-signed app so
             // both can be installed on the same physical POS device.
             applicationIdSuffix = ".debug"
-            manifestPlaceholders["appLabel"] = "AllShops POS Dev"
+            manifestPlaceholders["appLabel"] = "AllShops POS + ERP Dev"
         }
         release {
             isMinifyEnabled = true

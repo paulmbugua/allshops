@@ -7,13 +7,14 @@ import { LanguageProvider } from "./components/language-provider";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://allshopspos.com"),
-  title: "AllShops · Business workspace",
-  description: "Qatar-first multi-tenant business operating platform.",
-  applicationName: "AllShops POS",
+  title: "AllShops · POS + ERP workspace",
+  description: "Kenya-ready multi-tenant POS and ERP business platform.",
+  applicationName: "AllShops POS + ERP",
   alternates: { canonical: "/" },
   openGraph: {
-    title: "AllShops · Business workspace",
-    description: "Modern POS and business operations for ambitious teams.",
+    title: "AllShops · POS + ERP workspace",
+    description:
+      "Kenya-ready sales, inventory and business operations for ambitious teams.",
     url: "https://allshopspos.com",
     siteName: "AllShops",
     type: "website",

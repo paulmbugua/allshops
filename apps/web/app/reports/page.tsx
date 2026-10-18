@@ -96,7 +96,7 @@ export default function ReportsPage() {
         </form>
       </section>
       <section className="card">
-        <span className="eyebrow">Operational reporting · Asia/Qatar</span>
+        <span className="eyebrow">POS + ERP reporting · Africa/Nairobi</span>
         <h2>Sales summary</h2>
         {!sales ? (
           <p>{message || "Loading report…"}</p>

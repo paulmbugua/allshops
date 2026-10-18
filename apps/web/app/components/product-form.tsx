@@ -144,7 +144,7 @@ export function ProductForm({
           <input name="name" defaultValue={initial?.name} required />
         </label>
         <label>
-          Arabic name
+          Local / Kiswahili name
           <input
             name="arabicName"
             dir="auto"
@@ -209,7 +209,7 @@ export function ProductForm({
           <input name="barcode" defaultValue={initial?.barcode ?? ""} />
         </label>
         <label>
-          Cost (QAR)
+          Cost (KES)
           <input
             name="cost"
             inputMode="decimal"
@@ -219,7 +219,7 @@ export function ProductForm({
           />
         </label>
         <label>
-          Selling price (QAR)
+          Selling price (KES)
           <input
             name="price"
             inputMode="decimal"

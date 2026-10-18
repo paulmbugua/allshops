@@ -64,7 +64,7 @@ async function setup(token: string, name: string) {
 }
 
 try {
-  // Pure CSV security covers all dangerous spreadsheet prefixes and Arabic UTF-8.
+  // Pure CSV security covers all dangerous spreadsheet prefixes and UTF-8 text.
   for (const value of [
     "=1+1",
     "+cmd",

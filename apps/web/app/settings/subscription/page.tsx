@@ -185,12 +185,12 @@ export default function SubscriptionPage() {
         <div className="toolbar">
           <div>
             <span className="subscription-eyebrow">
-              Plans built for Qatar businesses
+              Plans built for Kenyan businesses
             </span>
             <h2>Choose the way your business grows</h2>
             <p className="muted">
-              Every plan includes secure cloud access, Arabic-ready experiences
-              and automatic updates.
+              Every plan includes secure cloud access, English and Kiswahili
+              experiences, plus automatic updates.
             </p>
           </div>
           <div className="billing-toggle" aria-label="Billing interval">
@@ -352,7 +352,7 @@ function planAudience(code: string) {
         BUSINESS: "Busy stores, salons and service businesses",
         GROWTH: "Multi-branch businesses that need resilient operations",
       } as Record<string, string>
-    )[code] ?? "Growing Qatar businesses"
+    )[code] ?? "Growing Kenyan businesses"
   );
 }
 function planOutcomes(code: string) {
@@ -360,12 +360,14 @@ function planOutcomes(code: string) {
     {
       icon: "◉",
       title: "Secure cloud workspace",
-      detail: "Role-based access, automatic updates and protected business data.",
+      detail:
+        "Role-based access, automatic updates and protected business data.",
     },
     {
-      icon: "ع",
-      title: "English and Arabic",
-      detail: "Switch language across web and mobile with RTL support.",
+      icon: "SW",
+      title: "English and Kiswahili",
+      detail:
+        "Switch language across web and mobile with one saved preference.",
     },
   ];
   const specific = (
@@ -383,7 +385,8 @@ function planOutcomes(code: string) {
       GROWTH: {
         icon: "↻",
         title: "Scale without disruption",
-        detail: "Offline POS, multi-branch control and deeper performance insight.",
+        detail:
+          "Offline POS, multi-branch control and deeper performance insight.",
       },
     } as Record<string, { icon: string; title: string; detail: string }>
   )[code];
