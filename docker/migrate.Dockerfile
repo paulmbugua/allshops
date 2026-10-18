@@ -13,4 +13,7 @@ RUN pnpm install --frozen-lockfile
 COPY packages/database packages/database
 RUN pnpm db:generate
 USER node
-CMD ["node", "packages/database/node_modules/prisma/build/index.js", "migrate", "deploy", "--schema", "packages/database/prisma/schema.prisma"]
+# Reference data (plans, permissions and system roles) is required by the API
+# immediately after schema deployment. The seed is idempotent, so running it
+# here keeps every fresh production database ready for onboarding.
+CMD ["sh", "-lc", "node packages/database/node_modules/prisma/build/index.js migrate deploy --schema packages/database/prisma/schema.prisma && node packages/database/prisma/seed.mjs"]
