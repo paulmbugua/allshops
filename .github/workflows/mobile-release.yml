@@ -71,6 +71,7 @@ jobs:
           set -euo pipefail
           mkdir -p "$SYMBOLS_DIR"
           log_file="$RUNNER_TEMP/flutter-appbundle.log"
+          set +e
           flutter build appbundle \
             --release \
             --target-platform android-arm64 \
@@ -79,6 +80,19 @@ jobs:
             --split-debug-info="$SYMBOLS_DIR/dart" \
             --dart-define="ALLSHOPS_API_URL=$ALLSHOPS_API_URL" \
             2>&1 | tee "$log_file"
+          build_status=${PIPESTATUS[0]}
+          set -e
+
+          if [[ "$build_status" -ne 0 ]]; then
+            echo "::error::Flutter appbundle build failed with exit code $build_status."
+            while IFS= read -r line; do
+              line=${line//'%'/'%25'}
+              line=${line//$'\r'/'%0D'}
+              line=${line//$'\n'/'%0A'}
+              echo "::error::$line"
+            done < <(tail -n 25 "$log_file")
+            exit "$build_status"
+          fi
 
           if grep -Eiq 'failed to strip|strip debug symbols.*failed|unable to strip|unobfuscated DWARF debugging information|use --strip to remove' "$log_file"; then
             echo "::error::Flutter reported a native debug-symbol stripping failure."
