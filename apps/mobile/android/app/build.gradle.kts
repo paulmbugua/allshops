@@ -28,9 +28,10 @@ val hasReleaseSigning =
 android {
     namespace = "com.allshops.allshops_mobile"
     compileSdk = 36
-    // Use the locally installed NDK. It is newer than Flutter's minimum and
-    // avoids SDK Manager downloads during reproducible/offline builds.
-    ndkVersion = "29.0.13113456"
+    // NDK 28 keeps Android 15/16 KB page-size support and the architecture-
+    // specific strip tools Flutter needs to validate Play app bundles. NDK 29
+    // removed those tools, causing a false post-build stripping failure.
+    ndkVersion = "28.2.13676358"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
