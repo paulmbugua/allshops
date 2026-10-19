@@ -84,13 +84,11 @@ jobs:
           set -e
 
           if [[ "$build_status" -ne 0 ]]; then
-            echo "::error::Flutter appbundle build failed with exit code $build_status."
-            while IFS= read -r line; do
-              line=${line//'%'/'%25'}
-              line=${line//$'\r'/'%0D'}
-              line=${line//$'\n'/'%0A'}
-              echo "::error::$line"
-            done < <(tail -n 25 "$log_file")
+            log_tail=$(tail -n 60 "$log_file")
+            log_tail=${log_tail//'%'/'%25'}
+            log_tail=${log_tail//$'\r'/'%0D'}
+            log_tail=${log_tail//$'\n'/'%0A'}
+            echo "::error::Flutter appbundle build failed with exit code $build_status.%0A$log_tail"
             exit "$build_status"
           fi
 
