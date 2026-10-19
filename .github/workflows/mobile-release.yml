@@ -6,7 +6,7 @@ on:
     tags: ["mobile-v*"]
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   android:
@@ -147,3 +147,39 @@ jobs:
           path: apps/mobile/build/release-symbols/1.0.6+7
           if-no-files-found: error
           retention-days: 90
+
+      - name: Encrypt validated outputs for authenticated local handoff
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        run: |
+          set -euo pipefail
+          bundle="build/app/outputs/bundle/release/app-release.aab"
+          manifest="build/app/outputs/bundle/release/release-manifest.json"
+          transport_dir="$RUNNER_TEMP/allshops-encrypted-transport"
+          mkdir -p "$transport_dir"
+          tar -C build/release-symbols -czf "$transport_dir/symbols.tar.gz" "1.0.6+7"
+          openssl cms -encrypt -binary -aes-256-cbc \
+            -in "$bundle" -outform DER \
+            -out "$transport_dir/AllShops-POS-1.0.6-build-7-unsigned.aab.cms" \
+            ../../ops/mobile-release-transport-cert.pem
+          openssl cms -encrypt -binary -aes-256-cbc \
+            -in "$transport_dir/symbols.tar.gz" -outform DER \
+            -out "$transport_dir/AllShops-POS-1.0.6-build-7-symbols.tar.gz.cms" \
+            ../../ops/mobile-release-transport-cert.pem
+          cp "$manifest" "$transport_dir/release-manifest.json"
+
+      - name: Publish encrypted handoff assets
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          transport_dir="$RUNNER_TEMP/allshops-encrypted-transport"
+          gh release create "$GITHUB_REF_NAME" \
+            "$transport_dir/AllShops-POS-1.0.6-build-7-unsigned.aab.cms" \
+            "$transport_dir/AllShops-POS-1.0.6-build-7-symbols.tar.gz.cms" \
+            "$transport_dir/release-manifest.json" \
+            --prerelease \
+            --title "AllShops 1.0.6+7 encrypted CI handoff" \
+            --notes "Automated encrypted transport assets. The AAB requires decryption and Play upload signing before use."
