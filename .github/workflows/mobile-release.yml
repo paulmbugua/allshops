@@ -69,33 +69,44 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p "$SYMBOLS_DIR"
+          mkdir -p "$SYMBOLS_DIR/dart"
           log_file="$RUNNER_TEMP/flutter-appbundle.log"
-          set +e
-          flutter build appbundle \
-            --release \
-            --target-platform android-arm64 \
-            --obfuscate \
-            --extra-gen-snapshot-options=--strip \
-            --split-debug-info="$SYMBOLS_DIR/dart" \
-            --dart-define="ALLSHOPS_API_URL=$ALLSHOPS_API_URL" \
+          dart_define=$(printf '%s' "ALLSHOPS_API_URL=$ALLSHOPS_API_URL" | base64 -w0)
+          symbols_path=$(realpath "$SYMBOLS_DIR/dart")
+          ./android/gradlew \
+            --no-daemon \
+            --project-dir android \
+            app:bundleRelease \
+            -Ptarget-platform=android-arm64 \
+            -Ptarget=lib/main.dart \
+            -Pdart-obfuscation=true \
+            -Pextra-gen-snapshot-options=--strip \
+            -Psplit-debug-info="$symbols_path" \
+            -Ptree-shake-icons=true \
+            -Pdart-defines="$dart_define" \
             2>&1 | tee "$log_file"
-          build_status=${PIPESTATUS[0]}
-          set -e
-
-          if [[ "$build_status" -ne 0 ]]; then
-            log_tail=$(tail -n 60 "$log_file")
-            log_tail=${log_tail//'%'/'%25'}
-            log_tail=${log_tail//$'\r'/'%0D'}
-            log_tail=${log_tail//$'\n'/'%0A'}
-            echo "::error::Flutter appbundle build failed with exit code $build_status.%0A$log_tail"
-            exit "$build_status"
-          fi
 
           if grep -Eiq 'failed to strip|strip debug symbols.*failed|unable to strip|unobfuscated DWARF debugging information|use --strip to remove' "$log_file"; then
             echo "::error::Flutter reported a native debug-symbol stripping failure."
             exit 1
           fi
+
+      - name: Verify delivered native libraries are stripped
+        shell: bash
+        run: |
+          set -euo pipefail
+          bundle="build/app/outputs/bundle/release/app-release.aab"
+          verify_dir="$RUNNER_TEMP/allshops-native-verify"
+          mkdir -p "$verify_dir"
+          for library in libapp.so libflutter.so; do
+            entry=$(unzip -Z1 "$bundle" | grep -E "/lib/arm64-v8a/$library$" | head -n 1)
+            test -n "$entry"
+            unzip -p "$bundle" "$entry" > "$verify_dir/$library"
+            if readelf --sections "$verify_dir/$library" | grep -Eq '\.debug_|\.symtab'; then
+              echo "::error::$library still contains debug or symbol-table sections."
+              exit 1
+            fi
+          done
 
       - name: Preserve release diagnostics separately
         shell: bash
