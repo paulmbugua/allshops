@@ -19,6 +19,8 @@ jobs:
     env:
       ALLSHOPS_API_URL: https://api.allshopspos.com/api/v1
       RELEASE_VERSION: 1.0.6+7
+      RELEASE_VERSION_NAME: 1.0.6
+      RELEASE_VERSION_CODE: "7"
       SYMBOLS_DIR: build/release-symbols/1.0.6+7
       ALLSHOPS_ALLOW_UNSIGNED_CI_RELEASE: "true"
 
@@ -79,6 +81,8 @@ jobs:
             app:bundleRelease \
             -Ptarget-platform=android-arm64 \
             -Ptarget=lib/main.dart \
+            -Pflutter.versionName="$RELEASE_VERSION_NAME" \
+            -Pflutter.versionCode="$RELEASE_VERSION_CODE" \
             -Pdart-obfuscation=true \
             -Pextra-gen-snapshot-options=--strip \
             -Psplit-debug-info="$symbols_path" \
@@ -128,6 +132,10 @@ jobs:
             build/app/outputs/bundle/release/app-release.aab \
             --max-libflutter-mib 20 \
             --max-bundle-mib 35 \
+            --merged-manifest build/app/intermediates/merged_manifests/release/processReleaseManifest/AndroidManifest.xml \
+            --expected-package com.allshops.pos \
+            --expected-version-name "$RELEASE_VERSION_NAME" \
+            --expected-version-code "$RELEASE_VERSION_CODE" \
             --manifest build/app/outputs/bundle/release/release-manifest.json
 
       - name: Upload validated unsigned AAB for offline signing

@@ -25,6 +25,12 @@ $platform = Join-Path $env:LOCALAPPDATA "Android\Sdk\platforms\android-36\androi
 $versionLine = Select-String -Path (Join-Path $mobileRoot "pubspec.yaml") -Pattern '^version:\s*(\S+)' | Select-Object -First 1
 if (-not $versionLine) { throw "No version was found in apps/mobile/pubspec.yaml." }
 $releaseVersion = $versionLine.Matches[0].Groups[1].Value
+$releaseParts = $releaseVersion -split '\+', 2
+if ($releaseParts.Count -ne 2 -or $releaseParts[1] -notmatch '^\d+$') {
+  throw "Mobile version must use semantic-version+numeric-build format, for example 1.0.6+7."
+}
+$releaseVersionName = $releaseParts[0]
+$releaseVersionCode = $releaseParts[1]
 $symbols = Join-Path $mobileRoot "build\symbols\$releaseVersion"
 $pubGetArguments = @("pub", "get")
 if ($OfflineDependencies) { $pubGetArguments += "--offline" }
@@ -157,7 +163,11 @@ try {
 
   $stageBundle = Join-Path $stagingRoot "build\app\outputs\bundle\release\app-release.aab"
   & python (Join-Path $PSScriptRoot "verify-mobile-release.py") $stageBundle `
-    --max-libflutter-mib 20 --max-bundle-mib 35
+    --max-libflutter-mib 20 --max-bundle-mib 35 `
+    --merged-manifest (Join-Path $stagingRoot "build\app\intermediates\merged_manifests\release\processReleaseManifest\AndroidManifest.xml") `
+    --expected-package "com.allshops.pos" `
+    --expected-version-name $releaseVersionName `
+    --expected-version-code $releaseVersionCode
   if ($LASTEXITCODE -ne 0) {
     throw "Release bundle validation failed. The bundle will not be promoted."
   }

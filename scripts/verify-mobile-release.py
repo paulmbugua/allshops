@@ -8,6 +8,7 @@ import hashlib
 import json
 import sys
 import zipfile
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
 MIB = 1024 * 1024
@@ -19,6 +20,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max-bundle-mib", type=float, default=35.0)
     parser.add_argument("--max-libflutter-mib", type=float, default=20.0)
     parser.add_argument("--manifest", type=Path)
+    parser.add_argument("--merged-manifest", type=Path)
+    parser.add_argument("--expected-package")
+    parser.add_argument("--expected-version-name")
+    parser.add_argument("--expected-version-code")
     return parser.parse_args()
 
 
@@ -65,6 +70,32 @@ def main() -> int:
         )
 
     digest = hashlib.sha256(bundle.read_bytes()).hexdigest()
+    android_manifest = None
+    if args.merged_manifest:
+        merged_manifest = args.merged_manifest.resolve()
+        if not merged_manifest.is_file():
+            failures.append(f"merged Android manifest does not exist: {merged_manifest}")
+        else:
+            root = ET.parse(merged_manifest).getroot()
+            android_namespace = "{http://schemas.android.com/apk/res/android}"
+            android_manifest = {
+                "path": str(merged_manifest),
+                "package": root.get("package"),
+                "versionName": root.get(f"{android_namespace}versionName"),
+                "versionCode": root.get(f"{android_namespace}versionCode"),
+            }
+            expected_values = {
+                "package": args.expected_package,
+                "versionName": args.expected_version_name,
+                "versionCode": args.expected_version_code,
+            }
+            for field, expected in expected_values.items():
+                if expected is not None and android_manifest[field] != expected:
+                    failures.append(
+                        f"Android manifest {field} is {android_manifest[field]!r}; "
+                        f"expected {expected!r}"
+                    )
+
     report = {
         "bundle": str(bundle),
         "bundleBytes": bundle_bytes,
@@ -76,6 +107,7 @@ def main() -> int:
         ),
         "libflutterCompressedBytes": libflutter_compressed_bytes,
         "sha256": digest,
+        "androidManifest": android_manifest,
         "limits": {
             "bundleMiB": args.max_bundle_mib,
             "libflutterMiB": args.max_libflutter_mib,
