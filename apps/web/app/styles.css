@@ -4291,3 +4291,432 @@ html[dir="rtl"] .pricing-includes li::before {
     padding: 1.35rem;
   }
 }
+
+/* Cashier-first POS workbench. The visual language follows familiar retail
+   terminals while retaining AllShops responsive behaviour and accessibility. */
+.pos-command-bar {
+  background: linear-gradient(135deg, #0b3764 0%, #123f72 58%, #0d2d51 100%);
+  border: 1px solid #245887;
+  color: #fff;
+  box-shadow: 0 0.55rem 1.5rem rgba(9, 45, 82, 0.18);
+}
+.pos-command-bar .pos-brand-block strong,
+.pos-command-bar .pos-brand-block small {
+  color: #fff;
+}
+.pos-previous-summary {
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-columns: repeat(3, minmax(7rem, 1fr));
+  gap: 0.4rem;
+  max-width: 42rem;
+  margin-inline: auto;
+}
+.pos-previous-summary > span {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.45rem;
+  border-left: 1px solid rgba(255, 255, 255, 0.2);
+  padding-inline: 0.7rem;
+}
+.pos-previous-summary small {
+  color: #c8ddf0;
+  font-size: 0.66rem;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.pos-previous-summary strong {
+  overflow: hidden;
+  color: #fff;
+  font-size: 0.84rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pos-command-bar .pos-register-menu summary {
+  border-color: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.96);
+  color: #102f4d;
+}
+
+.pos-operations {
+  display: grid;
+  flex: 0 0 auto;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.45rem;
+  margin-bottom: 0.55rem;
+}
+.pos-operations a {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: auto 1fr;
+  column-gap: 0.5rem;
+  align-items: center;
+  border: 1px solid #2e84d1;
+  border-radius: 0.65rem;
+  padding: 0.58rem 0.65rem;
+  background: linear-gradient(145deg, #1788e3, #0d67bd);
+  color: #fff;
+  text-decoration: none;
+  box-shadow: 0 0.35rem 0.8rem rgba(18, 111, 191, 0.18);
+}
+.pos-operations a > span {
+  grid-row: 1 / 3;
+  font-size: 1.1rem;
+}
+.pos-operations a strong {
+  overflow: hidden;
+  font-size: 0.75rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pos-operations a small {
+  overflow: hidden;
+  color: #d9edff;
+  font-size: 0.55rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pos-operations a:hover {
+  background: linear-gradient(145deg, #2298f3, #0d70cb);
+  color: #fff;
+}
+
+.pos-product-view-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+.pos-product-view-controls button {
+  min-height: 1.85rem;
+  border: 1px solid #b8ccdc;
+  border-radius: 999px;
+  padding: 0.25rem 0.55rem;
+  background: #eef5fa;
+  color: #31516b;
+  font-size: 0.6rem;
+  font-weight: 850;
+}
+.pos-product-view-controls button.active {
+  border-color: #0f6fc6;
+  background: #0f6fc6;
+  color: #fff;
+}
+.product-tile-shell {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+}
+.product-tile-shell > .product-tile {
+  width: 100%;
+}
+.product-pin-button {
+  position: absolute;
+  top: 0.3rem;
+  right: 0.3rem;
+  z-index: 2;
+  display: grid;
+  width: 1.8rem;
+  min-height: 1.8rem;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: 50%;
+  padding: 0;
+  background: rgba(9, 39, 67, 0.82);
+  color: #ffd861;
+  font-size: 1rem;
+  box-shadow: 0 0.2rem 0.6rem rgba(5, 28, 49, 0.24);
+}
+.quick-tile-grid .product-tile-shell > .product-tile {
+  display: grid;
+  height: 100%;
+  place-items: center;
+  border: 1px solid #3791dc;
+  border-radius: 0.48rem;
+  padding: 0.55rem 0.4rem;
+  background: linear-gradient(145deg, #198ee8 0%, #0d70c9 100%);
+  color: #fff;
+  box-shadow: 0 0.28rem 0.7rem rgba(15, 111, 198, 0.2);
+}
+.quick-tile-grid .product-tile-shell > .product-tile:hover:not(:disabled) {
+  border-color: #9fd5ff;
+  background: linear-gradient(145deg, #239df7 0%, #0f79d7 100%);
+}
+.quick-tile-grid .product-tile-copy {
+  display: grid;
+  min-width: 0;
+  gap: 0.18rem;
+  place-items: center;
+}
+.quick-tile-grid .product-tile-copy strong {
+  display: -webkit-box;
+  overflow: hidden;
+  color: #fff;
+  font-size: 0.74rem;
+  line-height: 1.15;
+  text-align: center;
+  white-space: normal;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.quick-tile-grid .product-tile-copy small {
+  display: block;
+  overflow: hidden;
+  max-width: 100%;
+  color: #d9edff;
+  font-size: 0.52rem;
+  font-weight: 750;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.quick-tile-grid .product-tile-copy b {
+  display: block;
+  color: #fff4bd;
+  font-size: 0.64rem;
+}
+.image-tile-grid .product-tile-shell > .product-tile {
+  height: 100%;
+}
+.product-tile-shell.is-pinned > .product-tile {
+  outline: 2px solid #ffc94d;
+  outline-offset: -2px;
+}
+
+.pos-keypad-workbench {
+  display: grid;
+  flex: 0 0 auto;
+  grid-template-columns: minmax(6.5rem, 0.8fr) minmax(9rem, 1.2fr) minmax(4.5rem, 0.55fr);
+  gap: 0.4rem;
+  height: 10rem;
+  margin-top: 0.5rem;
+}
+.pos-ticket-actions,
+.pos-number-pad,
+.pos-keypad-modes {
+  display: grid;
+  gap: 0.25rem;
+}
+.pos-ticket-actions {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.pos-ticket-actions button {
+  display: grid;
+  min-width: 0;
+  min-height: 0;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  column-gap: 0.35rem;
+  border: 1px solid #46637c;
+  border-radius: 0.4rem;
+  padding: 0.35rem;
+  background: #27445f;
+  color: #fff;
+}
+.pos-ticket-actions button > span {
+  grid-row: 1 / 3;
+  color: #ffdc72;
+  font-size: 1rem;
+}
+.pos-ticket-actions strong {
+  overflow: hidden;
+  font-size: 0.64rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pos-ticket-actions kbd,
+.pos-keypad-modes kbd {
+  color: #bdd2e5;
+  font-size: 0.5rem;
+}
+.pos-number-pad {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.pos-number-pad button,
+.pos-keypad-modes button {
+  min-width: 0;
+  min-height: 0;
+  border: 1px solid #ccd9e4;
+  border-radius: 0.35rem;
+  padding: 0.2rem;
+  background: #f4f7fa;
+  color: #173650;
+  font-size: 1rem;
+  font-weight: 800;
+}
+.pos-keypad-modes {
+  grid-template-rows: repeat(4, minmax(0, 1fr));
+}
+.pos-keypad-modes button {
+  font-size: 0.67rem;
+}
+.pos-keypad-modes button.active {
+  border-color: #eb7f58;
+  background: #f09a72;
+  color: #512512;
+}
+.pos-keypad-modes button.enter {
+  background: #0f6fc6;
+  color: #fff;
+}
+
+@media (min-width: 901px) {
+  .pos-layout {
+    grid-template-areas: "bill quick";
+    grid-template-columns: minmax(31rem, 1.45fr) minmax(27rem, 1fr);
+  }
+  .pos-products {
+    grid-area: quick;
+    border-color: #b9cada;
+    background: #eef3f7;
+  }
+  .pos-cart {
+    grid-area: bill;
+    border-color: #b9cada;
+    background: #fff;
+    color: #17372f;
+  }
+  .pos-cart h2,
+  .pos-cart h3,
+  .pos-cart label,
+  .pos-cart .muted,
+  .pos-cart .totals span,
+  .pos-cart .totals strong,
+  .pos-cart .cart-line small {
+    color: #17372f;
+  }
+  .pos-cart-header {
+    border-bottom: 1px solid #ccd9e3;
+    padding-bottom: 0.55rem;
+  }
+  .pos-cart-column-headings {
+    display: grid;
+    grid-template-columns: minmax(8rem, 1fr) 4.5rem 6.5rem 2.2rem;
+    gap: 0.45rem;
+    border-bottom: 1px solid #d6e0e8;
+    padding: 0.45rem 0.35rem;
+    color: #60778b;
+    font-size: 0.62rem;
+    font-weight: 850;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .pos-cart-lines {
+    max-height: none;
+    flex: 1 1 auto;
+    border-bottom: 1px solid #d6e0e8;
+  }
+  .pos-cart .cart-line {
+    grid-template-columns: minmax(8rem, 1fr) 4.5rem 6.5rem 2.2rem;
+    border-bottom: 1px solid #e4ebf0;
+    border-radius: 0.35rem;
+    padding: 0.42rem 0.35rem;
+    cursor: pointer;
+  }
+  .pos-cart .cart-line.selected {
+    background: #e8f4ff;
+    box-shadow: inset 3px 0 #1478cd;
+  }
+  .pos-cart .cart-line > b {
+    color: #17372f;
+    font-size: 0.78rem;
+    text-align: right;
+  }
+  .pos-cart-calculator {
+    display: grid;
+    grid-template-columns: minmax(12rem, 0.78fr) minmax(15rem, 1.22fr);
+    gap: 0.45rem 0.75rem;
+    overflow-y: auto;
+    padding-top: 0.55rem;
+    scrollbar-width: thin;
+  }
+  .pos-cart-calculator > .discount-row,
+  .pos-cart-calculator > .totals {
+    grid-column: 1;
+  }
+  .pos-cart-calculator > h3,
+  .pos-cart-calculator > label,
+  .pos-cart-calculator > p,
+  .pos-cart-calculator > .payment-choice-grid,
+  .pos-cart-calculator > .pos-split-toggle,
+  .pos-cart-calculator > .cash-panel,
+  .pos-cart-calculator > .payment-row {
+    grid-column: 2;
+  }
+  .pos-cart-calculator > h3 {
+    margin: 0;
+  }
+  .pos-cart .payment-choice-grid .product-tile {
+    border-color: #b7cad9;
+    background: #eef4f7;
+    color: #17372f;
+  }
+  .pos-cart .payment-choice-grid .product-tile.active {
+    border-color: #1575c7;
+    background: #dceeff;
+    color: #0d4d83;
+  }
+  .pos-cart .pos-split-toggle {
+    color: #31574c;
+  }
+  .pos-cart > .actions {
+    grid-template-columns: 0.6fr 1.4fr;
+  }
+}
+
+@media (max-width: 1120px) and (min-width: 901px) {
+  .pos-layout {
+    grid-template-columns: minmax(27rem, 1.3fr) minmax(23rem, 1fr);
+  }
+  .pos-previous-summary > span:nth-child(3),
+  .pos-operations a small {
+    display: none;
+  }
+  .pos-previous-summary {
+    grid-template-columns: repeat(2, minmax(7rem, 1fr));
+  }
+  .pos-keypad-workbench {
+    grid-template-columns: minmax(5.5rem, 0.7fr) minmax(8rem, 1.3fr) minmax(4rem, 0.55fr);
+  }
+}
+
+@media (max-width: 900px) {
+  .pos-previous-summary {
+    display: none;
+  }
+  .pos-layout {
+    grid-template-columns: 1fr;
+  }
+  .pos-products {
+    order: 1;
+  }
+  .pos-cart {
+    order: 2;
+  }
+  .pos-keypad-workbench {
+    display: none;
+  }
+  .pos-operations {
+    overflow-x: auto;
+    grid-template-columns: repeat(3, minmax(9rem, 1fr));
+  }
+  .pos-product-view-controls {
+    overflow-x: auto;
+    max-width: 58%;
+  }
+}
+
+@media (max-width: 560px) {
+  .pos-section-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .pos-product-view-controls {
+    width: 100%;
+    max-width: none;
+  }
+  .pos-product-view-controls button {
+    flex: 1 1 auto;
+  }
+}

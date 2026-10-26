@@ -6,6 +6,7 @@ import {
   useState,
   type KeyboardEvent,
 } from "react";
+import Link from "next/link";
 import { AppShell } from "../components/app-shell";
 import {
   api,
@@ -40,6 +41,10 @@ interface Customer {
   creditLimitMinor?: number | null;
 }
 type TenderMode = "CASH" | "LOCAL_CARD";
+type ProductTileMode = "QUICK" | "IMAGE";
+
+const productKey = (product: Pick<PosProduct, "productId" | "variantId">) =>
+  `${product.productId}:${product.variantId ?? "base"}`;
 
 export default function PosPage() {
   const organizationId = selectedOrganization();
@@ -62,18 +67,33 @@ export default function PosPage() {
   const [splitTender, setSplitTender] = useState(false);
   const [splitCash, setSplitCash] = useState("");
   const [cashTender, setCashTender] = useState("");
-  const [localBank, setLocalBank] = useState("QNB");
+  const [localBank, setLocalBank] = useState("KCB");
   const [terminalReference, setTerminalReference] = useState("");
   const [autoPrint, setAutoPrint] = useState(true);
   const [celebrationMode, setCelebrationMode] = useState(false);
   const [focusMode, setFocusMode] = useState(false);
   const [completedSale, setCompletedSale] = useState<Sale>();
+  const [previousSale, setPreviousSale] = useState<Sale>();
+  const [productTileMode, setProductTileMode] =
+    useState<ProductTileMode>("QUICK");
+  const [customizingQuickItems, setCustomizingQuickItems] = useState(false);
+  const [pinnedProductKeys, setPinnedProductKeys] = useState<string[]>([]);
+  const [salesCounts, setSalesCounts] = useState<Record<string, number>>({});
+  const [quickProductSnapshots, setQuickProductSnapshots] = useState<
+    PosProduct[]
+  >([]);
+  const [selectedCartKey, setSelectedCartKey] = useState("");
+  const [keypadTarget, setKeypadTarget] = useState<"QUANTITY" | "CASH">(
+    "QUANTITY",
+  );
   const [printJob, setPrintJob] = useState<{
     saleId: string;
     mode: "initial" | "reprint";
     nonce: number;
   }>();
   const searchRef = useRef<HTMLInputElement>(null);
+  const cashTenderRef = useRef<HTMLInputElement>(null);
+  const paymentRef = useRef<HTMLDivElement>(null);
   const productGridRef = useRef<HTMLDivElement>(null);
   const [pageSize, setPageSize] = useState(12);
   const subtotal = useMemo(
@@ -107,6 +127,36 @@ export default function PosPage() {
   const splitCardMinor = Math.max(0, total - splitCashMinor);
   const splitValid =
     Number.isFinite(splitCashMinor) && splitCashMinor > 0 && splitCashMinor < total;
+  const canCompleteSale =
+    !busy &&
+    cart.length > 0 &&
+    !(
+      !splitTender &&
+      tenderMode === "CASH" &&
+      (!validCash || cashShortfall > 0)
+    ) &&
+    !(splitTender && !splitValid);
+
+  const quickProducts = useMemo(() => {
+    const combined = new Map<string, PosProduct>();
+    for (const product of [...quickProductSnapshots, ...products])
+      combined.set(productKey(product), product);
+    return [...combined.values()]
+      .sort((left, right) => {
+        const leftKey = productKey(left);
+        const rightKey = productKey(right);
+        const leftPinned = pinnedProductKeys.includes(leftKey) ? 1 : 0;
+        const rightPinned = pinnedProductKeys.includes(rightKey) ? 1 : 0;
+        return (
+          rightPinned - leftPinned ||
+          (salesCounts[rightKey] ?? 0) - (salesCounts[leftKey] ?? 0) ||
+          left.name.localeCompare(right.name)
+        );
+      })
+      .slice(0, Math.max(8, Math.min(18, pageSize)));
+  }, [pageSize, pinnedProductKeys, products, quickProductSnapshots, salesCounts]);
+
+  const displayedProducts = query.trim() ? products : quickProducts;
 
   const quickCash = useMemo(() => {
     const qar = total / 100;
@@ -138,6 +188,28 @@ export default function PosPage() {
   }, []);
 
   useEffect(() => {
+    if (!organizationId || !branchId) return;
+    const prefix = `allshops-pos:${organizationId}:${branchId}`;
+    try {
+      const storedMode = window.localStorage.getItem(`${prefix}:tile-mode`);
+      setProductTileMode(storedMode === "IMAGE" ? "IMAGE" : "QUICK");
+      setPinnedProductKeys(
+        JSON.parse(window.localStorage.getItem(`${prefix}:pinned`) ?? "[]"),
+      );
+      setSalesCounts(
+        JSON.parse(window.localStorage.getItem(`${prefix}:sales-counts`) ?? "{}"),
+      );
+      setQuickProductSnapshots(
+        JSON.parse(window.localStorage.getItem(`${prefix}:products`) ?? "[]"),
+      );
+    } catch {
+      setPinnedProductKeys([]);
+      setSalesCounts({});
+      setQuickProductSnapshots([]);
+    }
+  }, [branchId, organizationId]);
+
+  useEffect(() => {
     document.body.classList.toggle("pos-focus-mode", focusMode);
     return () => document.body.classList.remove("pos-focus-mode");
   }, [focusMode]);
@@ -148,8 +220,8 @@ export default function PosPage() {
   }, []);
 
   // Keep the register fast for keyboard-first cashiers. Enter confirms the
-  // completion dialog, Ctrl/Cmd+K jumps to scan/search, and F2 starts a fresh
-  // ticket when the current cart is empty.
+  // completion dialog, Ctrl/Cmd+K jumps to scan/search, and function keys map
+  // to the actions printed on the large desktop controls.
   useEffect(() => {
     const onShortcut = (event: globalThis.KeyboardEvent) => {
       const target = event.target as HTMLElement | null;
@@ -170,12 +242,42 @@ export default function PosPage() {
       }
       if (!editing && event.key === "F2") {
         event.preventDefault();
-        if (!cart.length) newSale();
+        startNewTicket();
+        return;
+      }
+      if (!editing && event.key === "F7") {
+        event.preventDefault();
+        clearTicket();
+        return;
+      }
+      if (!editing && event.key === "F8") {
+        event.preventDefault();
+        void hold();
+        return;
+      }
+      if (!editing && event.key === "F9") {
+        event.preventDefault();
+        paymentRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+        cashTenderRef.current?.focus();
+        return;
+      }
+      if (!editing && event.key === "F11" && previousSale) {
+        event.preventDefault();
+        setPrintJob({
+          saleId: previousSale.id,
+          mode: "reprint",
+          nonce: Date.now(),
+        });
+        return;
+      }
+      if (!editing && event.key === "F12" && canCompleteSale) {
+        event.preventDefault();
+        void checkout();
       }
     };
     window.addEventListener("keydown", onShortcut);
     return () => window.removeEventListener("keydown", onShortcut);
-  }, [cart.length, completedSale]);
+  }, [cart.length, completedSale, previousSale, total, cashTender, splitCash]);
 
   useEffect(() => {
     const grid = productGridRef.current;
@@ -334,6 +436,87 @@ export default function PosPage() {
     });
     window.setTimeout(() => searchRef.current?.focus(), 0);
   }
+
+  function preferencePrefix() {
+    return `allshops-pos:${organizationId}:${branchId}`;
+  }
+
+  function selectTileMode(mode: ProductTileMode) {
+    setProductTileMode(mode);
+    if (organizationId && branchId)
+      window.localStorage.setItem(`${preferencePrefix()}:tile-mode`, mode);
+  }
+
+  function togglePinnedProduct(product: PosProduct) {
+    const key = productKey(product);
+    setPinnedProductKeys((current) => {
+      const next = current.includes(key)
+        ? current.filter((value) => value !== key)
+        : [...current, key];
+      if (organizationId && branchId)
+        window.localStorage.setItem(
+          `${preferencePrefix()}:pinned`,
+          JSON.stringify(next),
+        );
+      return next;
+    });
+    setQuickProductSnapshots((current) => {
+      const snapshots = new Map(current.map((row) => [productKey(row), row]));
+      snapshots.set(key, product);
+      const next = [...snapshots.values()].slice(-60);
+      if (organizationId && branchId)
+        window.localStorage.setItem(
+          `${preferencePrefix()}:products`,
+          JSON.stringify(next),
+        );
+      return next;
+    });
+  }
+
+  function rememberSoldProducts(lines: CartLine[]) {
+    if (!organizationId || !branchId) return;
+    setSalesCounts((current) => {
+      const next = { ...current };
+      for (const line of lines) {
+        const key = productKey(line);
+        next[key] = (next[key] ?? 0) + Math.max(1, Number(line.quantity) || 1);
+      }
+      window.localStorage.setItem(
+        `${preferencePrefix()}:sales-counts`,
+        JSON.stringify(next),
+      );
+      return next;
+    });
+    setQuickProductSnapshots((current) => {
+      const snapshots = new Map(current.map((row) => [productKey(row), row]));
+      for (const line of lines) {
+        snapshots.set(productKey(line), line);
+      }
+      const next = [...snapshots.values()].slice(-60);
+      window.localStorage.setItem(
+        `${preferencePrefix()}:products`,
+        JSON.stringify(next),
+      );
+      return next;
+    });
+  }
+
+  function applyKeypad(value: string) {
+    if (keypadTarget === "CASH") {
+      setCashTender((current) => keypadValue(current, value));
+      return;
+    }
+    const targetKey = selectedCartKey || (cart[0] ? productKey(cart[0]) : "");
+    if (!targetKey) return;
+    setSelectedCartKey(targetKey);
+    setCart((rows) =>
+      rows.map((row) =>
+        productKey(row) === targetKey
+          ? { ...row, quantity: keypadValue(row.quantity, value) }
+          : row,
+      ),
+    );
+  }
   async function scan(event: KeyboardEvent<HTMLInputElement>) {
     if (event.key !== "Enter") return;
     event.preventDefault();
@@ -412,6 +595,7 @@ export default function PosPage() {
     if (!organizationId || !cart.length) return;
     setBusy(true);
     setMessage("");
+    const soldLines = [...cart];
     try {
       const basePayload = payload();
       const appointmentPayload = {
@@ -458,7 +642,9 @@ export default function PosPage() {
           ),
         },
       );
+      rememberSoldProducts(soldLines);
       setCompletedSale(sale);
+      setPreviousSale(sale);
       setCart([]);
       setCashTender("");
       setSplitCash("");
@@ -506,6 +692,30 @@ export default function PosPage() {
     setCustomerId("");
     window.setTimeout(() => searchRef.current?.focus(), 0);
   }
+  function clearTicket() {
+    if (!cart.length) return;
+    if (!window.confirm("Delete every item from the current ticket?")) return;
+    setCart([]);
+    setDiscountType("");
+    setDiscountValue("");
+    setCashTender("");
+    setSelectedCartKey("");
+    setMessage("Current ticket cleared.");
+  }
+  function startNewTicket() {
+    if (cart.length && !window.confirm("Start a new ticket and clear the current cart?"))
+      return;
+    setCart([]);
+    setCompletedSale(undefined);
+    setAppointmentId("");
+    setCustomerId("");
+    setDiscountType("");
+    setDiscountValue("");
+    setCashTender("");
+    setSelectedCartKey("");
+    setMessage("");
+    window.setTimeout(() => searchRef.current?.focus(), 0);
+  }
   async function hold() {
     if (!organizationId || !cart.length || appointmentId) return;
     setBusy(true);
@@ -534,6 +744,32 @@ export default function PosPage() {
             <span>
               <strong>Live register</strong>
               <small>Scanner ready</small>
+            </span>
+          </div>
+          <div className="pos-previous-summary" aria-label="Previous transaction summary">
+            <span>
+              <small>Previous bill</small>
+              <strong>
+                {previousSale
+                  ? formatMinorCurrency(previousSale.totalMinor)
+                  : "—"}
+              </strong>
+            </span>
+            <span>
+              <small>Previous paid</small>
+              <strong>
+                {previousSale
+                  ? formatMinorCurrency(previousSale.paidMinor)
+                  : "—"}
+              </strong>
+            </span>
+            <span>
+              <small>Previous balance</small>
+              <strong>
+                {previousSale
+                  ? formatMinorCurrency(previousSale.balanceMinor)
+                  : "—"}
+              </strong>
             </span>
           </div>
           <details className="pos-register-menu">
@@ -590,6 +826,23 @@ export default function PosPage() {
         </header>
         <section className="pos-layout">
           <div className="card pos-products">
+            <nav className="pos-operations" aria-label="Register operations">
+              <Link href="/register-shifts">
+                <span aria-hidden="true">▣</span>
+                <strong>Cash drawer</strong>
+                <small>Open or close shift</small>
+              </Link>
+              <Link href="/reports">
+                <span aria-hidden="true">▥</span>
+                <strong>Sales report</strong>
+                <small>Today&apos;s performance</small>
+              </Link>
+              <Link href="/inventory">
+                <span aria-hidden="true">▦</span>
+                <strong>Stock control</strong>
+                <small>Inventory &amp; production</small>
+              </Link>
+            </nav>
             <div className="toolbar">
               <input
                 ref={searchRef}
@@ -603,13 +856,45 @@ export default function PosPage() {
             </div>
             <div className="pos-section-heading">
               <span>
-                <strong>{query ? "Search results" : "Main products"}</strong>
-                <small>{productTotal} products available</small>
+                <strong>{query ? "Search results" : "Fast-sale items"}</strong>
+                <small>
+                  {query
+                    ? `${productTotal} products found`
+                    : "Most sold first · pinned items stay at the top"}
+                </small>
               </span>
-              <span className="scanner-hint">⌁ Scan barcode + Enter</span>
+              <span className="pos-product-view-controls">
+                <button
+                  type="button"
+                  className={productTileMode === "QUICK" ? "active" : ""}
+                  onClick={() => selectTileMode("QUICK")}
+                  title="Show fast blue product buttons"
+                >
+                  Blue tiles
+                </button>
+                <button
+                  type="button"
+                  className={productTileMode === "IMAGE" ? "active" : ""}
+                  onClick={() => selectTileMode("IMAGE")}
+                  title="Show product images and prices"
+                >
+                  Images
+                </button>
+                <button
+                  type="button"
+                  className={customizingQuickItems ? "active" : ""}
+                  onClick={() => setCustomizingQuickItems((value) => !value)}
+                  title="Choose items that stay in the fast-sale section"
+                >
+                  {customizingQuickItems ? "Done" : "Choose items"}
+                </button>
+              </span>
             </div>
-            <div className="product-grid" ref={productGridRef}>
-              {products.map((product) => {
+            <div
+              className={`product-grid ${productTileMode === "QUICK" ? "quick-tile-grid" : "image-tile-grid"}`}
+              ref={productGridRef}
+            >
+              {displayedProducts.map((product) => {
                 const out =
                   product.trackInventory &&
                   !product.allowNegativeStock &&
@@ -632,28 +917,54 @@ export default function PosPage() {
                   product.brandName?.trim() ||
                   "Uncategorized";
                 const imageUrl = resolveApiAssetUrl(product.imageUrl);
+                const key = productKey(product);
+                const pinned = pinnedProductKeys.includes(key);
                 return (
-                  <button
-                    className="product-tile"
-                    disabled={out}
-                    key={`${product.productId}:${product.variantId ?? "base"}`}
-                    onClick={() => add(product)}
-                    title={`${product.name}${identity ? ` — ${identity}` : ""} — ${formatMinorCurrency(product.priceMinor)}`}
+                  <div
+                    className={`product-tile-shell ${pinned ? "is-pinned" : ""}`}
+                    key={key}
                   >
-                    <ProductTileMedia
-                      imageUrl={imageUrl}
-                      name={product.name}
-                      priceLabel={formatMinorCurrency(product.priceMinor)}
-                    />
-                    <div className="product-tile-copy">
-                      <strong>{product.name}</strong>
-                      <small>{tileSubtitle}</small>
-                    </div>
-                  </button>
+                    <button
+                      className="product-tile"
+                      disabled={out}
+                      onClick={() =>
+                        customizingQuickItems
+                          ? togglePinnedProduct(product)
+                          : add(product)
+                      }
+                      title={`${product.name}${identity ? ` — ${identity}` : ""} — ${formatMinorCurrency(product.priceMinor)}`}
+                    >
+                      {productTileMode === "IMAGE" && (
+                        <ProductTileMedia
+                          imageUrl={imageUrl}
+                          name={product.name}
+                          priceLabel={formatMinorCurrency(product.priceMinor)}
+                        />
+                      )}
+                      <div className="product-tile-copy">
+                        <strong>{product.name}</strong>
+                        <small>{tileSubtitle}</small>
+                        {productTileMode === "QUICK" && (
+                          <b>{formatMinorCurrency(product.priceMinor)}</b>
+                        )}
+                      </div>
+                    </button>
+                    {customizingQuickItems && (
+                      <button
+                        type="button"
+                        className="product-pin-button"
+                        onClick={() => togglePinnedProduct(product)}
+                        aria-label={`${pinned ? "Unpin" : "Pin"} ${product.name}`}
+                        title={pinned ? "Remove from pinned items" : "Pin as a fast-sale item"}
+                      >
+                        {pinned ? "★" : "☆"}
+                      </button>
+                    )}
+                  </div>
                 );
               })}
             </div>
-            {productTotal > pageSize && (
+            {query && productTotal > pageSize && (
               <nav className="pos-pagination" aria-label="Product pages">
                 <button
                   className="secondary"
@@ -677,6 +988,70 @@ export default function PosPage() {
                 </button>
               </nav>
             )}
+            <div className="pos-keypad-workbench">
+              <div className="pos-ticket-actions">
+                <button type="button" onClick={startNewTicket}>
+                  <span>＋</span><strong>New ticket</strong><kbd>F2</kbd>
+                </button>
+                <button type="button" onClick={clearTicket} disabled={!cart.length}>
+                  <span>⌫</span><strong>Delete bill</strong><kbd>F7</kbd>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void hold()}
+                  disabled={busy || !cart.length || Boolean(appointmentId)}
+                >
+                  <span>▣</span><strong>Hold sale</strong><kbd>F8</kbd>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!previousSale) return;
+                    setPrintJob({ saleId: previousSale.id, mode: "reprint", nonce: Date.now() });
+                  }}
+                  disabled={!previousSale}
+                >
+                  <span>▤</span><strong>Print last</strong><kbd>F11</kbd>
+                </button>
+              </div>
+              <div className="pos-number-pad" aria-label="Register number pad">
+                {["7", "8", "9", "4", "5", "6", "1", "2", "3", ".", "0", "BACKSPACE"].map(
+                  (key) => (
+                    <button type="button" key={key} onClick={() => applyKeypad(key)}>
+                      {key === "BACKSPACE" ? "⌫" : key}
+                    </button>
+                  ),
+                )}
+              </div>
+              <div className="pos-keypad-modes">
+                <button
+                  type="button"
+                  className={keypadTarget === "QUANTITY" ? "active" : ""}
+                  onClick={() => setKeypadTarget("QUANTITY")}
+                >
+                  Qty
+                </button>
+                <button
+                  type="button"
+                  className={keypadTarget === "CASH" ? "active" : ""}
+                  onClick={() => {
+                    setKeypadTarget("CASH");
+                    cashTenderRef.current?.focus();
+                  }}
+                >
+                  Cash
+                </button>
+                <button type="button" onClick={() => applyKeypad("CLEAR")}>Clear</button>
+                <button
+                  type="button"
+                  className="enter"
+                  disabled={!canCompleteSale}
+                  onClick={() => void checkout()}
+                >
+                  Pay <kbd>F12</kbd>
+                </button>
+              </div>
+            </div>
             <div className="pos-products-footer-dock" aria-label="Register quick summary">
               <span><small>Ticket total</small><strong>{formatMinorCurrency(total)}</strong></span>
               <span className={changeDue > 0 ? "has-change" : ""}>
@@ -688,10 +1063,13 @@ export default function PosPage() {
           </div>
           <div className="card pos-cart">
             <div className="pos-cart-header">
-              <h2>Cart</h2>
+              <h2>Current bill</h2>
               <span>
                 {cart.length} {cart.length === 1 ? "item" : "items"} · {formatMinorCurrency(total)}
               </span>
+            </div>
+            <div className="pos-cart-column-headings" aria-hidden="true">
+              <span>Item</span><span>Qty</span><span>Amount</span><span />
             </div>
             <div className="pos-cart-lines">
               {appointmentId && (
@@ -705,8 +1083,12 @@ export default function PosPage() {
               )}
               {cart.map((line) => (
                 <div
-                  className="cart-line"
+                  className={`cart-line ${selectedCartKey === productKey(line) ? "selected" : ""}`}
                   key={`${line.productId}:${line.variantId ?? "base"}`}
+                  onClick={() => {
+                    setSelectedCartKey(productKey(line));
+                    setKeypadTarget("QUANTITY");
+                  }}
                 >
                   <span>
                     <strong>{line.name}</strong>
@@ -768,7 +1150,7 @@ export default function PosPage() {
                 </div>
               ))}
             </div>
-            <div className="pos-cart-calculator">
+            <div className="pos-cart-calculator" ref={paymentRef}>
               {canDiscount && (
                 <div className="discount-row">
                   <select
@@ -886,6 +1268,7 @@ export default function PosPage() {
                 <label>
                   Cash received (KES)
                   <input
+                    ref={cashTenderRef}
                     type="number"
                     min={total / 100}
                     step="0.01"
@@ -930,12 +1313,14 @@ export default function PosPage() {
                     value={localBank}
                     onChange={(event) => setLocalBank(event.target.value)}
                   >
-                    <option>QNB</option>
+                    <option>KCB</option>
+                    <option>Equity Bank</option>
+                    <option>Co-operative Bank</option>
+                    <option>NCBA</option>
+                    <option>Absa Kenya</option>
+                    <option>Stanbic Bank</option>
+                    <option>I&amp;M Bank</option>
                     <option>Mobile money / bank terminal</option>
-                    <option>Commercial Bank</option>
-                    <option>QIB</option>
-                    <option>Dukhan Bank</option>
-                    <option>Ahlibank</option>
                     <option>Other local terminal</option>
                   </select>
                 </label>
@@ -961,12 +1346,7 @@ export default function PosPage() {
                 Hold
               </button>
               <button
-                disabled={
-                  busy ||
-                  !cart.length ||
-                  (!splitTender && tenderMode === "CASH" && (!validCash || cashShortfall > 0)) ||
-                  (splitTender && !splitValid)
-                }
+                disabled={!canCompleteSale}
                 onClick={() => void checkout()}
               >
                 {busy
@@ -1085,4 +1465,15 @@ function ProductTileMedia({
       <span className="product-tile-price">{priceLabel}</span>
     </div>
   );
+}
+
+function keypadValue(current: string, key: string) {
+  if (key === "CLEAR") return "";
+  if (key === "BACKSPACE") return current.slice(0, -1);
+  if (key === "." && current.includes(".")) return current;
+  if (key === "." && !current) return "0.";
+  const next = `${current}${key}`.replace(/^0+(?=\d)/, "");
+  const [whole = "", decimals] = next.split(".");
+  if (decimals && decimals.length > 2) return current;
+  return whole.length > 7 ? current : next;
 }
