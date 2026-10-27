@@ -18,10 +18,10 @@ jobs:
         working-directory: apps/mobile
     env:
       ALLSHOPS_API_URL: https://api.allshopspos.com/api/v1
-      RELEASE_VERSION: 1.0.6+7
-      RELEASE_VERSION_NAME: 1.0.6
-      RELEASE_VERSION_CODE: "7"
-      SYMBOLS_DIR: build/release-symbols/1.0.6+7
+      RELEASE_VERSION: 1.0.7+8
+      RELEASE_VERSION_NAME: 1.0.7
+      RELEASE_VERSION_CODE: "8"
+      SYMBOLS_DIR: build/release-symbols/1.0.7+8
       ALLSHOPS_ALLOW_UNSIGNED_CI_RELEASE: "true"
 
     steps:
@@ -146,7 +146,7 @@ jobs:
       - name: Upload validated unsigned AAB for offline signing
         uses: actions/upload-artifact@v4
         with:
-          name: AllShops-POS-1.0.6-build-7-validated-unsigned-aab
+          name: AllShops-POS-1.0.7-build-8-validated-unsigned-aab
           path: |
             apps/mobile/build/app/outputs/bundle/release/app-release.aab
             apps/mobile/build/app/outputs/bundle/release/release-manifest.json
@@ -156,8 +156,8 @@ jobs:
       - name: Upload private crash-diagnostic symbols
         uses: actions/upload-artifact@v4
         with:
-          name: AllShops-POS-1.0.6-build-7-symbols
-          path: apps/mobile/build/release-symbols/1.0.6+7
+          name: AllShops-POS-1.0.7-build-8-symbols
+          path: apps/mobile/build/release-symbols/1.0.7+8
           if-no-files-found: error
           retention-days: 90
 
@@ -170,14 +170,14 @@ jobs:
           manifest="build/app/outputs/bundle/release/release-manifest.json"
           transport_dir="$RUNNER_TEMP/allshops-encrypted-transport"
           mkdir -p "$transport_dir"
-          tar -C build/release-symbols -czf "$transport_dir/symbols.tar.gz" "1.0.6+7"
+          tar -C build/release-symbols -czf "$transport_dir/symbols.tar.gz" "1.0.7+8"
           openssl cms -encrypt -binary -aes-256-cbc \
             -in "$bundle" -outform DER \
-            -out "$transport_dir/AllShops-POS-1.0.6-build-7-unsigned.aab.cms" \
+            -out "$transport_dir/AllShops-POS-1.0.7-build-8-unsigned.aab.cms" \
             ../../ops/mobile-release-transport-cert.pem
           openssl cms -encrypt -binary -aes-256-cbc \
             -in "$transport_dir/symbols.tar.gz" -outform DER \
-            -out "$transport_dir/AllShops-POS-1.0.6-build-7-symbols.tar.gz.cms" \
+            -out "$transport_dir/AllShops-POS-1.0.7-build-8-symbols.tar.gz.cms" \
             ../../ops/mobile-release-transport-cert.pem
           cp "$manifest" "$transport_dir/release-manifest.json"
 
@@ -190,9 +190,9 @@ jobs:
           set -euo pipefail
           transport_dir="$RUNNER_TEMP/allshops-encrypted-transport"
           gh release create "$GITHUB_REF_NAME" \
-            "$transport_dir/AllShops-POS-1.0.6-build-7-unsigned.aab.cms" \
-            "$transport_dir/AllShops-POS-1.0.6-build-7-symbols.tar.gz.cms" \
+            "$transport_dir/AllShops-POS-1.0.7-build-8-unsigned.aab.cms" \
+            "$transport_dir/AllShops-POS-1.0.7-build-8-symbols.tar.gz.cms" \
             "$transport_dir/release-manifest.json" \
             --prerelease \
-            --title "AllShops 1.0.6+7 encrypted CI handoff" \
+            --title "AllShops 1.0.7+8 encrypted CI handoff" \
             --notes "Automated encrypted transport assets. The AAB requires decryption and Play upload signing before use."
