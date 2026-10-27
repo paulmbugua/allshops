@@ -10,6 +10,7 @@ import Link from "next/link";
 import { AppShell } from "../components/app-shell";
 import {
   api,
+  clearSession,
   resolveApiAssetUrl,
   selectedOrganization,
   type CurrentUser,
@@ -52,6 +53,7 @@ export default function PosPage() {
   const [productTotal, setProductTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [branches, setBranches] = useState<Branch[]>([]);
+  const [currentUser, setCurrentUser] = useState<CurrentUser>();
   const [branchId, setBranchId] = useState("");
   const [query, setQuery] = useState("");
   const [cart, setCart] = useState<CartLine[]>([]);
@@ -72,6 +74,7 @@ export default function PosPage() {
   const [autoPrint, setAutoPrint] = useState(true);
   const [celebrationMode, setCelebrationMode] = useState(false);
   const [focusMode, setFocusMode] = useState(false);
+  const [paymentPanelOpen, setPaymentPanelOpen] = useState(false);
   const [completedSale, setCompletedSale] = useState<Sale>();
   const [previousSale, setPreviousSale] = useState<Sale>();
   const [productTileMode, setProductTileMode] =
@@ -121,6 +124,11 @@ export default function PosPage() {
     ? Math.max(0, total - enteredCashMinor)
     : total;
   const customer = customers.find((row) => row.id === customerId);
+  const currentMembership = currentUser?.memberships.find(
+    (row) => row.organizationId === organizationId,
+  );
+  const cashierIdentity =
+    currentMembership?.employeeNumber || currentUser?.email || "Loading user…";
   const splitCashMinor = splitCash.trim()
     ? Math.round(Number(splitCash) * 100)
     : 0;
@@ -257,8 +265,11 @@ export default function PosPage() {
       }
       if (!editing && event.key === "F9") {
         event.preventDefault();
-        paymentRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-        cashTenderRef.current?.focus();
+        setPaymentPanelOpen(true);
+        window.setTimeout(() => {
+          paymentRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+          cashTenderRef.current?.focus();
+        }, 0);
         return;
       }
       if (!editing && event.key === "F11" && previousSale) {
@@ -317,6 +328,7 @@ export default function PosPage() {
           ).catch(() => ({ items: [], page: 1, pageSize: 100, total: 0 })),
         ]);
         setBranches(branchRows);
+        setCurrentUser(current);
         const membership = current.memberships.find(
           (row) => row.organizationId === organizationId,
         );
@@ -591,7 +603,7 @@ export default function PosPage() {
         : {}),
     };
   }
-  async function checkout() {
+  async function checkout(printPreference?: "PRINT" | "NO_PRINT") {
     if (!organizationId || !cart.length) return;
     setBusy(true);
     setMessage("");
@@ -652,7 +664,7 @@ export default function PosPage() {
       setTerminalReference("");
       setDiscountType("");
       setDiscountValue("");
-      if (autoPrint) {
+      if (printPreference === "PRINT" || (printPreference == null && autoPrint)) {
         setPrintJob({ saleId: sale.id, mode: "initial", nonce: Date.now() });
       }
     } catch (error) {
@@ -684,6 +696,14 @@ export default function PosPage() {
     }
     setFocusMode(true);
     await document.documentElement.requestFullscreen?.().catch(() => undefined);
+  }
+  async function logout() {
+    await Promise.race([
+      api("/auth/logout", { method: "POST" }).catch(() => undefined),
+      new Promise((resolve) => window.setTimeout(resolve, 2_000)),
+    ]);
+    clearSession();
+    window.location.assign("/welcome?reason=logout");
   }
   function newSale() {
     setCompletedSale(undefined);
@@ -743,8 +763,20 @@ export default function PosPage() {
             <span className="pos-live-dot" />
             <span>
               <strong>Live register</strong>
-              <small>Scanner ready</small>
+              <small>Scanner ready · {branches.find((branch) => branch.id === branchId)?.name ?? "Register"}</small>
             </span>
+            {branches.length > 1 && (
+              <select
+                className="pos-branch-selector"
+                aria-label="Active branch"
+                value={branchId}
+                onChange={(event) => changeBranch(event.target.value)}
+              >
+                {branches.map((branch) => (
+                  <option key={branch.id} value={branch.id}>{branch.name}</option>
+                ))}
+              </select>
+            )}
           </div>
           <div className="pos-previous-summary" aria-label="Previous transaction summary">
             <span>
@@ -772,32 +804,23 @@ export default function PosPage() {
               </strong>
             </span>
           </div>
-          <details className="pos-register-menu">
+          <div className="pos-user-controls">
+          <details className="pos-register-menu pos-user-menu">
             <summary>
+              <span className="pos-user-avatar" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M12 12a4.4 4.4 0 1 0 0-8.8 4.4 4.4 0 0 0 0 8.8Zm-8 8.8c.5-4 3.7-6.5 8-6.5s7.5 2.5 8 6.5H4Z" /></svg>
+              </span>
               <span>
-                <small>Register options</small>
-                <strong>
-                  {branches.find((branch) => branch.id === branchId)?.name ??
-                    "Choose branch"}
-                </strong>
+                <small>Logged-in user</small>
+                <strong>{cashierIdentity}</strong>
               </span>
               <span aria-hidden="true">⌄</span>
             </summary>
             <div className="pos-register-menu-panel">
-              <label>
-                Active branch
-                <select
-                  aria-label="Active branch"
-                  value={branchId}
-                  onChange={(event) => changeBranch(event.target.value)}
-                >
-                  {branches.map((branch) => (
-                    <option key={branch.id} value={branch.id}>
-                      {branch.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <div className="pos-user-menu-heading">
+                <strong>{currentUser?.name ?? "Cashier"}</strong>
+                <small>{branches.find((branch) => branch.id === branchId)?.name ?? "Active register"}</small>
+              </div>
               <label className="pos-auto-print">
                 <input
                   type="checkbox"
@@ -816,13 +839,23 @@ export default function PosPage() {
               </label>
               <button
                 type="button"
-                className="secondary"
-                onClick={() => void toggleFocusMode()}
+                className="pos-logout-button"
+                onClick={() => void logout()}
               >
-                {focusMode ? "Exit full screen" : "Full screen"}
+                <span aria-hidden="true">↪</span> Log out
               </button>
             </div>
           </details>
+          <button
+            type="button"
+            className="pos-focus-toggle"
+            onClick={() => void toggleFocusMode()}
+            aria-label={focusMode ? "Minimize point of sale" : "Maximize point of sale"}
+            title={focusMode ? "Minimize" : "Maximize"}
+          >
+            <span aria-hidden="true">{focusMode ? "↙" : "↗"}</span>
+          </button>
+          </div>
         </header>
         <section className="pos-layout">
           <div className="card pos-products">
@@ -991,17 +1024,10 @@ export default function PosPage() {
             <div className="pos-keypad-workbench">
               <div className="pos-ticket-actions">
                 <button type="button" onClick={startNewTicket}>
-                  <span>＋</span><strong>New ticket</strong><kbd>F2</kbd>
+                  <span>＋</span><strong>New</strong><kbd>F2</kbd>
                 </button>
                 <button type="button" onClick={clearTicket} disabled={!cart.length}>
                   <span>⌫</span><strong>Delete bill</strong><kbd>F7</kbd>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void hold()}
-                  disabled={busy || !cart.length || Boolean(appointmentId)}
-                >
-                  <span>▣</span><strong>Hold sale</strong><kbd>F8</kbd>
                 </button>
                 <button
                   type="button"
@@ -1011,7 +1037,22 @@ export default function PosPage() {
                   }}
                   disabled={!previousSale}
                 >
-                  <span>▤</span><strong>Print last</strong><kbd>F11</kbd>
+                  <span>▤</span><strong>Print</strong><kbd>F11</kbd>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPaymentPanelOpen(true);
+                    window.setTimeout(() => paymentRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }), 0);
+                  }}
+                >
+                  <span>◉</span><strong>Payment</strong><kbd>F9</kbd>
+                </button>
+                <button type="button" disabled={!canCompleteSale} onClick={() => void checkout("NO_PRINT")}>
+                  <span>▣</span><strong>Save</strong><kbd>F12</kbd>
+                </button>
+                <button type="button" disabled={!canCompleteSale} onClick={() => void checkout("PRINT")}>
+                  <span>▣</span><strong>Save &amp; print</strong><kbd>F12</kbd>
                 </button>
               </div>
               <div className="pos-number-pad" aria-label="Register number pad">
@@ -1051,14 +1092,6 @@ export default function PosPage() {
                   Pay <kbd>F12</kbd>
                 </button>
               </div>
-            </div>
-            <div className="pos-products-footer-dock" aria-label="Register quick summary">
-              <span><small>Ticket total</small><strong>{formatMinorCurrency(total)}</strong></span>
-              <span className={changeDue > 0 ? "has-change" : ""}>
-                <small>{cashShortfall > 0 ? "Still due" : "Change"}</small>
-                <strong>{formatMinorCurrency(cashShortfall > 0 ? cashShortfall : changeDue)}</strong>
-              </span>
-              <span className="pos-shortcuts"><kbd>Ctrl</kbd><span>+</span><kbd>K</kbd> scan · <kbd>F2</kbd> new ticket</span>
             </div>
           </div>
           <div className="card pos-cart">
@@ -1150,7 +1183,25 @@ export default function PosPage() {
                 </div>
               ))}
             </div>
-            <div className="pos-cart-calculator" ref={paymentRef}>
+            <button
+              type="button"
+              className={`pos-payment-drawer-toggle ${paymentPanelOpen ? "active" : ""}`}
+              onClick={() => setPaymentPanelOpen((value) => !value)}
+              aria-expanded={paymentPanelOpen}
+              aria-controls="pos-payment-panel"
+            >
+              <span className="pos-payment-drawer-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M4 5h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Zm0 4h16V7H4v2Zm2 6h5v2H6v-2Z" /></svg>
+              </span>
+              <span><strong>Customer &amp; payment</strong><small>{customer?.name ?? "Walk-in customer"} · {tenderMode === "CASH" ? "Cash" : "Local card"}</small></span>
+              <b>{formatMinorCurrency(total)}</b>
+              <span aria-hidden="true">{paymentPanelOpen ? "⌃" : "⌄"}</span>
+            </button>
+            <div
+              id="pos-payment-panel"
+              className={`pos-cart-calculator ${paymentPanelOpen ? "is-open" : ""}`}
+              ref={paymentRef}
+            >
               {canDiscount && (
                 <div className="discount-row">
                   <select
@@ -1172,20 +1223,6 @@ export default function PosPage() {
                   />
                 </div>
               )}
-              <div className="totals">
-                <span>
-                  Subtotal <b>{formatMinorCurrency(subtotal)}</b>
-                </span>
-                <span>
-                  Discount <b>− {formatMinorCurrency(discount)}</b>
-                </span>
-                <span>
-                  Tax <b>{formatMinorCurrency(0)}</b>
-                </span>
-                <strong>
-                  Total <b>{formatMinorCurrency(total)}</b>
-                </strong>
-              </div>
               <h3>Payment</h3>
               <label>
                 Customer (optional)
@@ -1337,25 +1374,29 @@ export default function PosPage() {
                 </div>
               )}
             </div>
-            <div className="actions">
+            <div className="totals pos-bottom-totals">
+              <span>Subtotal <b>{formatMinorCurrency(subtotal)}</b></span>
+              <span>Discount <b>− {formatMinorCurrency(discount)}</b></span>
+              <span>Tax <b>{formatMinorCurrency(0)}</b></span>
+              <strong>Total <b>{formatMinorCurrency(total)}</b></strong>
+            </div>
+            <div className="actions pos-icon-sale-actions">
               <button
                 className="secondary"
                 disabled={busy || !cart.length}
                 onClick={() => void hold()}
+                aria-label="Hold sale"
+                title="Hold sale (F8)"
               >
-                Hold
+                <span aria-hidden="true">Ⅱ</span>
               </button>
               <button
                 disabled={!canCompleteSale}
                 onClick={() => void checkout()}
+                aria-label={tenderMode === "CASH" ? "Complete cash sale" : "Complete local card sale"}
+                title={tenderMode === "CASH" ? "Complete cash sale (F12)" : "Complete local card sale (F12)"}
               >
-                {busy
-                  ? "Processing…"
-                  : splitTender
-                    ? "Complete split sale"
-                  : tenderMode === "CASH"
-                    ? "Complete cash sale"
-                    : "Record local card sale"}
+                <span aria-hidden="true">{busy ? "…" : "✓"}</span>
               </button>
             </div>
             {message && <p className="notice">{message}</p>}

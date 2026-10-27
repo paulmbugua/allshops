@@ -31,7 +31,7 @@ class _PosScreenState extends ConsumerState<PosScreen> {
   int productTotal = 0;
   static const productPageSize = 40;
   String tender = 'CASH';
-  String bank = 'QNB';
+  String bank = 'KCB';
   String? message;
   String? deviceId;
   String? catalogueSnapshotAt;
@@ -512,7 +512,7 @@ class _PosScreenState extends ConsumerState<PosScreen> {
       cash.clear();
       terminalReference.clear();
       tender = 'CASH';
-      bank = 'QNB';
+      bank = 'KCB';
     }
     if (mounted) setState(() => busy = false);
   }
@@ -682,15 +682,15 @@ class _PosScreenState extends ConsumerState<PosScreen> {
             child: Container(
               padding: const EdgeInsets.fromLTRB(14, 8, 8, 8),
               decoration: BoxDecoration(
-                color: const Color(0xFFE7F6EF),
+                color: const Color(0xFFE5F1FC),
                 borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: const Color(0xFFC8E5D7)),
+                border: Border.all(color: const Color(0xFFBDD6EC)),
               ),
               child: Row(
                 children: [
                   const Icon(
                     Icons.storefront_rounded,
-                    color: Color(0xFF16705A),
+                    color: Color(0xFF0F6FC6),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
@@ -864,14 +864,14 @@ class _CartSheet extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.fromLTRB(20, 14, 20, 18),
     decoration: const BoxDecoration(
-      color: Color(0xFF172C2B),
+      color: Color(0xFF173650),
       borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
     ),
     child: Row(
       children: [
         CircleAvatar(
-          backgroundColor: const Color(0xFFFFCF5C),
-          foregroundColor: const Color(0xFF172C2B),
+          backgroundColor: const Color(0xFF4C9DE3),
+          foregroundColor: Colors.white,
           child: Text(
             '$count',
             style: const TextStyle(fontWeight: FontWeight.w900),
@@ -884,7 +884,7 @@ class _CartSheet extends StatelessWidget {
             children: [
               const Text(
                 'Current order',
-                style: TextStyle(color: Color(0xFFAEC5BD), fontSize: 11),
+                style: TextStyle(color: Color(0xFFC7D7E5), fontSize: 11),
               ),
               Text(
                 'KES ${(totalMinor / 100).toStringAsFixed(2)}',
@@ -1094,9 +1094,9 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
                 key: paymentPanelKey,
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF1F7F4),
+                  color: const Color(0xFFF1F5F9),
                   borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: const Color(0xFFD9E8E1)),
+                  border: Border.all(color: const Color(0xFFD5DFE8)),
                 ),
                 child: tender == 'CASH'
                     ? Column(
@@ -1156,12 +1156,14 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
                             initialValue: bank,
                             items:
                                 const [
-                                      'QNB',
+                                      'KCB',
+                                      'Equity Bank',
+                                      'Co-operative Bank',
+                                      'NCBA',
+                                      'Absa Kenya',
+                                      'Stanbic Bank',
+                                      'I&M Bank',
                                       'Mobile money / bank terminal',
-                                      'Commercial Bank',
-                                      'QIB',
-                                      'Dukhan Bank',
-                                      'Ahlibank',
                                       'Other local terminal',
                                     ]
                                     .map(
@@ -1187,7 +1189,7 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
                           Text(
                             'Record exactly KES ${(totalMinor / 100).toStringAsFixed(2)} after the payment terminal approves the transaction.',
                             style: const TextStyle(
-                              color: Color(0xFF536C64),
+                              color: Color(0xFF52697E),
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
                             ),
@@ -1316,9 +1318,9 @@ class _ProductTile extends StatelessWidget {
         ? 'Standard item'
         : identityParts.join(' · ');
     final fallbackColors = switch (accentIndex % 3) {
-      1 => const [Color(0xFFFFE7A3), Color(0xFFFFC94C)],
-      2 => const [Color(0xFFCDEEDF), Color(0xFF83D0AE)],
-      _ => const [Color(0xFFFFDDD4), Color(0xFFFFAD96)],
+      1 => const [Color(0xFFDCEEFF), Color(0xFF87BDEB)],
+      2 => const [Color(0xFFE7EBF0), Color(0xFFAEBAC7)],
+      _ => const [Color(0xFFCFE4F7), Color(0xFF6FA8DB)],
     };
     final initial = product.name.trim().isEmpty
         ? '•'
@@ -1337,7 +1339,7 @@ class _ProductTile extends StatelessWidget {
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(18),
-            side: const BorderSide(color: Color(0xFFE1EAE6)),
+            side: const BorderSide(color: Color(0xFFD7E0E8)),
           ),
           child: InkWell(
             onTap: outOfStock ? null : onTap,
@@ -1374,7 +1376,7 @@ class _ProductTile extends StatelessWidget {
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: const Color(0xE617302A),
+                            color: const Color(0xE6173650),
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(color: Colors.white30),
                           ),
@@ -1401,7 +1403,7 @@ class _ProductTile extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                          color: Color(0xFF173B34),
+                          color: Color(0xFF173650),
                           fontSize: 12,
                           height: 1.05,
                           fontWeight: FontWeight.w900,
@@ -1413,7 +1415,7 @@ class _ProductTile extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                          color: Color(0xFF6B7E78),
+                          color: Color(0xFF64748B),
                           fontSize: 9,
                           height: 1.05,
                           fontWeight: FontWeight.w600,
@@ -1492,7 +1494,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
             width: 260,
             height: 160,
             decoration: BoxDecoration(
-              border: Border.all(color: const Color(0xFFFFCF5C), width: 3),
+              border: Border.all(color: const Color(0xFF4C9DE3), width: 3),
               borderRadius: BorderRadius.circular(20),
             ),
           ),

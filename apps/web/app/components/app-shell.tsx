@@ -28,7 +28,7 @@ export function AppShell({
 }) {
   const [membership, setMembership] = useState<Membership>();
   const [idleTimeoutMinutes, setIdleTimeoutMinutes] = useState(5);
-  const [brand, setBrand] = useState({ primary: "#087F5B", accent: "#FFCF5C" });
+  const [brand, setBrand] = useState({ primary: "#0F6FC6", accent: "#64748B" });
   const { t } = useLanguage();
   const pathname = usePathname();
   useEffect(() => {
@@ -47,10 +47,9 @@ export function AppShell({
       })
       .then((organization) => {
         setIdleTimeoutMinutes(organization.idleTimeoutMinutes);
-        setBrand({
-          primary: organization.brandPrimaryColor ?? "#087F5B",
-          accent: organization.brandAccentColor ?? "#FFCF5C",
-        });
+        // All operational surfaces use the same high-contrast blue/grey system.
+        // Tenant colours remain stored for branded documents and receipts.
+        setBrand({ primary: "#0F6FC6", accent: "#64748B" });
       })
       .catch(() => undefined);
   }, []);

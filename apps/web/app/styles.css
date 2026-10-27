@@ -4720,3 +4720,264 @@ html[dir="rtl"] .pricing-includes li::before {
     flex: 1 1 auto;
   }
 }
+
+/* Unified AllShops blue/grey operational theme and compact POS controls. */
+:root {
+  --brand: #0f6fc6;
+  --brand-dark: #0b4f91;
+  --brand-accent: #64748b;
+  --line: #ccd8e3;
+  --muted: #64748b;
+}
+body {
+  background: #e9eef3;
+}
+.pos-user-controls {
+  position: relative;
+  display: flex;
+  flex: 0 0 auto;
+  align-items: stretch;
+  gap: 0.4rem;
+}
+.pos-branch-selector {
+  width: auto;
+  min-width: 7rem;
+  min-height: 2rem;
+  margin-left: 0.45rem;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  padding: 0.25rem 1.6rem 0.25rem 0.55rem;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-size: 0.65rem;
+}
+.pos-branch-selector option {
+  background: #fff;
+  color: #173650;
+}
+.pos-user-menu summary {
+  min-width: 14.5rem;
+}
+.pos-user-avatar {
+  display: grid;
+  width: 2.15rem;
+  height: 2.15rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 50%;
+  background: #0f6fc6;
+  color: #fff;
+}
+.pos-user-avatar svg,
+.pos-payment-drawer-icon svg {
+  width: 1.25rem;
+  height: 1.25rem;
+  fill: currentColor;
+}
+.pos-user-menu-heading {
+  display: grid;
+  gap: 0.12rem;
+  padding-bottom: 0.65rem;
+  border-bottom: 1px solid #d8e2eb;
+  color: #173650;
+}
+.pos-user-menu-heading small {
+  color: #64748b;
+}
+.pos-logout-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  min-height: 2.7rem;
+  border: 1px solid #bdc9d5;
+  background: #edf1f5;
+  color: #28465f;
+}
+.pos-focus-toggle {
+  display: grid;
+  width: 3.35rem;
+  min-height: 100%;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.42);
+  border-radius: 0.7rem;
+  background: rgba(255, 255, 255, 0.13);
+  color: #fff;
+  font-size: 1.35rem;
+}
+.pos-focus-toggle:hover {
+  background: rgba(255, 255, 255, 0.24);
+}
+.pos-payment-drawer-toggle {
+  display: grid;
+  width: 100%;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 0.65rem;
+  border: 1px solid #b9c9d8;
+  border-radius: 0.55rem;
+  padding: 0.55rem 0.7rem;
+  background: #e8eef4;
+  color: #173650;
+  text-align: left;
+}
+.pos-payment-drawer-toggle.active {
+  border-color: #2483d5;
+  background: #dcecff;
+}
+.pos-payment-drawer-toggle > span:nth-child(2) {
+  display: grid;
+  min-width: 0;
+}
+.pos-payment-drawer-toggle small {
+  overflow: hidden;
+  color: #60788e;
+  font-size: 0.6rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pos-payment-drawer-icon {
+  display: grid;
+  width: 2.3rem;
+  height: 2.3rem;
+  place-items: center;
+  border-radius: 0.45rem;
+  background: #0f6fc6;
+  color: #fff;
+  font-size: 1.2rem;
+}
+.pos-bottom-totals {
+  flex: 0 0 auto;
+  margin-top: 0.45rem;
+  padding: 0.55rem 0.65rem;
+  border-top: 2px solid #60788e;
+  border-radius: 0.45rem;
+  background: #eef2f5;
+  color: #173650;
+}
+.pos-bottom-totals span,
+.pos-bottom-totals strong {
+  color: #173650 !important;
+}
+.pos-icon-sale-actions {
+  display: grid;
+  grid-template-columns: 4.25rem 4.25rem !important;
+  justify-content: end;
+  gap: 0.45rem;
+  margin-top: 0.45rem;
+}
+.pos-icon-sale-actions button {
+  display: grid;
+  width: 4.25rem;
+  min-height: 3.3rem;
+  place-items: center;
+  border-radius: 0.55rem;
+  padding: 0;
+  background: #0f6fc6;
+  color: #fff;
+  font-size: 1.35rem;
+}
+.pos-icon-sale-actions button.secondary {
+  border-color: #718096;
+  background: #64748b;
+  color: #fff;
+}
+
+@media (min-width: 901px) {
+  .pos-products,
+  .pos-cart {
+    border-radius: 0.55rem;
+    background: #f2f4f7;
+  }
+  .pos-cart-calculator {
+    display: none;
+    max-height: 20rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding: 0.65rem;
+    border: 1px solid #c8d5e1;
+    border-radius: 0.5rem;
+    background: #f7f9fb;
+  }
+  .pos-cart-calculator.is-open {
+    display: grid;
+  }
+  .pos-cart-calculator > .discount-row,
+  .pos-cart-calculator > h3,
+  .pos-cart-calculator > label,
+  .pos-cart-calculator > p,
+  .pos-cart-calculator > .payment-choice-grid,
+  .pos-cart-calculator > .pos-split-toggle,
+  .pos-cart-calculator > .cash-panel,
+  .pos-cart-calculator > .payment-row {
+    grid-column: auto;
+  }
+  .pos-keypad-workbench {
+    height: 13.75rem;
+    grid-template-columns: minmax(8.5rem, 0.9fr) minmax(13rem, 1.35fr) minmax(5.5rem, 0.58fr);
+  }
+  .pos-ticket-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: repeat(3, minmax(0, 1fr));
+  }
+  .pos-ticket-actions button {
+    padding: 0.55rem;
+    background: #526173;
+  }
+  .pos-ticket-actions button:nth-child(4),
+  .pos-ticket-actions button:nth-child(5),
+  .pos-ticket-actions button:nth-child(6) {
+    background: #0f6fc6;
+  }
+  .pos-ticket-actions button > span {
+    font-size: 1.35rem;
+  }
+  .pos-ticket-actions strong {
+    font-size: 0.76rem;
+  }
+  .pos-number-pad button,
+  .pos-keypad-modes button {
+    border-color: #bac7d3;
+    border-radius: 0.28rem;
+    background: #e3e7ec;
+    color: #233c53;
+    font-size: 1.55rem;
+  }
+  .pos-keypad-modes button {
+    font-size: 0.82rem;
+  }
+  .pos-keypad-modes button.active {
+    border-color: #6b7d91;
+    background: #8996a6;
+    color: #fff;
+  }
+  .pos-keypad-modes button.enter {
+    background: #0f6fc6;
+  }
+}
+
+@media (max-width: 900px) {
+  .pos-user-menu summary {
+    min-width: 0;
+  }
+  .pos-user-menu summary > span:nth-child(2) {
+    display: none;
+  }
+  .pos-user-avatar {
+    width: 2rem;
+    height: 2rem;
+  }
+  .pos-focus-toggle {
+    width: 2.9rem;
+  }
+  .pos-cart-calculator {
+    display: grid;
+  }
+  .pos-payment-drawer-toggle {
+    display: none;
+  }
+  .pos-icon-sale-actions {
+    grid-template-columns: repeat(2, minmax(4rem, 1fr)) !important;
+  }
+  .pos-icon-sale-actions button {
+    width: 100%;
+  }
+}

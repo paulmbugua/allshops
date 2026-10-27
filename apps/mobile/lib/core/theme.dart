@@ -2,16 +2,16 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 abstract final class AllShopsTheme {
-  static const coral = Color(0xFFBB1E10);
-  static const ink = Color(0xFF172C2B);
-  static const mint = Color(0xFF35B77D);
-  static const sun = Color(0xFFFFCF5C);
-  static const kenyaGreen = Color(0xFF0B5D46);
-  static const kenyaGold = Color(0xFFF2C14E);
-  // Compatibility aliases keep older widgets on the refreshed Kenyan palette.
+  static const coral = Color(0xFFDC4C4C);
+  static const ink = Color(0xFF173650);
+  static const mint = Color(0xFF4C9DE3);
+  static const sun = Color(0xFF94A3B8);
+  static const kenyaGreen = Color(0xFF0F6FC6);
+  static const kenyaGold = Color(0xFF64748B);
+  // Compatibility aliases move every legacy branded control onto blue/grey.
   static const qatarMaroon = kenyaGreen;
   static const qatarSand = kenyaGold;
-  static const canvas = Color(0xFFF7F9F6);
+  static const canvas = Color(0xFFF1F4F7);
   static ThemeData get light => ThemeData(
     useMaterial3: true,
     colorScheme: ColorScheme.fromSeed(
@@ -20,7 +20,7 @@ abstract final class AllShopsTheme {
       secondary: mint,
       surface: Colors.white,
     ),
-    scaffoldBackgroundColor: const Color(0xFFF8F5F1),
+    scaffoldBackgroundColor: canvas,
     pageTransitionsTheme: const PageTransitionsTheme(
       builders: <TargetPlatform, PageTransitionsBuilder>{
         TargetPlatform.android: FadeUpwardsPageTransitionsBuilder(),
@@ -28,23 +28,23 @@ abstract final class AllShopsTheme {
       },
     ),
     appBarTheme: const AppBarTheme(
-      backgroundColor: Color(0xFFF8F5F1),
+      backgroundColor: canvas,
       elevation: 0,
       foregroundColor: ink,
     ),
     cardTheme: CardThemeData(
       elevation: 1,
-      shadowColor: kenyaGreen.withValues(alpha: .08),
+      shadowColor: kenyaGreen.withValues(alpha: .12),
       color: Colors.white,
       margin: EdgeInsets.zero,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.all(Radius.circular(22)),
-        side: BorderSide(color: Color(0x14_6D1738)),
+        side: BorderSide(color: Color(0x243B5B75)),
       ),
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: Colors.white,
+      fillColor: Color(0xFFF8FAFC),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
         borderSide: BorderSide.none,
