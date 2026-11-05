@@ -88,9 +88,9 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                   stops: [0, .42, .72, 1],
                   colors: [
                     Color(0x19000000),
-                    Color(0x26000000),
-                    Color(0xD9150E11),
-                    Color(0xFF150E11),
+                    Color(0x2B0B3764),
+                    Color(0xE5102740),
+                    Color(0xFF081C2F),
                   ],
                 ),
               ),
@@ -185,10 +185,14 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                                   ],
                                   FilledButton(
                                     style: FilledButton.styleFrom(
-                                      minimumSize: const Size.fromHeight(58),
-                                      backgroundColor: AllShopsTheme.qatarSand,
-                                      foregroundColor:
-                                          AllShopsTheme.qatarMaroon,
+                                      minimumSize: const Size.fromHeight(62),
+                                      backgroundColor: const Color(0xFF0F6FC6),
+                                      foregroundColor: Colors.white,
+                                      elevation: 8,
+                                      shadowColor: const Color(0x990B4F91),
+                                      side: const BorderSide(
+                                        color: Color(0xFF62B2F5),
+                                      ),
                                     ),
                                     onPressed: () => Navigator.of(context).push(
                                       MaterialPageRoute(
@@ -262,12 +266,16 @@ class _OwnerWelcomeCard extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.fromLTRB(16, 15, 14, 14),
     decoration: BoxDecoration(
-      color: const Color(0xD96D1738),
+      gradient: const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [Color(0xF20F6FC6), Color(0xF2083E72)],
+      ),
       borderRadius: BorderRadius.circular(22),
-      border: Border.all(color: const Color(0x66F3DFC1)),
+      border: Border.all(color: const Color(0xAA62B2F5), width: 1.2),
       boxShadow: const [
         BoxShadow(
-          color: Color(0x42000000),
+          color: Color(0x66082E53),
           blurRadius: 24,
           offset: Offset(0, 12),
         ),
@@ -283,12 +291,12 @@ class _OwnerWelcomeCard extends StatelessWidget {
               width: 38,
               height: 38,
               decoration: BoxDecoration(
-                color: AllShopsTheme.qatarSand,
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: const Icon(
                 Icons.storefront_rounded,
-                color: AllShopsTheme.qatarMaroon,
+                color: Color(0xFF0F6FC6),
                 size: 20,
               ),
             ),
@@ -328,8 +336,8 @@ class _OwnerWelcomeCard extends StatelessWidget {
           style: OutlinedButton.styleFrom(
             minimumSize: const Size.fromHeight(48),
             backgroundColor: Colors.white,
-            foregroundColor: AllShopsTheme.qatarMaroon,
-            side: BorderSide.none,
+            foregroundColor: const Color(0xFF0B4F91),
+            side: const BorderSide(color: Color(0xFFB9DCFA)),
           ),
           onPressed: onCreateAccount,
           icon: const Icon(Icons.add_business_rounded, size: 19),
@@ -350,7 +358,11 @@ class _TrustLine extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Row(
     children: [
-      const Icon(Icons.verified_user_outlined, color: Colors.white54, size: 16),
+      const Icon(
+        Icons.verified_user_outlined,
+        color: Color(0xFF8FCBFF),
+        size: 17,
+      ),
       const SizedBox(width: 7),
       Flexible(
         child: Text(
@@ -358,7 +370,7 @@ class _TrustLine extends StatelessWidget {
               ? 'Salama • KES • Kwa kila tawi'
               : 'Secure • KES-ready • Built for every branch',
           style: const TextStyle(
-            color: Colors.white54,
+            color: Color(0xFFDCEEFF),
             fontSize: 11,
             fontWeight: FontWeight.w700,
           ),
@@ -392,8 +404,8 @@ class _QatarFooterMotif extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
               decoration: BoxDecoration(
-                color: const Color(0x99150E11),
-                border: Border.all(color: Colors.white12),
+                color: const Color(0xCC0A3157),
+                border: Border.all(color: const Color(0x665FADEB)),
                 borderRadius: BorderRadius.circular(99),
               ),
               child: Text(
@@ -401,7 +413,7 @@ class _QatarFooterMotif extends StatelessWidget {
                     ? 'IMEUNDWA KENYA • KUKUA NAWE'
                     : 'DESIGNED IN KENYA • BUILT TO GROW',
                 style: TextStyle(
-                  color: AllShopsTheme.qatarSand.withValues(alpha: .78),
+                  color: const Color(0xFFBFE2FF),
                   fontSize: 8,
                   letterSpacing: isArabic ? .1 : 1.15,
                   fontWeight: FontWeight.w900,
@@ -425,12 +437,12 @@ class _DohaSkylinePainter extends CustomPainter {
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
         colors: [
-          AllShopsTheme.qatarSand.withValues(alpha: .03),
-          AllShopsTheme.qatarSand.withValues(alpha: .15),
+          const Color(0xFF1689E5).withValues(alpha: .06),
+          const Color(0xFF1689E5).withValues(alpha: .24),
         ],
       ).createShader(Offset.zero & size);
     final line = Paint()
-      ..color = AllShopsTheme.qatarSand.withValues(alpha: .22)
+      ..color = const Color(0xFF62B2F5).withValues(alpha: .38)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.1;
     final path = Path()
@@ -543,8 +555,8 @@ class _LanguageToggle extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(4),
         decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: .24),
-          border: Border.all(color: Colors.white24),
+          color: const Color(0xB3082540),
+          border: Border.all(color: const Color(0x775FADEB)),
           borderRadius: BorderRadius.circular(99),
         ),
         child: Row(
@@ -588,13 +600,13 @@ class _LanguageChoice extends StatelessWidget {
         duration: const Duration(milliseconds: 180),
         padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
         decoration: BoxDecoration(
-          color: selected ? AllShopsTheme.qatarSand : Colors.transparent,
+          color: selected ? const Color(0xFF0F6FC6) : Colors.transparent,
           borderRadius: BorderRadius.circular(99),
         ),
         child: Text(
           label,
           style: TextStyle(
-            color: selected ? AllShopsTheme.qatarMaroon : Colors.white70,
+            color: selected ? Colors.white : const Color(0xFFC5D9E9),
             fontSize: 11,
             fontWeight: FontWeight.w900,
           ),
@@ -673,14 +685,14 @@ class _QatarWelcomeBadge extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 8),
     decoration: BoxDecoration(
-      color: Colors.white.withValues(alpha: .12),
-      border: Border.all(color: Colors.white24),
+      color: const Color(0xCC0B4F91),
+      border: Border.all(color: const Color(0xAA62B2F5)),
       borderRadius: BorderRadius.circular(99),
     ),
     child: Text(
       isArabic ? 'KARIBU  •  BIASHARA YAKO' : 'KARIBU  •  WELCOME',
       style: TextStyle(
-        color: AllShopsTheme.qatarSand,
+        color: const Color(0xFFDCEEFF),
         fontSize: 11,
         letterSpacing: isArabic ? .2 : 1.1,
         fontWeight: FontWeight.w900,
