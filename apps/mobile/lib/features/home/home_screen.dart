@@ -165,8 +165,17 @@ class DashboardTab extends StatelessWidget {
                     height: 48,
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF35F45),
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF0F6FC6), Color(0xFF0B4F91)],
+                      ),
                       borderRadius: BorderRadius.circular(16),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Color(0x330B4F91),
+                          blurRadius: 14,
+                          offset: Offset(0, 6),
+                        ),
+                      ],
                     ),
                     child: const Text(
                       '✦',
@@ -231,12 +240,12 @@ class DashboardTab extends StatelessWidget {
                       ),
                     ],
                     child: CircleAvatar(
-                      backgroundColor: const Color(0xFFFFE4DA),
+                      backgroundColor: const Color(0xFFDCEEFF),
                       child: Text(
                         user.name.isEmpty ? 'U' : user.name[0].toUpperCase(),
                         style: const TextStyle(
                           fontWeight: FontWeight.w900,
-                          color: Color(0xFFF35F45),
+                          color: Color(0xFF0B4F91),
                         ),
                       ),
                     ),
@@ -281,9 +290,18 @@ class DashboardTab extends StatelessWidget {
                     padding: const EdgeInsets.all(22),
                     decoration: BoxDecoration(
                       gradient: const LinearGradient(
-                        colors: [Color(0xFF172C2B), Color(0xFF28564D)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [Color(0xFF0B4F91), Color(0xFF0F6FC6)],
                       ),
                       borderRadius: BorderRadius.circular(24),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Color(0x3D0B4F91),
+                          blurRadius: 22,
+                          offset: Offset(0, 10),
+                        ),
+                      ],
                     ),
                     child: Row(
                       children: [
@@ -311,7 +329,7 @@ class DashboardTab extends StatelessWidget {
                                   'Malipo ya haraka kwa pesa, mobile money au kadi, hata bila mtandao.',
                                 ),
                                 style: TextStyle(
-                                  color: Color(0xFFAEC5BD),
+                                  color: Color(0xFFE3F2FF),
                                   height: 1.4,
                                 ),
                               ),
@@ -322,8 +340,8 @@ class DashboardTab extends StatelessWidget {
                           FilledButton.tonal(
                             onPressed: onOpenPos,
                             style: FilledButton.styleFrom(
-                              backgroundColor: const Color(0xFFFFCF5C),
-                              foregroundColor: const Color(0xFF172C2B),
+                              backgroundColor: Colors.white,
+                              foregroundColor: const Color(0xFF0B4F91),
                             ),
                             child: const Icon(Icons.arrow_forward_rounded),
                           ),

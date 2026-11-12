@@ -19,6 +19,15 @@ abstract final class AllShopsTheme {
       primary: kenyaGreen,
       secondary: mint,
       surface: Colors.white,
+      onPrimary: Colors.white,
+      onSecondary: const Color(0xFF071E33),
+      onSurface: ink,
+      error: const Color(0xFFB42318),
+      onError: Colors.white,
+    ),
+    textTheme: ThemeData.light().textTheme.apply(
+      bodyColor: ink,
+      displayColor: ink,
     ),
     scaffoldBackgroundColor: canvas,
     pageTransitionsTheme: const PageTransitionsTheme(
@@ -44,12 +53,35 @@ abstract final class AllShopsTheme {
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: Color(0xFFF8FAFC),
+      fillColor: const Color(0xFFF8FAFC),
+      labelStyle: const TextStyle(
+        color: Color(0xFF405B72),
+        fontWeight: FontWeight.w700,
+      ),
+      hintStyle: const TextStyle(color: Color(0xFF64748B)),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: BorderSide.none,
+        borderSide: const BorderSide(color: Color(0xFFC7D4DF)),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: Color(0xFFC7D4DF)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: kenyaGreen, width: 2),
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+    ),
+    filledButtonTheme: FilledButtonThemeData(
+      style: FilledButton.styleFrom(
+        backgroundColor: kenyaGreen,
+        foregroundColor: Colors.white,
+        disabledBackgroundColor: const Color(0xFFD7E0E8),
+        disabledForegroundColor: const Color(0xFF53697B),
+        minimumSize: const Size(64, 52),
+        textStyle: const TextStyle(fontWeight: FontWeight.w900),
+      ),
     ),
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
@@ -64,9 +96,35 @@ abstract final class AllShopsTheme {
       backgroundColor: kenyaGreen,
       foregroundColor: Colors.white,
     ),
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style: OutlinedButton.styleFrom(
+        foregroundColor: const Color(0xFF0B4F91),
+        side: const BorderSide(color: Color(0xFF7FAFD8)),
+        minimumSize: const Size(64, 50),
+        textStyle: const TextStyle(fontWeight: FontWeight.w800),
+      ),
+    ),
+    textButtonTheme: TextButtonThemeData(
+      style: TextButton.styleFrom(
+        foregroundColor: const Color(0xFF0B4F91),
+        textStyle: const TextStyle(fontWeight: FontWeight.w800),
+      ),
+    ),
+    snackBarTheme: const SnackBarThemeData(
+      backgroundColor: Color(0xFF102F4D),
+      contentTextStyle: TextStyle(color: Colors.white),
+      actionTextColor: Color(0xFF9FD5FF),
+    ),
     navigationBarTheme: NavigationBarThemeData(
       backgroundColor: Colors.white,
-      indicatorColor: kenyaGold.withValues(alpha: .55),
+      indicatorColor: const Color(0xFFD8ECFD),
+      iconTheme: WidgetStateProperty.resolveWith(
+        (states) => IconThemeData(
+          color: states.contains(WidgetState.selected)
+              ? kenyaGreen
+              : const Color(0xFF52697E),
+        ),
+      ),
       labelTextStyle: WidgetStateProperty.resolveWith(
         (states) => TextStyle(
           color: states.contains(WidgetState.selected) ? kenyaGreen : ink,
@@ -75,8 +133,13 @@ abstract final class AllShopsTheme {
       ),
     ),
     chipTheme: ChipThemeData(
-      backgroundColor: kenyaGold.withValues(alpha: .28),
+      backgroundColor: const Color(0xFFE5EBF0),
       selectedColor: kenyaGreen,
+      labelStyle: const TextStyle(color: ink, fontWeight: FontWeight.w700),
+      secondaryLabelStyle: const TextStyle(
+        color: Colors.white,
+        fontWeight: FontWeight.w800,
+      ),
       side: BorderSide.none,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
     ),

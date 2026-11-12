@@ -29,6 +29,9 @@ x-app-environment: &app-environment
   MAIL_FROM_ADDRESS: ${MAIL_FROM_ADDRESS:-}
   MAIL_FROM: ${MAIL_FROM:-}
   MAIL_REPLY_TO: ${MAIL_REPLY_TO:-}
+  ETIMS_ENCRYPTION_KEY: ${ETIMS_ENCRYPTION_KEY:-}
+  ETIMS_SANDBOX_BASE_URL: ${ETIMS_SANDBOX_BASE_URL:-https://etims-api-sbx.kra.go.ke/etims-api}
+  ETIMS_PRODUCTION_BASE_URL: ${ETIMS_PRODUCTION_BASE_URL:-https://etims-api.kra.go.ke/etims-api}
 
 x-logging: &logging
   driver: json-file
@@ -109,6 +112,8 @@ services:
       WORKER_HEALTH_PORT: 4001
       SUBSCRIPTION_GRACE_DAYS: ${SUBSCRIPTION_GRACE_DAYS:-7}
       SUBSCRIPTION_JOB_INTERVAL_MINUTES: ${SUBSCRIPTION_JOB_INTERVAL_MINUTES:-60}
+      ETIMS_SUBMISSION_INTERVAL_SECONDS: ${ETIMS_SUBMISSION_INTERVAL_SECONDS:-15}
+      ETIMS_MAX_ATTEMPTS: ${ETIMS_MAX_ATTEMPTS:-10}
     depends_on:
       migrate:
         condition: service_completed_successfully

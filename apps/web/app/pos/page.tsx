@@ -134,7 +134,9 @@ export default function PosPage() {
     : 0;
   const splitCardMinor = Math.max(0, total - splitCashMinor);
   const splitValid =
-    Number.isFinite(splitCashMinor) && splitCashMinor > 0 && splitCashMinor < total;
+    Number.isFinite(splitCashMinor) &&
+    splitCashMinor > 0 &&
+    splitCashMinor < total;
   const canCompleteSale =
     !busy &&
     cart.length > 0 &&
@@ -162,7 +164,13 @@ export default function PosPage() {
         );
       })
       .slice(0, Math.max(8, Math.min(18, pageSize)));
-  }, [pageSize, pinnedProductKeys, products, quickProductSnapshots, salesCounts]);
+  }, [
+    pageSize,
+    pinnedProductKeys,
+    products,
+    quickProductSnapshots,
+    salesCounts,
+  ]);
 
   const displayedProducts = query.trim() ? products : quickProducts;
 
@@ -205,7 +213,9 @@ export default function PosPage() {
         JSON.parse(window.localStorage.getItem(`${prefix}:pinned`) ?? "[]"),
       );
       setSalesCounts(
-        JSON.parse(window.localStorage.getItem(`${prefix}:sales-counts`) ?? "{}"),
+        JSON.parse(
+          window.localStorage.getItem(`${prefix}:sales-counts`) ?? "{}",
+        ),
       );
       setQuickProductSnapshots(
         JSON.parse(window.localStorage.getItem(`${prefix}:products`) ?? "[]"),
@@ -267,7 +277,10 @@ export default function PosPage() {
         event.preventDefault();
         setPaymentPanelOpen(true);
         window.setTimeout(() => {
-          paymentRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+          paymentRef.current?.scrollIntoView({
+            behavior: "smooth",
+            block: "nearest",
+          });
           cashTenderRef.current?.focus();
         }, 0);
         return;
@@ -627,13 +640,16 @@ export default function PosPage() {
         : total;
       if (!splitTender && tenderMode === "CASH" && tenderedMinor < total)
         throw new Error("Cash received cannot be less than the sale total.");
-      const payment =
-        splitTender
-          ? [
-              { method: "CASH", amountMinor: splitCashMinor },
-              { method: "CARD", amountMinor: splitCardMinor, reference: `SPLIT:${localBank}` },
-            ]
-          : tenderMode === "CASH"
+      const payment = splitTender
+        ? [
+            { method: "CASH", amountMinor: splitCashMinor },
+            {
+              method: "CARD",
+              amountMinor: splitCardMinor,
+              reference: `SPLIT:${localBank}`,
+            },
+          ]
+        : tenderMode === "CASH"
           ? { method: "CASH", amountMinor: tenderedMinor }
           : {
               method: "CARD",
@@ -649,8 +665,14 @@ export default function PosPage() {
           headers: { "Idempotency-Key": crypto.randomUUID() },
           body: JSON.stringify(
             appointmentId
-              ? { ...appointmentPayload, payments: Array.isArray(payment) ? payment : [payment] }
-              : { ...basePayload, payments: Array.isArray(payment) ? payment : [payment] },
+              ? {
+                  ...appointmentPayload,
+                  payments: Array.isArray(payment) ? payment : [payment],
+                }
+              : {
+                  ...basePayload,
+                  payments: Array.isArray(payment) ? payment : [payment],
+                },
           ),
         },
       );
@@ -664,7 +686,10 @@ export default function PosPage() {
       setTerminalReference("");
       setDiscountType("");
       setDiscountValue("");
-      if (printPreference === "PRINT" || (printPreference == null && autoPrint)) {
+      if (
+        printPreference === "PRINT" ||
+        (printPreference == null && autoPrint)
+      ) {
         setPrintJob({ saleId: sale.id, mode: "initial", nonce: Date.now() });
       }
     } catch (error) {
@@ -723,7 +748,10 @@ export default function PosPage() {
     setMessage("Current ticket cleared.");
   }
   function startNewTicket() {
-    if (cart.length && !window.confirm("Start a new ticket and clear the current cart?"))
+    if (
+      cart.length &&
+      !window.confirm("Start a new ticket and clear the current cart?")
+    )
       return;
     setCart([]);
     setCompletedSale(undefined);
@@ -763,7 +791,11 @@ export default function PosPage() {
             <span className="pos-live-dot" />
             <span>
               <strong>Live register</strong>
-              <small>Scanner ready · {branches.find((branch) => branch.id === branchId)?.name ?? "Register"}</small>
+              <small>
+                Scanner ready ·{" "}
+                {branches.find((branch) => branch.id === branchId)?.name ??
+                  "Register"}
+              </small>
             </span>
             {branches.length > 1 && (
               <select
@@ -773,12 +805,17 @@ export default function PosPage() {
                 onChange={(event) => changeBranch(event.target.value)}
               >
                 {branches.map((branch) => (
-                  <option key={branch.id} value={branch.id}>{branch.name}</option>
+                  <option key={branch.id} value={branch.id}>
+                    {branch.name}
+                  </option>
                 ))}
               </select>
             )}
           </div>
-          <div className="pos-previous-summary" aria-label="Previous transaction summary">
+          <div
+            className="pos-previous-summary"
+            aria-label="Previous transaction summary"
+          >
             <span>
               <small>Previous bill</small>
               <strong>
@@ -805,56 +842,63 @@ export default function PosPage() {
             </span>
           </div>
           <div className="pos-user-controls">
-          <details className="pos-register-menu pos-user-menu">
-            <summary>
-              <span className="pos-user-avatar" aria-hidden="true">
-                <svg viewBox="0 0 24 24"><path d="M12 12a4.4 4.4 0 1 0 0-8.8 4.4 4.4 0 0 0 0 8.8Zm-8 8.8c.5-4 3.7-6.5 8-6.5s7.5 2.5 8 6.5H4Z" /></svg>
-              </span>
-              <span>
-                <small>Logged-in user</small>
-                <strong>{cashierIdentity}</strong>
-              </span>
-              <span aria-hidden="true">⌄</span>
-            </summary>
-            <div className="pos-register-menu-panel">
-              <div className="pos-user-menu-heading">
-                <strong>{currentUser?.name ?? "Cashier"}</strong>
-                <small>{branches.find((branch) => branch.id === branchId)?.name ?? "Active register"}</small>
+            <details className="pos-register-menu pos-user-menu">
+              <summary>
+                <span className="pos-user-avatar" aria-hidden="true">
+                  <svg viewBox="0 0 24 24">
+                    <path d="M12 12a4.4 4.4 0 1 0 0-8.8 4.4 4.4 0 0 0 0 8.8Zm-8 8.8c.5-4 3.7-6.5 8-6.5s7.5 2.5 8 6.5H4Z" />
+                  </svg>
+                </span>
+                <span>
+                  <small>Logged-in user</small>
+                  <strong>{cashierIdentity}</strong>
+                </span>
+                <span aria-hidden="true">⌄</span>
+              </summary>
+              <div className="pos-register-menu-panel">
+                <div className="pos-user-menu-heading">
+                  <strong>{currentUser?.name ?? "Cashier"}</strong>
+                  <small>
+                    {branches.find((branch) => branch.id === branchId)?.name ??
+                      "Active register"}
+                  </small>
+                </div>
+                <label className="pos-auto-print">
+                  <input
+                    type="checkbox"
+                    checked={autoPrint}
+                    onChange={toggleAutoPrint}
+                  />
+                  Auto-print receipt
+                </label>
+                <label className="pos-auto-print">
+                  <input
+                    type="checkbox"
+                    checked={celebrationMode}
+                    onChange={toggleCelebrationMode}
+                  />
+                  Celebration mode
+                </label>
+                <button
+                  type="button"
+                  className="pos-logout-button"
+                  onClick={() => void logout()}
+                >
+                  <span aria-hidden="true">↪</span> Log out
+                </button>
               </div>
-              <label className="pos-auto-print">
-                <input
-                  type="checkbox"
-                  checked={autoPrint}
-                  onChange={toggleAutoPrint}
-                />
-                Auto-print receipt
-              </label>
-              <label className="pos-auto-print">
-                <input
-                  type="checkbox"
-                  checked={celebrationMode}
-                  onChange={toggleCelebrationMode}
-                />
-                Celebration mode
-              </label>
-              <button
-                type="button"
-                className="pos-logout-button"
-                onClick={() => void logout()}
-              >
-                <span aria-hidden="true">↪</span> Log out
-              </button>
-            </div>
-          </details>
-          <button
-            type="button"
-            className="pos-focus-toggle"
-            onClick={() => void toggleFocusMode()}
-            aria-label={focusMode ? "Minimize point of sale" : "Maximize point of sale"}
-            title={focusMode ? "Minimize" : "Maximize"}
-          >
-            <span aria-hidden="true">{focusMode ? "↙" : "↗"}</span>
-          </button>
+            </details>
+            <button
+              type="button"
+              className="pos-focus-toggle"
+              onClick={() => void toggleFocusMode()}
+              aria-label={
+                focusMode ? "Minimize point of sale" : "Maximize point of sale"
+              }
+              title={focusMode ? "Minimize" : "Maximize"}
+            >
+              <span aria-hidden="true">{focusMode ? "↙" : "↗"}</span>
+            </button>
           </div>
         </header>
         <section className="pos-layout">
@@ -988,7 +1032,11 @@ export default function PosPage() {
                         className="product-pin-button"
                         onClick={() => togglePinnedProduct(product)}
                         aria-label={`${pinned ? "Unpin" : "Pin"} ${product.name}`}
-                        title={pinned ? "Remove from pinned items" : "Pin as a fast-sale item"}
+                        title={
+                          pinned
+                            ? "Remove from pinned items"
+                            : "Pin as a fast-sale item"
+                        }
                       >
                         {pinned ? "★" : "☆"}
                       </button>
@@ -1024,45 +1072,95 @@ export default function PosPage() {
             <div className="pos-keypad-workbench">
               <div className="pos-ticket-actions">
                 <button type="button" onClick={startNewTicket}>
-                  <span>＋</span><strong>New</strong><kbd>F2</kbd>
+                  <span>＋</span>
+                  <strong>New</strong>
+                  <kbd>F2</kbd>
                 </button>
-                <button type="button" onClick={clearTicket} disabled={!cart.length}>
-                  <span>⌫</span><strong>Delete bill</strong><kbd>F7</kbd>
+                <button
+                  type="button"
+                  onClick={clearTicket}
+                  disabled={!cart.length}
+                >
+                  <span>⌫</span>
+                  <strong>Delete bill</strong>
+                  <kbd>F7</kbd>
                 </button>
                 <button
                   type="button"
                   onClick={() => {
                     if (!previousSale) return;
-                    setPrintJob({ saleId: previousSale.id, mode: "reprint", nonce: Date.now() });
+                    setPrintJob({
+                      saleId: previousSale.id,
+                      mode: "reprint",
+                      nonce: Date.now(),
+                    });
                   }}
                   disabled={!previousSale}
                 >
-                  <span>▤</span><strong>Print</strong><kbd>F11</kbd>
+                  <span>▤</span>
+                  <strong>Print</strong>
+                  <kbd>F11</kbd>
                 </button>
                 <button
                   type="button"
                   onClick={() => {
                     setPaymentPanelOpen(true);
-                    window.setTimeout(() => paymentRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }), 0);
+                    window.setTimeout(
+                      () =>
+                        paymentRef.current?.scrollIntoView({
+                          behavior: "smooth",
+                          block: "nearest",
+                        }),
+                      0,
+                    );
                   }}
                 >
-                  <span>◉</span><strong>Payment</strong><kbd>F9</kbd>
+                  <span>◉</span>
+                  <strong>Payment</strong>
+                  <kbd>F9</kbd>
                 </button>
-                <button type="button" disabled={!canCompleteSale} onClick={() => void checkout("NO_PRINT")}>
-                  <span>▣</span><strong>Save</strong><kbd>F12</kbd>
+                <button
+                  type="button"
+                  disabled={!canCompleteSale}
+                  onClick={() => void checkout("NO_PRINT")}
+                >
+                  <span>▣</span>
+                  <strong>Save</strong>
+                  <kbd>F12</kbd>
                 </button>
-                <button type="button" disabled={!canCompleteSale} onClick={() => void checkout("PRINT")}>
-                  <span>▣</span><strong>Save &amp; print</strong><kbd>F12</kbd>
+                <button
+                  type="button"
+                  disabled={!canCompleteSale}
+                  onClick={() => void checkout("PRINT")}
+                >
+                  <span>▣</span>
+                  <strong>Save &amp; print</strong>
+                  <kbd>F12</kbd>
                 </button>
               </div>
               <div className="pos-number-pad" aria-label="Register number pad">
-                {["7", "8", "9", "4", "5", "6", "1", "2", "3", ".", "0", "BACKSPACE"].map(
-                  (key) => (
-                    <button type="button" key={key} onClick={() => applyKeypad(key)}>
-                      {key === "BACKSPACE" ? "⌫" : key}
-                    </button>
-                  ),
-                )}
+                {[
+                  "7",
+                  "8",
+                  "9",
+                  "4",
+                  "5",
+                  "6",
+                  "1",
+                  "2",
+                  "3",
+                  ".",
+                  "0",
+                  "BACKSPACE",
+                ].map((key) => (
+                  <button
+                    type="button"
+                    key={key}
+                    onClick={() => applyKeypad(key)}
+                  >
+                    {key === "BACKSPACE" ? "⌫" : key}
+                  </button>
+                ))}
               </div>
               <div className="pos-keypad-modes">
                 <button
@@ -1082,7 +1180,9 @@ export default function PosPage() {
                 >
                   Cash
                 </button>
-                <button type="button" onClick={() => applyKeypad("CLEAR")}>Clear</button>
+                <button type="button" onClick={() => applyKeypad("CLEAR")}>
+                  Clear
+                </button>
                 <button
                   type="button"
                   className="enter"
@@ -1094,312 +1194,365 @@ export default function PosPage() {
               </div>
             </div>
           </div>
-          <div className="card pos-cart">
-            <div className="pos-cart-header">
-              <h2>Current bill</h2>
+          <div className={`card pos-cart ${paymentPanelOpen ? "is-open" : ""}`}>
+            <button
+              type="button"
+              className="pos-mobile-cart-summary"
+              onClick={() => setPaymentPanelOpen((value) => !value)}
+              aria-expanded={paymentPanelOpen}
+              aria-controls="pos-mobile-cart-content"
+            >
+              <span className="pos-mobile-cart-count">{cart.length}</span>
               <span>
-                {cart.length} {cart.length === 1 ? "item" : "items"} · {formatMinorCurrency(total)}
+                <small>Current order</small>
+                <strong>{formatMinorCurrency(total)}</strong>
               </span>
-            </div>
-            <div className="pos-cart-column-headings" aria-hidden="true">
-              <span>Item</span><span>Qty</span><span>Amount</span><span />
-            </div>
-            <div className="pos-cart-lines">
-              {appointmentId && (
-                <p className="notice">
-                  Appointment services are preloaded at their booked prices. You
-                  may add retail products before payment.
-                </p>
-              )}
-              {cart.length === 0 && (
-                <p className="muted">Scan or select a product.</p>
-              )}
-              {cart.map((line) => (
-                <div
-                  className={`cart-line ${selectedCartKey === productKey(line) ? "selected" : ""}`}
-                  key={`${line.productId}:${line.variantId ?? "base"}`}
-                  onClick={() => {
-                    setSelectedCartKey(productKey(line));
-                    setKeypadTarget("QUANTITY");
-                  }}
-                >
-                  <span>
-                    <strong>{line.name}</strong>
-                    <small>{line.variantName ?? line.sku ?? ""}</small>
-                  </span>
-                  <input
-                    aria-label={`Quantity for ${line.name}`}
-                    value={line.quantity}
-                    onChange={(event) =>
-                      setCart((rows) =>
-                        rows.map((row) =>
-                          row === line
-                            ? { ...row, quantity: event.target.value }
-                            : row,
-                        ),
-                      )
-                    }
-                  />
-                  {line.type === "SERVICE" && (
-                    <select
-                      aria-label={`Staff for ${line.name}`}
-                      value={line.staffProfileId ?? ""}
+              <b>{paymentPanelOpen ? "Close" : "Review & pay"}</b>
+              <span aria-hidden="true">{paymentPanelOpen ? "⌄" : "⌃"}</span>
+            </button>
+            <div
+              id="pos-mobile-cart-content"
+              className="pos-mobile-cart-content"
+            >
+              <div className="pos-cart-header">
+                <h2>Current bill</h2>
+                <span>
+                  {cart.length} {cart.length === 1 ? "item" : "items"} ·{" "}
+                  {formatMinorCurrency(total)}
+                </span>
+              </div>
+              <div className="pos-cart-column-headings" aria-hidden="true">
+                <span>Item</span>
+                <span>Qty</span>
+                <span>Amount</span>
+                <span />
+              </div>
+              <div className="pos-cart-lines">
+                {appointmentId && (
+                  <p className="notice">
+                    Appointment services are preloaded at their booked prices.
+                    You may add retail products before payment.
+                  </p>
+                )}
+                {cart.length === 0 && (
+                  <p className="muted">Scan or select a product.</p>
+                )}
+                {cart.map((line) => (
+                  <div
+                    className={`cart-line ${selectedCartKey === productKey(line) ? "selected" : ""}`}
+                    key={`${line.productId}:${line.variantId ?? "base"}`}
+                    onClick={() => {
+                      setSelectedCartKey(productKey(line));
+                      setKeypadTarget("QUANTITY");
+                    }}
+                  >
+                    <span>
+                      <strong>{line.name}</strong>
+                      <small>{line.variantName ?? line.sku ?? ""}</small>
+                    </span>
+                    <input
+                      aria-label={`Quantity for ${line.name}`}
+                      value={line.quantity}
                       onChange={(event) =>
                         setCart((rows) =>
                           rows.map((row) =>
                             row === line
-                              ? {
-                                  ...row,
-                                  staffProfileId:
-                                    event.target.value || undefined,
-                                }
+                              ? { ...row, quantity: event.target.value }
                               : row,
                           ),
                         )
                       }
-                    >
-                      <option value="">No staff</option>
-                      {line.availableStaff?.map((staff) => (
-                        <option key={staff.id} value={staff.id}>
-                          {staff.displayName}
-                        </option>
-                      ))}
-                    </select>
-                  )}
-                  <b>
-                    {formatMinorCurrency(
-                      Math.round(line.priceMinor * Number(line.quantity || 0)),
-                    )}
-                  </b>
-                  <button
-                    className="danger"
-                    disabled={line.appointmentLine}
-                    onClick={() =>
-                      setCart((rows) => rows.filter((row) => row !== line))
-                    }
-                  >
-                    ×
-                  </button>
-                </div>
-              ))}
-            </div>
-            <button
-              type="button"
-              className={`pos-payment-drawer-toggle ${paymentPanelOpen ? "active" : ""}`}
-              onClick={() => setPaymentPanelOpen((value) => !value)}
-              aria-expanded={paymentPanelOpen}
-              aria-controls="pos-payment-panel"
-            >
-              <span className="pos-payment-drawer-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24"><path d="M4 5h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Zm0 4h16V7H4v2Zm2 6h5v2H6v-2Z" /></svg>
-              </span>
-              <span><strong>Customer &amp; payment</strong><small>{customer?.name ?? "Walk-in customer"} · {tenderMode === "CASH" ? "Cash" : "Local card"}</small></span>
-              <b>{formatMinorCurrency(total)}</b>
-              <span aria-hidden="true">{paymentPanelOpen ? "⌃" : "⌄"}</span>
-            </button>
-            <div
-              id="pos-payment-panel"
-              className={`pos-cart-calculator ${paymentPanelOpen ? "is-open" : ""}`}
-              ref={paymentRef}
-            >
-              {canDiscount && (
-                <div className="discount-row">
-                  <select
-                    aria-label="Discount type"
-                    value={discountType}
-                    onChange={(event) => setDiscountType(event.target.value)}
-                  >
-                    <option value="">No discount</option>
-                    <option value="FIXED">Fixed KES</option>
-                    <option value="PERCENTAGE">Percentage</option>
-                  </select>
-                  <input
-                    aria-label="Discount value"
-                    type="number"
-                    min="0"
-                    max={discountType === "PERCENTAGE" ? 100 : undefined}
-                    value={discountValue}
-                    onChange={(event) => setDiscountValue(event.target.value)}
-                  />
-                </div>
-              )}
-              <h3>Payment</h3>
-              <label>
-                Customer (optional)
-                <select
-                  value={customerId}
-                  onChange={(event) => setCustomerId(event.target.value)}
-                >
-                  <option value="">Walk-in customer</option>
-                  {customers.map((row) => (
-                    <option key={row.id} value={row.id}>
-                      {row.name}
-                      {row.phone ? ` · ${row.phone}` : ""}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              {customer && (
-                <p className="muted">
-                  Outstanding {formatMinorCurrency(customer.balanceMinor ?? 0)}
-                  {customer.creditLimitMinor == null
-                    ? " · No credit limit"
-                    : ` · Limit ${formatMinorCurrency(customer.creditLimitMinor)}`}
-                </p>
-              )}
-              <div className="payment-choice-grid">
-              {(
-                [
-                  ["CASH", "Cash", "Record cash and calculate change."],
-                  [
-                    "LOCAL_CARD",
-                    "Local bank card",
-                    "Record approval from your own terminal.",
-                  ],
-                ] as const
-              ).map(([value, title, description]) => (
-                <button
-                  type="button"
-                  className={
-                    tenderMode === value
-                      ? "product-tile active"
-                      : "product-tile"
-                  }
-                  key={value}
-                  onClick={() => setTenderMode(value)}
-                >
-                  <strong>{title}</strong>
-                  <small>{description}</small>
-                </button>
-              ))}
-              </div>
-              <label className="pos-split-toggle">
-                <input
-                  type="checkbox"
-                  checked={splitTender}
-                  onChange={(event) => setSplitTender(event.target.checked)}
-                />
-                Split payment between cash and local card
-              </label>
-              {splitTender && (
-                <div className="cash-panel split-payment-panel">
-                  <label>
-                    Cash portion (KES)
-                    <input
-                      type="number"
-                      min="0.01"
-                      max={(total / 100 - 0.01).toFixed(2)}
-                      step="0.01"
-                      value={splitCash}
-                      onChange={(event) => setSplitCash(event.target.value)}
                     />
-                  </label>
-                  <div className="cash-change">
-                    <span>Local card portion</span>
-                    <strong>{formatMinorCurrency(splitCardMinor)}</strong>
+                    {line.type === "SERVICE" && (
+                      <select
+                        aria-label={`Staff for ${line.name}`}
+                        value={line.staffProfileId ?? ""}
+                        onChange={(event) =>
+                          setCart((rows) =>
+                            rows.map((row) =>
+                              row === line
+                                ? {
+                                    ...row,
+                                    staffProfileId:
+                                      event.target.value || undefined,
+                                  }
+                                : row,
+                            ),
+                          )
+                        }
+                      >
+                        <option value="">No staff</option>
+                        {line.availableStaff?.map((staff) => (
+                          <option key={staff.id} value={staff.id}>
+                            {staff.displayName}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                    <b>
+                      {formatMinorCurrency(
+                        Math.round(
+                          line.priceMinor * Number(line.quantity || 0),
+                        ),
+                      )}
+                    </b>
+                    <button
+                      className="danger"
+                      disabled={line.appointmentLine}
+                      onClick={() =>
+                        setCart((rows) => rows.filter((row) => row !== line))
+                      }
+                    >
+                      ×
+                    </button>
                   </div>
-                </div>
-              )}
-              {tenderMode === "CASH" && (
-                <div className="cash-panel">
+                ))}
+              </div>
+              <button
+                type="button"
+                className={`pos-payment-drawer-toggle ${paymentPanelOpen ? "active" : ""}`}
+                onClick={() => setPaymentPanelOpen((value) => !value)}
+                aria-expanded={paymentPanelOpen}
+                aria-controls="pos-payment-panel"
+              >
+                <span className="pos-payment-drawer-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24">
+                    <path d="M4 5h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Zm0 4h16V7H4v2Zm2 6h5v2H6v-2Z" />
+                  </svg>
+                </span>
+                <span>
+                  <strong>Customer &amp; payment</strong>
+                  <small>
+                    {customer?.name ?? "Walk-in customer"} ·{" "}
+                    {tenderMode === "CASH" ? "Cash" : "Local card"}
+                  </small>
+                </span>
+                <b>{formatMinorCurrency(total)}</b>
+                <span aria-hidden="true">{paymentPanelOpen ? "⌃" : "⌄"}</span>
+              </button>
+              <div
+                id="pos-payment-panel"
+                className={`pos-cart-calculator ${paymentPanelOpen ? "is-open" : ""}`}
+                ref={paymentRef}
+              >
+                {canDiscount && (
+                  <div className="discount-row">
+                    <select
+                      aria-label="Discount type"
+                      value={discountType}
+                      onChange={(event) => setDiscountType(event.target.value)}
+                    >
+                      <option value="">No discount</option>
+                      <option value="FIXED">Fixed KES</option>
+                      <option value="PERCENTAGE">Percentage</option>
+                    </select>
+                    <input
+                      aria-label="Discount value"
+                      type="number"
+                      min="0"
+                      max={discountType === "PERCENTAGE" ? 100 : undefined}
+                      value={discountValue}
+                      onChange={(event) => setDiscountValue(event.target.value)}
+                    />
+                  </div>
+                )}
+                <h3>Payment</h3>
                 <label>
-                  Cash received (KES)
-                  <input
-                    ref={cashTenderRef}
-                    type="number"
-                    min={total / 100}
-                    step="0.01"
-                    placeholder={(total / 100).toFixed(2)}
-                    value={cashTender}
-                    onChange={(event) => setCashTender(event.target.value)}
-                  />
+                  Customer (optional)
+                  <select
+                    value={customerId}
+                    onChange={(event) => setCustomerId(event.target.value)}
+                  >
+                    <option value="">Walk-in customer</option>
+                    {customers.map((row) => (
+                      <option key={row.id} value={row.id}>
+                        {row.name}
+                        {row.phone ? ` · ${row.phone}` : ""}
+                      </option>
+                    ))}
+                  </select>
                 </label>
-                <div className="quick-cash" aria-label="Quick cash amounts">
-                  {quickCash.map((value) => (
+                {customer && (
+                  <p className="muted">
+                    Outstanding{" "}
+                    {formatMinorCurrency(customer.balanceMinor ?? 0)}
+                    {customer.creditLimitMinor == null
+                      ? " · No credit limit"
+                      : ` · Limit ${formatMinorCurrency(customer.creditLimitMinor)}`}
+                  </p>
+                )}
+                <div className="payment-choice-grid">
+                  {(
+                    [
+                      ["CASH", "Cash", "Record cash and calculate change."],
+                      [
+                        "LOCAL_CARD",
+                        "Local bank card",
+                        "Record approval from your own terminal.",
+                      ],
+                    ] as const
+                  ).map(([value, title, description]) => (
                     <button
                       type="button"
-                      className="secondary"
+                      className={
+                        tenderMode === value
+                          ? "product-tile active"
+                          : "product-tile"
+                      }
                       key={value}
-                      onClick={() => setCashTender(value.toFixed(2))}
+                      onClick={() => setTenderMode(value)}
                     >
-                      {value === total / 100
-                        ? "Exact"
-                        : `KES ${value.toFixed(2)}`}
+                      <strong>{title}</strong>
+                      <small>{description}</small>
                     </button>
                   ))}
                 </div>
-                <div
-                  className={
-                    cashShortfall > 0 ? "cash-change short" : "cash-change"
+                <label className="pos-split-toggle">
+                  <input
+                    type="checkbox"
+                    checked={splitTender}
+                    onChange={(event) => setSplitTender(event.target.checked)}
+                  />
+                  Split payment between cash and local card
+                </label>
+                {splitTender && (
+                  <div className="cash-panel split-payment-panel">
+                    <label>
+                      Cash portion (KES)
+                      <input
+                        type="number"
+                        min="0.01"
+                        max={(total / 100 - 0.01).toFixed(2)}
+                        step="0.01"
+                        value={splitCash}
+                        onChange={(event) => setSplitCash(event.target.value)}
+                      />
+                    </label>
+                    <div className="cash-change">
+                      <span>Local card portion</span>
+                      <strong>{formatMinorCurrency(splitCardMinor)}</strong>
+                    </div>
+                  </div>
+                )}
+                {tenderMode === "CASH" && (
+                  <div className="cash-panel">
+                    <label>
+                      Cash received (KES)
+                      <input
+                        ref={cashTenderRef}
+                        type="number"
+                        min={total / 100}
+                        step="0.01"
+                        placeholder={(total / 100).toFixed(2)}
+                        value={cashTender}
+                        onChange={(event) => setCashTender(event.target.value)}
+                      />
+                    </label>
+                    <div className="quick-cash" aria-label="Quick cash amounts">
+                      {quickCash.map((value) => (
+                        <button
+                          type="button"
+                          className="secondary"
+                          key={value}
+                          onClick={() => setCashTender(value.toFixed(2))}
+                        >
+                          {value === total / 100
+                            ? "Exact"
+                            : `KES ${value.toFixed(2)}`}
+                        </button>
+                      ))}
+                    </div>
+                    <div
+                      className={
+                        cashShortfall > 0 ? "cash-change short" : "cash-change"
+                      }
+                    >
+                      <span>
+                        {cashShortfall > 0 ? "Still due" : "Change due"}
+                      </span>
+                      <strong>
+                        {formatMinorCurrency(
+                          cashShortfall > 0 ? cashShortfall : changeDue,
+                        )}
+                      </strong>
+                    </div>
+                  </div>
+                )}
+                {tenderMode === "LOCAL_CARD" && (
+                  <div className="payment-row">
+                    <label>
+                      Acquiring bank / terminal
+                      <select
+                        value={localBank}
+                        onChange={(event) => setLocalBank(event.target.value)}
+                      >
+                        <option>KCB</option>
+                        <option>Equity Bank</option>
+                        <option>Co-operative Bank</option>
+                        <option>NCBA</option>
+                        <option>Absa Kenya</option>
+                        <option>Stanbic Bank</option>
+                        <option>I&amp;M Bank</option>
+                        <option>Mobile money / bank terminal</option>
+                        <option>Other local terminal</option>
+                      </select>
+                    </label>
+                    <label>
+                      Terminal reference (optional)
+                      <input
+                        maxLength={80}
+                        value={terminalReference}
+                        onChange={(event) =>
+                          setTerminalReference(event.target.value)
+                        }
+                      />
+                    </label>
+                  </div>
+                )}
+              </div>
+              <div className="totals pos-bottom-totals">
+                <span>
+                  Subtotal <b>{formatMinorCurrency(subtotal)}</b>
+                </span>
+                <span>
+                  Discount <b>− {formatMinorCurrency(discount)}</b>
+                </span>
+                <span>
+                  Tax <b>{formatMinorCurrency(0)}</b>
+                </span>
+                <strong>
+                  Total <b>{formatMinorCurrency(total)}</b>
+                </strong>
+              </div>
+              <div className="actions pos-icon-sale-actions">
+                <button
+                  className="secondary"
+                  disabled={busy || !cart.length}
+                  onClick={() => void hold()}
+                  aria-label="Hold sale"
+                  title="Hold sale (F8)"
+                >
+                  <span aria-hidden="true">Ⅱ</span>
+                </button>
+                <button
+                  disabled={!canCompleteSale}
+                  onClick={() => void checkout()}
+                  aria-label={
+                    tenderMode === "CASH"
+                      ? "Complete cash sale"
+                      : "Complete local card sale"
+                  }
+                  title={
+                    tenderMode === "CASH"
+                      ? "Complete cash sale (F12)"
+                      : "Complete local card sale (F12)"
                   }
                 >
-                  <span>{cashShortfall > 0 ? "Still due" : "Change due"}</span>
-                  <strong>
-                    {formatMinorCurrency(
-                      cashShortfall > 0 ? cashShortfall : changeDue,
-                    )}
-                  </strong>
-                </div>
-                </div>
-              )}
-              {tenderMode === "LOCAL_CARD" && (
-                <div className="payment-row">
-                <label>
-                  Acquiring bank / terminal
-                  <select
-                    value={localBank}
-                    onChange={(event) => setLocalBank(event.target.value)}
-                  >
-                    <option>KCB</option>
-                    <option>Equity Bank</option>
-                    <option>Co-operative Bank</option>
-                    <option>NCBA</option>
-                    <option>Absa Kenya</option>
-                    <option>Stanbic Bank</option>
-                    <option>I&amp;M Bank</option>
-                    <option>Mobile money / bank terminal</option>
-                    <option>Other local terminal</option>
-                  </select>
-                </label>
-                <label>
-                  Terminal reference (optional)
-                  <input
-                    maxLength={80}
-                    value={terminalReference}
-                    onChange={(event) =>
-                      setTerminalReference(event.target.value)
-                    }
-                  />
-                </label>
-                </div>
-              )}
+                  <span aria-hidden="true">{busy ? "…" : "✓"}</span>
+                </button>
+              </div>
+              {message && <p className="notice">{message}</p>}
             </div>
-            <div className="totals pos-bottom-totals">
-              <span>Subtotal <b>{formatMinorCurrency(subtotal)}</b></span>
-              <span>Discount <b>− {formatMinorCurrency(discount)}</b></span>
-              <span>Tax <b>{formatMinorCurrency(0)}</b></span>
-              <strong>Total <b>{formatMinorCurrency(total)}</b></strong>
-            </div>
-            <div className="actions pos-icon-sale-actions">
-              <button
-                className="secondary"
-                disabled={busy || !cart.length}
-                onClick={() => void hold()}
-                aria-label="Hold sale"
-                title="Hold sale (F8)"
-              >
-                <span aria-hidden="true">Ⅱ</span>
-              </button>
-              <button
-                disabled={!canCompleteSale}
-                onClick={() => void checkout()}
-                aria-label={tenderMode === "CASH" ? "Complete cash sale" : "Complete local card sale"}
-                title={tenderMode === "CASH" ? "Complete cash sale (F12)" : "Complete local card sale (F12)"}
-              >
-                <span aria-hidden="true">{busy ? "…" : "✓"}</span>
-              </button>
-            </div>
-            {message && <p className="notice">{message}</p>}
           </div>
         </section>
       </section>
@@ -1419,7 +1572,12 @@ export default function PosPage() {
         >
           {celebrationMode && (
             <div className="celebration-sparkles" aria-hidden="true">
-              <i>✦</i><i>✦</i><i>✦</i><i>✦</i><i>✦</i><i>✦</i>
+              <i>✦</i>
+              <i>✦</i>
+              <i>✦</i>
+              <i>✦</i>
+              <i>✦</i>
+              <i>✦</i>
             </div>
           )}
           <div className="pos-success-card">

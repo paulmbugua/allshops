@@ -1,5 +1,5 @@
 import { ConflictException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
-import { Prisma, prisma } from "@allshops/database";
+import { prisma } from "@allshops/database";
 import type { CashMovementInput, CloseShiftInput, OpenShiftInput } from "@allshops/contracts";
 import type { TenantContext } from "./security.types.js";
 

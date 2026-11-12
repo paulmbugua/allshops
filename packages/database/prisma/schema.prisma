@@ -282,6 +282,41 @@ enum FeedbackCategory {
   OUT_OF_SCOPE
 }
 
+enum EtimsEnvironment {
+  SANDBOX
+  PRODUCTION
+}
+
+enum EtimsIntegrationStatus {
+  DISABLED
+  DRAFT
+  SANDBOX
+  CERTIFIED
+  SUSPENDED
+}
+
+enum FiscalDocumentType {
+  SALE
+  CREDIT_NOTE
+}
+
+enum FiscalDocumentStatus {
+  NOT_REQUIRED
+  PENDING
+  SUBMITTING
+  ACCEPTED
+  REJECTED
+  RETRY
+}
+
+enum FiscalOutboxStatus {
+  PENDING
+  PROCESSING
+  SUCCEEDED
+  RETRY
+  DEAD_LETTER
+}
+
 model Organization {
   id                 String             @id @default(uuid()) @db.Uuid
   name               String
@@ -363,6 +398,10 @@ model Organization {
   refunds                SaleRefund[]
   registerShifts         RegisterShift[]
   operationalAlerts      OperationalAlert[]
+  etimsIntegration       EtimsIntegration?
+  etimsProductMappings   EtimsProductMapping[]
+  fiscalDocuments        FiscalDocument[]
+  fiscalOutbox           FiscalOutbox[]
 
   @@index([status])
   @@map("organizations")
@@ -403,6 +442,8 @@ model Branch {
   refunds                SaleRefund[]
   registerShifts         RegisterShift[]
   operationalAlerts      OperationalAlert[]
+  etimsConfig            EtimsBranchConfig?
+  fiscalDocuments        FiscalDocument[]
 
   @@unique([organizationId, code])
   @@index([organizationId, isActive])
@@ -1018,6 +1059,7 @@ model Product {
   appointmentServices AppointmentService[]
   commissionRules     CommissionRule[]
   refundItems         SaleRefundItem[]
+  etimsMapping        EtimsProductMapping?
 
   @@unique([organizationId, sku])
   @@unique([organizationId, barcode])
@@ -1181,38 +1223,39 @@ model StockTransferItem {
 }
 
 model Sale {
-  id              String            @id @default(uuid()) @db.Uuid
-  organizationId  String            @db.Uuid
-  branchId        String            @db.Uuid
-  locationId      String            @db.Uuid
+  id              String               @id @default(uuid()) @db.Uuid
+  organizationId  String               @db.Uuid
+  branchId        String               @db.Uuid
+  locationId      String               @db.Uuid
   invoiceNumber   String?
-  status          SaleStatus        @default(DRAFT)
-  paymentStatus   SalePaymentStatus @default(UNPAID)
-  subtotalMinor   Int               @default(0)
-  discountMinor   Int               @default(0)
-  taxMinor        Int               @default(0)
-  totalMinor      Int               @default(0)
-  paidMinor       Int               @default(0)
-  changeMinor     Int               @default(0)
-  balanceMinor    Int               @default(0)
-  currency        String            @default("KES")
+  status          SaleStatus           @default(DRAFT)
+  paymentStatus   SalePaymentStatus    @default(UNPAID)
+  subtotalMinor   Int                  @default(0)
+  discountMinor   Int                  @default(0)
+  taxMinor        Int                  @default(0)
+  totalMinor      Int                  @default(0)
+  paidMinor       Int                  @default(0)
+  changeMinor     Int                  @default(0)
+  balanceMinor    Int                  @default(0)
+  currency        String               @default("KES")
   discountType    DiscountType?
   discountValue   Int?
   customerName    String?
   customerPhone   String?
-  customerId      String?           @db.Uuid
+  customerId      String?              @db.Uuid
   notes           String?
-  deviceId        String?           @db.Uuid
-  source          SaleSource        @default(ONLINE)
-  transactionUuid String?           @db.Uuid
+  deviceId        String?              @db.Uuid
+  source          SaleSource           @default(ONLINE)
+  transactionUuid String?              @db.Uuid
   localReference  String?
   clientCreatedAt DateTime?
   syncedAt        DateTime?
-  createdBy       String            @db.Uuid
+  createdBy       String               @db.Uuid
   completedAt     DateTime?
   cancelledAt     DateTime?
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+  fiscalStatus    FiscalDocumentStatus @default(NOT_REQUIRED)
 
   organization               Organization                @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   branch                     Branch                      @relation(fields: [branchId], references: [id], onDelete: Restrict)
@@ -1228,6 +1271,7 @@ model Sale {
   offlineTransaction         OfflineTransaction?
   paystackPayment            PaystackPaymentIntent?
   refunds                    SaleRefund[]
+  fiscalDocument             FiscalDocument?
 
   @@unique([organizationId, invoiceNumber])
   @@unique([organizationId, transactionUuid])
@@ -1276,23 +1320,29 @@ model OfflineTransaction {
 }
 
 model SaleItem {
-  id                  String   @id @default(uuid()) @db.Uuid
-  organizationId      String   @db.Uuid
-  saleId              String   @db.Uuid
-  productId           String   @db.Uuid
-  variantId           String?  @db.Uuid
-  productNameSnapshot String
-  variantNameSnapshot String?
-  skuSnapshot         String?
-  barcodeSnapshot     String?
-  quantity            Decimal  @db.Decimal(18, 4)
-  unitPriceMinor      Int
-  unitCostMinor       Int
-  grossMinor          Int
-  discountMinor       Int      @default(0)
-  taxMinor            Int      @default(0)
-  totalMinor          Int
-  createdAt           DateTime @default(now())
+  id                    String   @id @default(uuid()) @db.Uuid
+  organizationId        String   @db.Uuid
+  saleId                String   @db.Uuid
+  productId             String   @db.Uuid
+  variantId             String?  @db.Uuid
+  productNameSnapshot   String
+  variantNameSnapshot   String?
+  skuSnapshot           String?
+  barcodeSnapshot       String?
+  quantity              Decimal  @db.Decimal(18, 4)
+  unitPriceMinor        Int
+  unitCostMinor         Int
+  grossMinor            Int
+  discountMinor         Int      @default(0)
+  taxMinor              Int      @default(0)
+  totalMinor            Int
+  etimsItemCode         String?
+  etimsItemClassCode    String?
+  etimsTaxTypeCode      String?
+  etimsTaxRateBps       Int?
+  etimsPackageUnitCode  String?
+  etimsQuantityUnitCode String?
+  createdAt             DateTime @default(now())
 
   organization Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   sale         Sale             @relation(fields: [saleId], references: [id], onDelete: Cascade)
@@ -1333,32 +1383,158 @@ model Payment {
 }
 
 model SaleRefund {
-  id                String        @id @default(uuid()) @db.Uuid
-  organizationId    String        @db.Uuid
-  branchId          String        @db.Uuid
-  saleId            String        @db.Uuid
-  kind              RefundKind    @default(REFUND)
-  status            RefundStatus  @default(COMPLETED)
+  id                String               @id @default(uuid()) @db.Uuid
+  organizationId    String               @db.Uuid
+  branchId          String               @db.Uuid
+  saleId            String               @db.Uuid
+  kind              RefundKind           @default(REFUND)
+  status            RefundStatus         @default(COMPLETED)
   amountMinor       Int
   method            PaymentMethod
   reason            String
   reference         String?
-  replacementSaleId String?       @db.Uuid
-  idempotencyKey    String        @db.Uuid
-  createdBy         String        @db.Uuid
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
+  replacementSaleId String?              @db.Uuid
+  idempotencyKey    String               @db.Uuid
+  createdBy         String               @db.Uuid
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+  fiscalStatus      FiscalDocumentStatus @default(NOT_REQUIRED)
 
-  organization Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  branch       Branch           @relation(fields: [branchId], references: [id], onDelete: Restrict)
-  sale         Sale             @relation(fields: [saleId], references: [id], onDelete: Restrict)
-  creator      User             @relation("RefundCreator", fields: [createdBy], references: [id], onDelete: Restrict)
-  items        SaleRefundItem[]
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  branch         Branch           @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  sale           Sale             @relation(fields: [saleId], references: [id], onDelete: Restrict)
+  creator        User             @relation("RefundCreator", fields: [createdBy], references: [id], onDelete: Restrict)
+  items          SaleRefundItem[]
+  fiscalDocument FiscalDocument?
 
   @@unique([organizationId, idempotencyKey])
   @@index([organizationId, branchId, createdAt])
   @@index([saleId, status])
   @@map("sale_refunds")
+}
+
+model EtimsIntegration {
+  id                         String                 @id @default(uuid()) @db.Uuid
+  organizationId             String                 @unique @db.Uuid
+  environment                EtimsEnvironment       @default(SANDBOX)
+  status                     EtimsIntegrationStatus @default(DRAFT)
+  kraPin                     String
+  traderSystemName           String                 @default("AllShops POS + ERP")
+  communicationKeyCiphertext String?
+  communicationKeyIv         String?
+  communicationKeyTag        String?
+  lastSuccessfulSubmissionAt DateTime?
+  lastFailureAt              DateTime?
+  lastFailureCode            String?
+  lastFailureMessage         String?
+  createdAt                  DateTime               @default(now())
+  updatedAt                  DateTime               @updatedAt
+
+  organization Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  branches     EtimsBranchConfig[]
+
+  @@index([status, environment])
+  @@map("etims_integrations")
+}
+
+model EtimsBranchConfig {
+  id            String    @id @default(uuid()) @db.Uuid
+  integrationId String    @db.Uuid
+  branchId      String    @unique @db.Uuid
+  kraBranchId   String
+  deviceSerial  String
+  isActive      Boolean   @default(true)
+  initializedAt DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  integration EtimsIntegration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  branch      Branch           @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  @@unique([integrationId, kraBranchId])
+  @@index([integrationId, isActive])
+  @@map("etims_branch_configs")
+}
+
+model EtimsProductMapping {
+  id               String   @id @default(uuid()) @db.Uuid
+  organizationId   String   @db.Uuid
+  productId        String   @unique @db.Uuid
+  itemCode         String
+  itemClassCode    String
+  itemTypeCode     String   @default("2")
+  taxTypeCode      String
+  taxRateBps       Int
+  originNationCode String   @default("KE")
+  packageUnitCode  String   @default("NT")
+  quantityUnitCode String   @default("U")
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  product      Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, itemCode])
+  @@index([organizationId, isActive])
+  @@map("etims_product_mappings")
+}
+
+model FiscalDocument {
+  id                    String               @id @default(uuid()) @db.Uuid
+  organizationId        String               @db.Uuid
+  branchId              String               @db.Uuid
+  saleId                String?              @unique @db.Uuid
+  refundId              String?              @unique @db.Uuid
+  type                  FiscalDocumentType
+  status                FiscalDocumentStatus @default(PENDING)
+  environment           EtimsEnvironment
+  traderInvoiceNumber   String
+  originalInvoiceNumber String?
+  requestJson           Json
+  responseJson          Json?
+  currentReceiptNumber  String?
+  totalReceiptNumber    String?
+  internalData          String?
+  receiptSignature      String?
+  controlUnitDateTime   String?
+  errorCode             String?
+  errorMessage          String?
+  submittedAt           DateTime?
+  acceptedAt            DateTime?
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  branch       Branch        @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  sale         Sale?         @relation(fields: [saleId], references: [id], onDelete: Restrict)
+  refund       SaleRefund?   @relation(fields: [refundId], references: [id], onDelete: Restrict)
+  outbox       FiscalOutbox?
+
+  @@unique([organizationId, traderInvoiceNumber, type])
+  @@index([organizationId, status, createdAt])
+  @@index([branchId, status, createdAt])
+  @@map("fiscal_documents")
+}
+
+model FiscalOutbox {
+  id             String             @id @default(uuid()) @db.Uuid
+  organizationId String             @db.Uuid
+  documentId     String             @unique @db.Uuid
+  status         FiscalOutboxStatus @default(PENDING)
+  attemptCount   Int                @default(0)
+  nextAttemptAt  DateTime           @default(now())
+  lockedAt       DateTime?
+  lastError      String?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  organization Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  document     FiscalDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([status, nextAttemptAt])
+  @@index([organizationId, status, createdAt])
+  @@map("fiscal_outbox")
 }
 
 model SaleRefundItem {

@@ -476,7 +476,7 @@ class _PosScreenState extends ConsumerState<PosScreen> {
             .read(offlineStoreProvider)
             .persistCheckout(idempotencyKey, organizationId, payload);
         durablySaved = true;
-        await ref
+        final savedSale = await ref
             .read(apiProvider)
             .post<Map<String, dynamic>>(
               '/organizations/$organizationId/sales/checkout',
@@ -488,7 +488,14 @@ class _PosScreenState extends ConsumerState<PosScreen> {
             .markCheckout(idempotencyKey, 'SYNCED');
         setState(() {
           cart.clear();
-          message = 'Sale completed successfully.';
+          final fiscalStatus = savedSale['fiscalStatus']?.toString();
+          message = fiscalStatus == 'ACCEPTED'
+              ? 'Sale completed and accepted by KRA eTIMS.'
+              : fiscalStatus == 'PENDING' || fiscalStatus == 'RETRY'
+              ? 'Sale saved. KRA eTIMS submission is pending.'
+              : fiscalStatus == 'REJECTED'
+              ? 'Sale saved, but KRA eTIMS needs administrator attention.'
+              : 'Sale completed successfully.';
         });
         await search();
         AppLogger.info('pos', 'checkout_synced');

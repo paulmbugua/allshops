@@ -31,6 +31,7 @@ compile("apps/api/tsconfig.test.json");
 await runTest("apps/api/test-dist/test/health.test.js");
 await runTest("apps/api/test-dist/test/product-images.test.js");
 await runTest("apps/api/test-dist/test/sales-calculation.test.js");
+await runTest("apps/api/test-dist/test/etims.test.js");
 await runTest("apps/api/test-dist/test/phase1.e2e.test.js");
 await runTest("apps/api/test-dist/test/phase2.e2e.test.js");
 await runTest("apps/api/test-dist/test/phase3.e2e.test.js");

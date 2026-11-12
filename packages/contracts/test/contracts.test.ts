@@ -9,6 +9,9 @@ import {
   forgotPasswordSchema,
   resetPasswordSchema,
   submitReconciliationSchema,
+  upsertEtimsIntegrationSchema,
+  upsertEtimsBranchSchema,
+  upsertEtimsProductMappingSchema,
 } from "../src/index.js";
 
 const invalidOrganization = createOrganizationSchema.safeParse({
@@ -77,4 +80,45 @@ assert.equal(
   "cashier reconciliation uses a Kenya business date and integer minor units",
 );
 
-console.log("Contracts tests passed (9 assertions).");
+assert.equal(
+  upsertEtimsIntegrationSchema.safeParse({
+    environment: "SANDBOX",
+    status: "DRAFT",
+    kraPin: "P051234567A",
+    traderSystemName: "AllShops POS + ERP",
+  }).success,
+  true,
+  "valid KRA integration identity is accepted",
+);
+assert.equal(
+  upsertEtimsIntegrationSchema.safeParse({
+    environment: "SANDBOX",
+    status: "CERTIFIED",
+    kraPin: "P051234567A",
+    traderSystemName: "AllShops POS + ERP",
+  }).success,
+  false,
+  "certified mode cannot accidentally target the sandbox",
+);
+assert.equal(
+  upsertEtimsBranchSchema.safeParse({
+    branchId: "30b1889f-4d8d-4fe2-afed-ec40c3bed533",
+    kraBranchId: "00",
+    deviceSerial: "ALLSHOPS-001",
+  }).success,
+  true,
+  "KRA branch and device identifiers are validated",
+);
+assert.equal(
+  upsertEtimsProductMappingSchema.safeParse({
+    productId: "30b1889f-4d8d-4fe2-afed-ec40c3bed533",
+    itemCode: "KE2NTXU0000001",
+    itemClassCode: "5022110801",
+    taxTypeCode: "B",
+    taxRateBps: 1600,
+  }).success,
+  true,
+  "Kenyan standard VAT mapping is accepted",
+);
+
+console.log("Contracts tests passed, including KRA eTIMS validation.");

@@ -192,9 +192,13 @@ export function AppShell({
           {can("expense_category.read") && (
             <Link href="/expense-categories">{t("Categories")}</Link>
           )}
-          {any("settings.read", "user.read", "device.read", "billing.read") && (
-            <small>{t("Settings")}</small>
-          )}
+          {any(
+            "settings.read",
+            "user.read",
+            "device.read",
+            "billing.read",
+            "etims.read",
+          ) && <small>{t("Settings")}</small>}
           {can("settings.read", "organization.read") && (
             <Link href="/settings/business">{t("Business")}</Link>
           )}
@@ -204,6 +208,9 @@ export function AppShell({
           {can("user.read") && <Link href="/settings/users">{t("Users")}</Link>}
           {can("device.read") && (
             <Link href="/settings/devices">{t("POS devices")}</Link>
+          )}
+          {can("etims.read") && (
+            <Link href="/settings/etims">{t("KRA eTIMS")}</Link>
           )}
           {can("billing.read") && (
             <Link href="/settings/subscription">{t("Subscription")}</Link>

@@ -167,11 +167,10 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                                         ? 'Mfumo rahisi wa POS + ERP kwa watu wanaohudumia, kuuza na kukuza biashara Kenya kila siku.'
                                         : 'One beautifully simple POS + ERP workspace for the people building Kenya every day.',
                                     style: TextStyle(
-                                      color: Colors.white.withValues(
-                                        alpha: .76,
-                                      ),
+                                      color: const Color(0xFFF2F8FD),
                                       fontSize: 15,
                                       height: 1.6,
+                                      fontWeight: FontWeight.w600,
                                     ),
                                   ),
                                   const SizedBox(height: 24),
@@ -664,10 +663,10 @@ class _Brand extends StatelessWidget {
             ),
             Text(
               isArabic ? 'POS + ERP • KENYA' : 'POS + ERP • KENYA',
-              style: TextStyle(
-                color: Colors.white60,
+              style: const TextStyle(
+                color: Color(0xFFE1F0FC),
                 fontSize: 8,
-                letterSpacing: isArabic ? .2 : 1.5,
+                letterSpacing: 1.5,
                 fontWeight: FontWeight.w800,
               ),
             ),

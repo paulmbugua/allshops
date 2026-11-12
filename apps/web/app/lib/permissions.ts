@@ -24,6 +24,7 @@ const routePermissions: Array<[string, string[]]> = [
   ["/alerts", []],
   ["/settings/subscription", ["billing.read"]],
   ["/settings/devices", ["device.read"]],
+  ["/settings/etims", ["etims.read"]],
   ["/settings/users", ["user.read"]],
   ["/settings/branches", ["settings.read", "branch.read"]],
   ["/settings/business", ["settings.read", "organization.read"]],

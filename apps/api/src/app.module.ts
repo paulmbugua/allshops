@@ -55,6 +55,8 @@ import { RegisterShiftsController } from "./register-shifts.controller.js";
 import { RegisterShiftsService } from "./register-shifts.service.js";
 import { AlertsController } from "./alerts.controller.js";
 import { AlertsService } from "./alerts.service.js";
+import { EtimsController } from "./etims.controller.js";
+import { EtimsService } from "./etims.service.js";
 
 @Module({
   controllers: [
@@ -82,6 +84,7 @@ import { AlertsService } from "./alerts.service.js";
     ReconciliationController,
     RegisterShiftsController,
     AlertsController,
+    EtimsController,
   ],
   providers: [
     HealthService,
@@ -108,6 +111,7 @@ import { AlertsService } from "./alerts.service.js";
     ReconciliationService,
     RegisterShiftsService,
     AlertsService,
+    EtimsService,
     { provide: APP_GUARD, useClass: AuthGuard },
     { provide: APP_GUARD, useClass: PermissionGuard },
     { provide: APP_GUARD, useClass: SubscriptionGuard },

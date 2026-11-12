@@ -2,7 +2,10 @@ import assert from "node:assert/strict";
 
 import { BadRequestException } from "@nestjs/common";
 
-import { calculateSaleTotals } from "../src/sales.service.js";
+import {
+  calculateInclusiveTaxMinor,
+  calculateSaleTotals,
+} from "../src/sales.service.js";
 
 assert.deepEqual(calculateSaleTotals([{ grossMinor: 1_001 }], null), {
   subtotalMinor: 1_001,
@@ -50,6 +53,17 @@ assert.throws(
       valueMinor: 101,
     }),
   BadRequestException,
+);
+
+assert.equal(
+  calculateInclusiveTaxMinor(11_600, 1_600),
+  1_600,
+  "16% VAT is extracted correctly from a tax-inclusive KES 116.00 price",
+);
+assert.equal(
+  calculateInclusiveTaxMinor(10_000, 0),
+  0,
+  "zero-rated, exempt, and non-VAT lines do not invent tax",
 );
 
 console.log(

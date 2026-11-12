@@ -160,6 +160,10 @@ const environmentSchema = z
       (value) => (value === "" ? undefined : value),
       z.coerce.number().positive().optional(),
     ),
+    ETIMS_ENCRYPTION_KEY: z.preprocess(
+      (value) => (value === "" ? undefined : value),
+      z.string().min(32).optional(),
+    ),
     NODE_ENV: z.enum(["development", "test", "production"]),
   })
   .superRefine((environment, context) => {

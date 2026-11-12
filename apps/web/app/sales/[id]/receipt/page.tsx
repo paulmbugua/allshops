@@ -60,7 +60,7 @@ export default function ReceiptPage() {
         <p>
           <b>{sale.invoiceNumber}</b>
           <br />
-          {new Date(sale.completedAt ?? sale.createdAt).toLocaleString("en-QA")}
+          {new Date(sale.completedAt ?? sale.createdAt).toLocaleString("en-KE")}
           <br />
           Cashier: {sale.creator.name}
           {sale.customerName && (
@@ -137,6 +137,24 @@ export default function ReceiptPage() {
             </b>
           </p>
         )}
+        {sale.fiscalDocument?.status === "ACCEPTED" ? (
+          <section className="receipt-fiscal">
+            <b>KRA eTIMS fiscal receipt</b>
+            <span>Receipt: {sale.fiscalDocument.currentReceiptNumber}</span>
+            <span>Internal data: {sale.fiscalDocument.internalData}</span>
+            <span>Signature: {sale.fiscalDocument.receiptSignature}</span>
+            {sale.fiscalDocument.environment === "SANDBOX" && (
+              <strong>TEST / SANDBOX — NOT A PRODUCTION TAX INVOICE</strong>
+            )}
+          </section>
+        ) : sale.fiscalStatus && sale.fiscalStatus !== "NOT_REQUIRED" ? (
+          <section className="receipt-fiscal pending">
+            <b>KRA eTIMS: {sale.fiscalStatus}</b>
+            <span>
+              This operational receipt is not yet a KRA-accepted tax invoice.
+            </span>
+          </section>
+        ) : null}
         <footer>
           <p>Thank you</p>
           <p lang="sw">Asante sana</p>

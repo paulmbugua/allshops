@@ -125,6 +125,9 @@ const permissions = [
   ["sale.discount", "Apply configured sale discounts"],
   ["payment.record", "Record sale payments"],
   ["receipt.print", "View and print sale receipts"],
+  ["etims.read", "View KRA eTIMS configuration and fiscal documents"],
+  ["etims.manage", "Configure KRA eTIMS branches and product mappings"],
+  ["etims.retry", "Retry rejected or interrupted KRA eTIMS submissions"],
   ["product.cost.read", "View product cost and sale cost snapshots"],
   ["supplier.read", "View suppliers"],
   ["supplier.create", "Create suppliers"],
@@ -333,6 +336,7 @@ const syncManagement = [
   "sync.conflict.read",
   "sync.conflict.resolve",
 ];
+const etimsManagement = ["etims.read", "etims.manage", "etims.retry"];
 const rolePermissions = {
   OWNER: all,
   ADMIN: all.filter((code) => code !== "billing.manage"),
@@ -355,6 +359,7 @@ const rolePermissions = {
     ...phase5Management,
     ...operationalReports,
     ...syncManagement,
+    ...etimsManagement,
   ],
   BRANCH_MANAGER: [
     ...readOnly,
@@ -373,6 +378,8 @@ const rolePermissions = {
     ...phase5Management,
     ...operationalReports,
     ...syncManagement,
+    "etims.read",
+    "etims.retry",
   ],
   ACCOUNTANT: [
     ...readOnly,
@@ -406,6 +413,7 @@ const rolePermissions = {
     "report.customer_balances",
     "report.commissions",
     "report.export",
+    "etims.read",
   ],
   INVENTORY_MANAGER: [
     ...readOnly,
@@ -481,6 +489,7 @@ const rolePermissions = {
     "device.read",
     "sync.read",
     "sync.conflict.read",
+    "etims.read",
   ],
 };
 

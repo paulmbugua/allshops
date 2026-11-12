@@ -65,6 +65,26 @@ export interface Sale {
   notes: string | null;
   createdAt: string;
   completedAt: string | null;
+  fiscalStatus?:
+    | "NOT_REQUIRED"
+    | "PENDING"
+    | "SUBMITTING"
+    | "ACCEPTED"
+    | "REJECTED"
+    | "RETRY";
+  fiscalDocument?: {
+    id: string;
+    status: string;
+    environment: "SANDBOX" | "PRODUCTION";
+    currentReceiptNumber: string | null;
+    totalReceiptNumber: string | null;
+    internalData: string | null;
+    receiptSignature: string | null;
+    controlUnitDateTime: string | null;
+    errorCode: string | null;
+    errorMessage: string | null;
+    acceptedAt: string | null;
+  } | null;
   items: SaleItem[];
   payments: Payment[];
   creator: { id: string; name: string };
@@ -82,7 +102,13 @@ export interface Sale {
     phone: string | null;
     currency: string;
   };
-  refunds?: Array<{ id: string; kind: string; amountMinor: number; reason: string; createdAt: string }>;
+  refunds?: Array<{
+    id: string;
+    kind: string;
+    amountMinor: number;
+    reason: string;
+    createdAt: string;
+  }>;
 }
 export interface SaleSummary extends Omit<
   Sale,

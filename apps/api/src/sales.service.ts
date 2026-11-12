@@ -43,6 +43,12 @@ type ResolvedLine = {
   taxMinor: number;
   totalMinor: number;
   tracked: boolean;
+  etimsItemCode: string | null;
+  etimsItemClassCode: string | null;
+  etimsTaxTypeCode: string | null;
+  etimsTaxRateBps: number;
+  etimsPackageUnitCode: string | null;
+  etimsQuantityUnitCode: string | null;
 };
 type FinalizeOptions = {
   failAfterSale?: boolean;
@@ -68,6 +74,13 @@ type NormalizedPayment = PaymentInput & {
   appliedMinor: number;
   tenderedMinor: number | null;
 };
+type FiscalContext = {
+  integrationId: string;
+  environment: "SANDBOX" | "PRODUCTION";
+  kraPin: string;
+  traderSystemName: string;
+  kraBranchId: string;
+};
 
 const hash = (value: unknown) =>
   createHash("sha256").update(JSON.stringify(value)).digest("hex");
@@ -75,6 +88,11 @@ const jsonValue = <T>(value: T): Prisma.InputJsonValue =>
   JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
 const moneyProduct = (minor: number, quantity: Prisma.Decimal) =>
   Number(new Prisma.Decimal(minor).mul(quantity).toFixed(0));
+const major = (minor: number) => Number((minor / 100).toFixed(2));
+const etimsDate = (value: Date, includeTime = true) => {
+  const iso = value.toISOString().replace(/[-:T.Z]/g, "");
+  return includeTime ? iso.slice(0, 14) : iso.slice(0, 8);
+};
 const hasPermission = (tenant: TenantContext, permission: string) =>
   tenant.permissions.includes(permission);
 
@@ -114,6 +132,24 @@ export function calculateSaleTotals(
         ? discount.valueMinor
         : (discount?.basisPoints ?? null),
   };
+}
+
+export function calculateInclusiveTaxMinor(
+  totalMinor: number,
+  rateBasisPoints: number,
+) {
+  if (totalMinor < 0 || rateBasisPoints < 0 || rateBasisPoints > 10_000)
+    throw new BadRequestException({
+      code: "INVALID_TAX_CALCULATION",
+      message: "Tax inputs are outside the supported range.",
+    });
+  if (rateBasisPoints === 0) return 0;
+  return Number(
+    new Prisma.Decimal(totalMinor)
+      .mul(rateBasisPoints)
+      .div(10_000 + rateBasisPoints)
+      .toFixed(0),
+  );
 }
 
 @Injectable()
@@ -375,6 +411,12 @@ export class SalesService {
         tenant.organizationId,
         input.items,
         options?.priceOverrides,
+      );
+      await this.assertFiscalReadiness(
+        tx,
+        tenant.organizationId,
+        input.branchId,
+        lines,
       );
       await this.validateStaffAssignments(
         tx,
@@ -757,6 +799,7 @@ export class SalesService {
             items: {
               include: { product: { select: { trackInventory: true } } },
             },
+            fiscalDocument: true,
             refunds: {
               where: { status: "COMPLETED" },
               include: { items: true },
@@ -885,6 +928,16 @@ export class SalesService {
             }),
           },
         });
+        if (sale.fiscalDocument) {
+          await this.queueFiscalCreditNote(
+            tx,
+            tenant.organizationId,
+            userId,
+            sale,
+            refund,
+            input,
+          );
+        }
         return refund;
       },
       { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
@@ -1039,6 +1092,12 @@ export class SalesService {
       tenant.organizationId,
       input.items,
       options?.priceOverrides,
+    );
+    const fiscal = await this.assertFiscalReadiness(
+      tx,
+      tenant.organizationId,
+      input.branchId,
+      lines,
     );
     await this.validateStaffAssignments(
       tx,
@@ -1263,6 +1322,17 @@ export class SalesService {
         totalMinor: totals.totalMinor,
       },
     );
+    if (fiscal) {
+      await this.queueFiscalSale(
+        tx,
+        tenant.organizationId,
+        userId,
+        sale,
+        lines,
+        payment.rows,
+        fiscal,
+      );
+    }
     return this.saleDetail(tx, tenant, sale.id);
   }
 
@@ -1287,7 +1357,7 @@ export class SalesService {
         organizationId,
         id: { in: [...new Set(items.map((item) => item.productId))] },
       },
-      include: { variants: true, staffServices: true },
+      include: { variants: true, staffServices: true, etimsMapping: true },
     });
     const byId = new Map(products.map((product) => [product.id, product]));
     return items.map((item) => {
@@ -1349,6 +1419,24 @@ export class SalesService {
         taxMinor: 0,
         totalMinor: grossMinor,
         tracked: product.type === "STOCK_ITEM" && product.trackInventory,
+        etimsItemCode: product.etimsMapping?.isActive
+          ? product.etimsMapping.itemCode
+          : null,
+        etimsItemClassCode: product.etimsMapping?.isActive
+          ? product.etimsMapping.itemClassCode
+          : null,
+        etimsTaxTypeCode: product.etimsMapping?.isActive
+          ? product.etimsMapping.taxTypeCode
+          : null,
+        etimsTaxRateBps: product.etimsMapping?.isActive
+          ? product.etimsMapping.taxRateBps
+          : 0,
+        etimsPackageUnitCode: product.etimsMapping?.isActive
+          ? product.etimsMapping.packageUnitCode
+          : null,
+        etimsQuantityUnitCode: product.etimsMapping?.isActive
+          ? product.etimsMapping.quantityUnitCode
+          : null,
       };
     });
   }
@@ -1357,7 +1445,19 @@ export class SalesService {
     lines: ResolvedLine[],
     discount: DiscountInput | null,
   ): SaleTotals {
-    return calculateSaleTotals(lines, discount);
+    const totals = calculateSaleTotals(lines, discount);
+    const allocations = this.allocateDiscount(lines, totals.discountMinor);
+    let taxMinor = 0;
+    for (const line of lines) {
+      line.discountMinor = allocations.get(line.id) ?? 0;
+      line.totalMinor = line.grossMinor - line.discountMinor;
+      line.taxMinor = calculateInclusiveTaxMinor(
+        line.totalMinor,
+        line.etimsTaxRateBps,
+      );
+      taxMinor += line.taxMinor;
+    }
+    return { ...totals, taxMinor };
   }
 
   private async validateStaffAssignments(
@@ -1606,6 +1706,12 @@ export class SalesService {
         discountMinor: line.discountMinor,
         taxMinor: line.taxMinor,
         totalMinor: line.totalMinor,
+        etimsItemCode: line.etimsItemCode,
+        etimsItemClassCode: line.etimsItemClassCode,
+        etimsTaxTypeCode: line.etimsTaxTypeCode,
+        etimsTaxRateBps: line.etimsTaxRateBps || null,
+        etimsPackageUnitCode: line.etimsPackageUnitCode,
+        etimsQuantityUnitCode: line.etimsQuantityUnitCode,
       })),
     });
   }
@@ -1635,6 +1741,400 @@ export class SalesService {
         message: "The branch has no active selling location.",
       });
     return location;
+  }
+
+  private async assertFiscalReadiness(
+    tx: Transaction,
+    organizationId: string,
+    branchId: string,
+    lines: ResolvedLine[],
+  ): Promise<FiscalContext | null> {
+    const integration = await tx.etimsIntegration.findUnique({
+      where: { organizationId },
+      include: { branches: { where: { branchId } } },
+    });
+    if (!integration || !["SANDBOX", "CERTIFIED"].includes(integration.status))
+      return null;
+    const branch = integration.branches[0];
+    if (!branch?.isActive || !branch.initializedAt)
+      throw new ConflictException({
+        code: "ETIMS_BRANCH_NOT_READY",
+        message:
+          "This branch has not completed KRA eTIMS device initialization.",
+      });
+    if (
+      !integration.communicationKeyCiphertext ||
+      !integration.communicationKeyIv ||
+      !integration.communicationKeyTag
+    )
+      throw new ConflictException({
+        code: "ETIMS_CREDENTIALS_MISSING",
+        message:
+          "KRA eTIMS credentials are incomplete. Ask an administrator to reconnect eTIMS.",
+      });
+    const unmapped = lines.filter(
+      (line) =>
+        !line.etimsItemCode ||
+        !line.etimsItemClassCode ||
+        !line.etimsTaxTypeCode ||
+        !line.etimsPackageUnitCode ||
+        !line.etimsQuantityUnitCode,
+    );
+    if (unmapped.length > 0)
+      throw new ConflictException({
+        code: "ETIMS_PRODUCT_MAPPING_REQUIRED",
+        message: `Complete the KRA mapping for: ${unmapped
+          .map((line) => line.productNameSnapshot)
+          .slice(0, 5)
+          .join(", ")}.`,
+      });
+    return {
+      integrationId: integration.id,
+      environment: integration.environment,
+      kraPin: integration.kraPin,
+      traderSystemName: integration.traderSystemName,
+      kraBranchId: branch.kraBranchId,
+    };
+  }
+
+  private async queueFiscalSale(
+    tx: Transaction,
+    organizationId: string,
+    userId: string,
+    sale: {
+      id: string;
+      branchId: string;
+      invoiceNumber: string | null;
+      customerName: string | null;
+      customerPhone: string | null;
+      completedAt: Date | null;
+      totalMinor: number;
+      taxMinor: number;
+    },
+    lines: ResolvedLine[],
+    payments: NormalizedPayment[],
+    fiscal: FiscalContext,
+  ) {
+    const now = sale.completedAt ?? new Date();
+    const invoiceNumber = sale.invoiceNumber!;
+    const taxTypes = ["A", "B", "C", "D", "E"] as const;
+    const byTax = new Map(
+      taxTypes.map((code) => [
+        code,
+        lines.filter((line) => line.etimsTaxTypeCode === code),
+      ]),
+    );
+    const amountFor = (code: (typeof taxTypes)[number]) =>
+      major(
+        (byTax.get(code) ?? []).reduce((sum, line) => sum + line.totalMinor, 0),
+      );
+    const taxFor = (code: (typeof taxTypes)[number]) =>
+      major(
+        (byTax.get(code) ?? []).reduce((sum, line) => sum + line.taxMinor, 0),
+      );
+    const rateFor = (code: (typeof taxTypes)[number]) =>
+      ((byTax.get(code) ?? []).find((line) => line.etimsTaxRateBps)
+        ?.etimsTaxRateBps ?? 0) / 100;
+    const paymentCode: Record<PaymentInput["method"], string> = {
+      CASH: "01",
+      CARD: "02",
+      BANK_TRANSFER: "03",
+      QR: "05",
+      OTHER: "07",
+    };
+    const primaryPayment =
+      payments.find((row) => row.appliedMinor > 0)?.method ?? "OTHER";
+    const numericInvoice = Number(
+      invoiceNumber.match(/(\d+)$/)?.[1] ?? Date.now(),
+    );
+    const request = {
+      tin: fiscal.kraPin,
+      bhfId: fiscal.kraBranchId,
+      trdInvcNo: invoiceNumber,
+      invcNo: numericInvoice,
+      orgInvcNo: 0,
+      custTin: null,
+      custNm: sale.customerName,
+      salesTyCd: "N",
+      rcptTyCd: "S",
+      pmtTyCd: paymentCode[primaryPayment],
+      salesSttsCd: "02",
+      cfmDt: etimsDate(now),
+      salesDt: etimsDate(now, false),
+      stockRlsDt: etimsDate(now),
+      cnclReqDt: null,
+      cnclDt: null,
+      rfdDt: null,
+      rfdRsnCd: null,
+      totItemCnt: lines.length,
+      ...Object.fromEntries(
+        taxTypes.map((code) => [`taxblAmt${code}`, amountFor(code)]),
+      ),
+      ...Object.fromEntries(
+        taxTypes.map((code) => [`taxRt${code}`, rateFor(code)]),
+      ),
+      ...Object.fromEntries(
+        taxTypes.map((code) => [`taxAmt${code}`, taxFor(code)]),
+      ),
+      totTaxblAmt: major(sale.totalMinor),
+      totTaxAmt: major(sale.taxMinor),
+      totAmt: major(sale.totalMinor),
+      prchrAcptcYn: "N",
+      remark: null,
+      regrId: userId.slice(0, 20),
+      regrNm: fiscal.traderSystemName.slice(0, 60),
+      modrId: userId.slice(0, 20),
+      modrNm: fiscal.traderSystemName.slice(0, 60),
+      receipt: {
+        custTin: null,
+        custMblNo: sale.customerPhone,
+        rcptPbctDt: etimsDate(now),
+        trdeNm: null,
+        adrs: null,
+        topMsg: null,
+        btmMsg: null,
+        prchrAcptcYn: "N",
+      },
+      itemList: lines.map((line, index) => ({
+        itemSeq: index + 1,
+        itemCd: line.etimsItemCode,
+        itemClsCd: line.etimsItemClassCode,
+        itemNm: [line.productNameSnapshot, line.variantNameSnapshot]
+          .filter(Boolean)
+          .join(" - "),
+        bcd: line.barcodeSnapshot,
+        pkgUnitCd: line.etimsPackageUnitCode,
+        pkg: Number(line.quantity),
+        qtyUnitCd: line.etimsQuantityUnitCode,
+        qty: Number(line.quantity),
+        prc: major(line.unitPriceMinor),
+        splyAmt: major(line.grossMinor),
+        dcRt: line.grossMinor
+          ? Number(((line.discountMinor / line.grossMinor) * 100).toFixed(2))
+          : 0,
+        dcAmt: major(line.discountMinor),
+        isrccCd: null,
+        isrccNm: null,
+        isrcRt: null,
+        isrcAmt: null,
+        taxTyCd: line.etimsTaxTypeCode,
+        taxblAmt: major(line.totalMinor),
+        taxAmt: major(line.taxMinor),
+        totAmt: major(line.totalMinor),
+      })),
+    };
+    const document = await tx.fiscalDocument.create({
+      data: {
+        organizationId,
+        branchId: sale.branchId,
+        saleId: sale.id,
+        type: "SALE",
+        status: "PENDING",
+        environment: fiscal.environment,
+        traderInvoiceNumber: invoiceNumber,
+        requestJson: request,
+      },
+    });
+    await tx.fiscalOutbox.create({
+      data: { organizationId, documentId: document.id },
+    });
+    await tx.sale.update({
+      where: { id: sale.id },
+      data: { fiscalStatus: "PENDING" },
+    });
+    await this.audit(tx, organizationId, userId, "ETIMS_SALE_QUEUED", sale.id, {
+      documentId: document.id,
+      environment: fiscal.environment,
+      traderInvoiceNumber: invoiceNumber,
+    });
+  }
+
+  private async queueFiscalCreditNote(
+    tx: Transaction,
+    organizationId: string,
+    userId: string,
+    sale: {
+      id: string;
+      branchId: string;
+      invoiceNumber: string | null;
+      customerName: string | null;
+      customerPhone: string | null;
+      fiscalDocument: {
+        currentReceiptNumber: string | null;
+        environment: "SANDBOX" | "PRODUCTION";
+      } | null;
+      items: Array<{
+        id: string;
+        productNameSnapshot: string;
+        variantNameSnapshot: string | null;
+        barcodeSnapshot: string | null;
+        unitPriceMinor: number;
+        grossMinor: number;
+        taxMinor: number;
+        etimsItemCode: string | null;
+        etimsItemClassCode: string | null;
+        etimsTaxTypeCode: string | null;
+        etimsTaxRateBps: number | null;
+        etimsPackageUnitCode: string | null;
+        etimsQuantityUnitCode: string | null;
+      }>;
+    },
+    refund: { id: string; amountMinor: number; createdAt: Date },
+    input: RefundInput,
+  ) {
+    const integration = await tx.etimsIntegration.findUnique({
+      where: { organizationId },
+      include: { branches: { where: { branchId: sale.branchId } } },
+    });
+    const branch = integration?.branches[0];
+    if (!integration || !branch || !sale.fiscalDocument) return;
+    const requested = new Map(
+      input.items.map((item) => [item.saleItemId, item]),
+    );
+    const lines = sale.items
+      .filter((item) => requested.has(item.id))
+      .map((item) => ({ item, requested: requested.get(item.id)! }));
+    if (lines.some(({ item }) => !item.etimsItemCode || !item.etimsTaxTypeCode))
+      throw new ConflictException({
+        code: "ETIMS_CREDIT_NOTE_MAPPING_MISSING",
+        message:
+          "The original fiscal sale is missing KRA item snapshots. Contact support before refunding it.",
+      });
+    const taxTypes = ["A", "B", "C", "D", "E"] as const;
+    const lineTax = (
+      item: (typeof lines)[number]["item"],
+      amountMinor: number,
+    ) => calculateInclusiveTaxMinor(amountMinor, item.etimsTaxRateBps ?? 0);
+    const amountFor = (code: string) =>
+      major(
+        lines
+          .filter(({ item }) => item.etimsTaxTypeCode === code)
+          .reduce((sum, { requested }) => sum + requested.amountMinor, 0),
+      );
+    const taxFor = (code: string) =>
+      major(
+        lines
+          .filter(({ item }) => item.etimsTaxTypeCode === code)
+          .reduce(
+            (sum, { item, requested }) =>
+              sum + lineTax(item, requested.amountMinor),
+            0,
+          ),
+      );
+    const now = refund.createdAt;
+    const traderInvoiceNumber = `CN-${sale.invoiceNumber}-${refund.id.slice(0, 8)}`;
+    const request = {
+      tin: integration.kraPin,
+      bhfId: branch.kraBranchId,
+      trdInvcNo: traderInvoiceNumber,
+      invcNo: Number(Date.now().toString().slice(-12)),
+      orgInvcNo: Number(sale.fiscalDocument.currentReceiptNumber ?? 0),
+      custTin: null,
+      custNm: sale.customerName,
+      salesTyCd: "N",
+      rcptTyCd: "R",
+      pmtTyCd: "07",
+      salesSttsCd: "02",
+      cfmDt: etimsDate(now),
+      salesDt: etimsDate(now, false),
+      stockRlsDt: etimsDate(now),
+      cnclReqDt: null,
+      cnclDt: null,
+      rfdDt: etimsDate(now),
+      rfdRsnCd: "06",
+      totItemCnt: lines.length,
+      ...Object.fromEntries(
+        taxTypes.map((code) => [`taxblAmt${code}`, amountFor(code)]),
+      ),
+      ...Object.fromEntries(
+        taxTypes.map((code) => [
+          `taxRt${code}`,
+          (lines.find(({ item }) => item.etimsTaxTypeCode === code)?.item
+            .etimsTaxRateBps ?? 0) / 100,
+        ]),
+      ),
+      ...Object.fromEntries(
+        taxTypes.map((code) => [`taxAmt${code}`, taxFor(code)]),
+      ),
+      totTaxblAmt: major(refund.amountMinor),
+      totTaxAmt: major(
+        lines.reduce(
+          (sum, { item, requested }) =>
+            sum + lineTax(item, requested.amountMinor),
+          0,
+        ),
+      ),
+      totAmt: major(refund.amountMinor),
+      prchrAcptcYn: "N",
+      remark: input.reason,
+      regrId: userId.slice(0, 20),
+      regrNm: integration.traderSystemName.slice(0, 60),
+      modrId: userId.slice(0, 20),
+      modrNm: integration.traderSystemName.slice(0, 60),
+      receipt: {
+        custTin: null,
+        custMblNo: sale.customerPhone,
+        rcptPbctDt: etimsDate(now),
+        trdeNm: null,
+        adrs: null,
+        topMsg: null,
+        btmMsg: null,
+        prchrAcptcYn: "N",
+      },
+      itemList: lines.map(({ item, requested }, index) => ({
+        itemSeq: index + 1,
+        itemCd: item.etimsItemCode,
+        itemClsCd: item.etimsItemClassCode,
+        itemNm: [item.productNameSnapshot, item.variantNameSnapshot]
+          .filter(Boolean)
+          .join(" - "),
+        bcd: item.barcodeSnapshot,
+        pkgUnitCd: item.etimsPackageUnitCode,
+        pkg: Number(requested.quantity),
+        qtyUnitCd: item.etimsQuantityUnitCode,
+        qty: Number(requested.quantity),
+        prc: major(item.unitPriceMinor),
+        splyAmt: major(requested.amountMinor),
+        dcRt: 0,
+        dcAmt: 0,
+        taxTyCd: item.etimsTaxTypeCode,
+        taxblAmt: major(requested.amountMinor),
+        taxAmt: major(lineTax(item, requested.amountMinor)),
+        totAmt: major(requested.amountMinor),
+      })),
+    };
+    const document = await tx.fiscalDocument.create({
+      data: {
+        organizationId,
+        branchId: sale.branchId,
+        refundId: refund.id,
+        type: "CREDIT_NOTE",
+        status: "PENDING",
+        environment: sale.fiscalDocument.environment,
+        traderInvoiceNumber,
+        originalInvoiceNumber: sale.invoiceNumber,
+        requestJson: request,
+      },
+    });
+    await tx.fiscalOutbox.create({
+      data: { organizationId, documentId: document.id },
+    });
+    await tx.saleRefund.update({
+      where: { id: refund.id },
+      data: { fiscalStatus: "PENDING" },
+    });
+    await this.audit(
+      tx,
+      organizationId,
+      userId,
+      "ETIMS_CREDIT_NOTE_QUEUED",
+      refund.id,
+      {
+        documentId: document.id,
+        originalSaleId: sale.id,
+        traderInvoiceNumber,
+      },
+    );
   }
 
   private async assertDevice(
@@ -1728,6 +2228,21 @@ export class SalesService {
           where: { status: "COMPLETED" },
           include: { items: true },
           orderBy: { createdAt: "desc" },
+        },
+        fiscalDocument: {
+          select: {
+            id: true,
+            status: true,
+            environment: true,
+            currentReceiptNumber: true,
+            totalReceiptNumber: true,
+            internalData: true,
+            receiptSignature: true,
+            controlUnitDateTime: true,
+            errorCode: true,
+            errorMessage: true,
+            acceptedAt: true,
+          },
         },
       },
     });

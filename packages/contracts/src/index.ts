@@ -478,6 +478,83 @@ export const refundSchema = z.object({
     .min(1)
     .max(200),
 });
+
+export const etimsEnvironmentSchema = z.enum(["SANDBOX", "PRODUCTION"]);
+export const etimsIntegrationStatusSchema = z.enum([
+  "DISABLED",
+  "DRAFT",
+  "SANDBOX",
+  "CERTIFIED",
+  "SUSPENDED",
+]);
+export const upsertEtimsIntegrationSchema = z
+  .object({
+    environment: etimsEnvironmentSchema,
+    status: etimsIntegrationStatusSchema,
+    kraPin: z
+      .string()
+      .trim()
+      .toUpperCase()
+      .regex(/^[A-Z][0-9]{9}[A-Z]$/, "Enter a valid 11-character KRA PIN."),
+    traderSystemName: z
+      .string()
+      .trim()
+      .min(2)
+      .max(80)
+      .default("AllShops POS + ERP"),
+    communicationKey: z.string().trim().min(8).max(255).optional(),
+  })
+  .superRefine((value, context) => {
+    if (value.status === "CERTIFIED" && value.environment !== "PRODUCTION") {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["environment"],
+        message: "Certified eTIMS integrations must use production.",
+      });
+    }
+  });
+export const upsertEtimsBranchSchema = z.object({
+  branchId: identifier,
+  kraBranchId: z
+    .string()
+    .trim()
+    .regex(/^\d{2}$/, "KRA branch ID must contain two digits."),
+  deviceSerial: z.string().trim().min(4).max(100),
+  isActive: z.boolean().default(true),
+  initializedAt: z.coerce.date().nullable().optional(),
+});
+export const upsertEtimsProductMappingSchema = z.object({
+  productId: identifier,
+  itemCode: z.string().trim().min(1).max(20),
+  itemClassCode: z
+    .string()
+    .trim()
+    .regex(/^\d{10}$/, "Item classification code must contain 10 digits."),
+  itemTypeCode: z.string().trim().min(1).max(5).default("2"),
+  taxTypeCode: z.enum(["A", "B", "C", "D", "E"]),
+  taxRateBps: z.number().int().min(0).max(10_000),
+  originNationCode: z.string().trim().toUpperCase().length(2).default("KE"),
+  packageUnitCode: z.string().trim().toUpperCase().min(1).max(5).default("NT"),
+  quantityUnitCode: z.string().trim().toUpperCase().min(1).max(5).default("U"),
+  isActive: z.boolean().default(true),
+});
+export const fiscalDocumentListSchema = paginationSchema.extend({
+  branchId: identifier.optional(),
+  status: z
+    .enum([
+      "NOT_REQUIRED",
+      "PENDING",
+      "SUBMITTING",
+      "ACCEPTED",
+      "REJECTED",
+      "RETRY",
+    ])
+    .optional(),
+  type: z.enum(["SALE", "CREDIT_NOTE"]).optional(),
+});
+export const retryFiscalDocumentSchema = z.object({
+  reason: z.string().trim().min(2).max(300),
+});
 export const openShiftSchema = z.object({
   branchId: identifier,
   openingCashMinor: z.number().int().min(0).max(2_147_483_647),
@@ -1153,6 +1230,17 @@ export type SaleItemInput = z.infer<typeof saleItemInputSchema>;
 export type PaymentInput = z.infer<typeof paymentInputSchema>;
 export type CheckoutInput = z.infer<typeof checkoutSchema>;
 export type RefundInput = z.infer<typeof refundSchema>;
+export type UpsertEtimsIntegrationInput = z.infer<
+  typeof upsertEtimsIntegrationSchema
+>;
+export type UpsertEtimsBranchInput = z.infer<typeof upsertEtimsBranchSchema>;
+export type UpsertEtimsProductMappingInput = z.infer<
+  typeof upsertEtimsProductMappingSchema
+>;
+export type FiscalDocumentListInput = z.infer<typeof fiscalDocumentListSchema>;
+export type RetryFiscalDocumentInput = z.infer<
+  typeof retryFiscalDocumentSchema
+>;
 export type OpenShiftInput = z.infer<typeof openShiftSchema>;
 export type CloseShiftInput = z.infer<typeof closeShiftSchema>;
 export type CashMovementInput = z.infer<typeof cashMovementSchema>;
