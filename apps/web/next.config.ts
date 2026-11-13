@@ -16,7 +16,10 @@ const productionCspSuffix =
   process.env.NODE_ENV === "production" ? "; upgrade-insecure-requests" : "";
 const cloudflareAnalyticsScript =
   process.env.NODE_ENV === "production"
-    ? " https://static.cloudflareinsights.com/beacon.min.js"
+    ? // Cloudflare appends a version path after beacon.min.js (for example,
+      // /beacon.min.js/vce...). Allow its dedicated analytics origin so those
+      // immutable versioned paths remain covered without permitting other hosts.
+      " https://static.cloudflareinsights.com"
     : "";
 const cloudflareAnalyticsConnect =
   process.env.NODE_ENV === "production"
