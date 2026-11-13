@@ -5108,6 +5108,51 @@ body {
   display: contents;
 }
 
+/* Fast-learning tooltips for register controls. They appear on mouse hover and
+   keyboard focus, while aria-labels retain the same meaning for screen readers. */
+.pos-workspace [data-tooltip] {
+  position: relative;
+}
+.pos-workspace [data-tooltip]::after {
+  position: absolute;
+  right: auto;
+  bottom: calc(100% + 0.55rem);
+  left: 50%;
+  z-index: 100;
+  width: max-content;
+  max-width: min(17rem, 82vw);
+  padding: 0.48rem 0.65rem;
+  border: 1px solid rgba(151, 198, 237, 0.45);
+  border-radius: 0.55rem;
+  background: #081f35;
+  color: #fff;
+  box-shadow: 0 0.5rem 1.3rem rgba(4, 24, 42, 0.3);
+  content: attr(data-tooltip);
+  font-size: 0.7rem;
+  font-weight: 750;
+  line-height: 1.35;
+  text-align: center;
+  white-space: normal;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, 0.25rem);
+  transition:
+    opacity 120ms ease,
+    transform 120ms ease;
+}
+.pos-workspace [data-tooltip][data-tooltip-placement="bottom"]::after {
+  top: calc(100% + 0.55rem);
+  bottom: auto;
+  transform: translate(-50%, -0.25rem);
+}
+@media (hover: hover) and (pointer: fine) {
+  .pos-workspace [data-tooltip]:hover::after,
+  .pos-workspace [data-tooltip]:focus-visible::after {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
 @media (max-width: 600px) {
   body.pos-route-mode {
     background: #f1f4f7;
@@ -5175,6 +5220,11 @@ body {
     padding: 0.8rem;
     background: #fff;
     box-shadow: 0 0.35rem 1.2rem rgba(20, 58, 91, 0.08);
+  }
+  /* Native mobile POS uses the device keypad only after cash entry is opened.
+     Never let the desktop register keypad occupy or overlap the catalogue. */
+  .pos-keypad-workbench {
+    display: none !important;
   }
   .pos-operations {
     display: flex;
@@ -5342,8 +5392,35 @@ body {
     color: #173650;
   }
   .pos-cart-calculator {
+    position: static;
     display: grid;
+    overflow: visible;
+    max-height: none;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.75rem;
+    margin-top: 0.75rem;
+    border: 1px solid #c8d7e4;
+    border-radius: 1rem;
+    padding: 0.85rem;
+    background: #f4f7fa;
     color: #173650;
+  }
+  .pos-cart-calculator > * {
+    min-width: 0;
+    grid-column: 1 !important;
+  }
+  .pos-cart-calculator input,
+  .pos-cart-calculator select {
+    min-height: 3rem;
+    font-size: 1rem;
+  }
+  .pos-cart-calculator .quick-cash {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
+  }
+  .pos-cart-calculator .quick-cash button {
+    min-height: 2.75rem;
   }
   .pos-payment-drawer-toggle {
     display: none;

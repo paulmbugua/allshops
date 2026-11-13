@@ -843,7 +843,10 @@ export default function PosPage() {
           </div>
           <div className="pos-user-controls">
             <details className="pos-register-menu pos-user-menu">
-              <summary>
+              <summary
+                data-tooltip="Cashier settings, receipt options and sign out"
+                data-tooltip-placement="bottom"
+              >
                 <span className="pos-user-avatar" aria-hidden="true">
                   <svg viewBox="0 0 24 24">
                     <path d="M12 12a4.4 4.4 0 1 0 0-8.8 4.4 4.4 0 0 0 0 8.8Zm-8 8.8c.5-4 3.7-6.5 8-6.5s7.5 2.5 8 6.5H4Z" />
@@ -896,6 +899,12 @@ export default function PosPage() {
                 focusMode ? "Minimize point of sale" : "Maximize point of sale"
               }
               title={focusMode ? "Minimize" : "Maximize"}
+              data-tooltip={
+                focusMode
+                  ? "Exit full-screen register view"
+                  : "Expand the register for faster checkout"
+              }
+              data-tooltip-placement="bottom"
             >
               <span aria-hidden="true">{focusMode ? "↙" : "↗"}</span>
             </button>
@@ -946,6 +955,7 @@ export default function PosPage() {
                   className={productTileMode === "QUICK" ? "active" : ""}
                   onClick={() => selectTileMode("QUICK")}
                   title="Show fast blue product buttons"
+                  data-tooltip="Show compact blue fast-sale buttons"
                 >
                   Blue tiles
                 </button>
@@ -954,6 +964,7 @@ export default function PosPage() {
                   className={productTileMode === "IMAGE" ? "active" : ""}
                   onClick={() => selectTileMode("IMAGE")}
                   title="Show product images and prices"
+                  data-tooltip="Show product photos with prices"
                 >
                   Images
                 </button>
@@ -962,6 +973,7 @@ export default function PosPage() {
                   className={customizingQuickItems ? "active" : ""}
                   onClick={() => setCustomizingQuickItems((value) => !value)}
                   title="Choose items that stay in the fast-sale section"
+                  data-tooltip="Pin products to the fast-sale section"
                 >
                   {customizingQuickItems ? "Done" : "Choose items"}
                 </button>
@@ -1037,6 +1049,12 @@ export default function PosPage() {
                             ? "Remove from pinned items"
                             : "Pin as a fast-sale item"
                         }
+                        data-tooltip={
+                          pinned
+                            ? "Remove this product from fast-sale items"
+                            : "Keep this product in fast-sale items"
+                        }
+                        data-tooltip-placement="bottom"
                       >
                         {pinned ? "★" : "☆"}
                       </button>
@@ -1071,7 +1089,11 @@ export default function PosPage() {
             )}
             <div className="pos-keypad-workbench">
               <div className="pos-ticket-actions">
-                <button type="button" onClick={startNewTicket}>
+                <button
+                  type="button"
+                  onClick={startNewTicket}
+                  data-tooltip="Start a new sale and clear the current ticket (F2)"
+                >
                   <span>＋</span>
                   <strong>New</strong>
                   <kbd>F2</kbd>
@@ -1080,6 +1102,7 @@ export default function PosPage() {
                   type="button"
                   onClick={clearTicket}
                   disabled={!cart.length}
+                  data-tooltip="Delete every item from the current bill (F7)"
                 >
                   <span>⌫</span>
                   <strong>Delete bill</strong>
@@ -1096,6 +1119,7 @@ export default function PosPage() {
                     });
                   }}
                   disabled={!previousSale}
+                  data-tooltip="Print the previous completed sale receipt (F11)"
                 >
                   <span>▤</span>
                   <strong>Print</strong>
@@ -1114,6 +1138,7 @@ export default function PosPage() {
                       0,
                     );
                   }}
+                  data-tooltip="Open customer and payment controls (F9)"
                 >
                   <span>◉</span>
                   <strong>Payment</strong>
@@ -1123,6 +1148,7 @@ export default function PosPage() {
                   type="button"
                   disabled={!canCompleteSale}
                   onClick={() => void checkout("NO_PRINT")}
+                  data-tooltip="Save and complete this sale without printing (F12)"
                 >
                   <span>▣</span>
                   <strong>Save</strong>
@@ -1132,6 +1158,7 @@ export default function PosPage() {
                   type="button"
                   disabled={!canCompleteSale}
                   onClick={() => void checkout("PRINT")}
+                  data-tooltip="Save this sale and print its receipt (F12)"
                 >
                   <span>▣</span>
                   <strong>Save &amp; print</strong>
@@ -1167,6 +1194,7 @@ export default function PosPage() {
                   type="button"
                   className={keypadTarget === "QUANTITY" ? "active" : ""}
                   onClick={() => setKeypadTarget("QUANTITY")}
+                  data-tooltip="Use the number pad to change the selected item quantity"
                 >
                   Qty
                 </button>
@@ -1177,10 +1205,15 @@ export default function PosPage() {
                     setKeypadTarget("CASH");
                     cashTenderRef.current?.focus();
                   }}
+                  data-tooltip="Use the number pad to enter cash received"
                 >
                   Cash
                 </button>
-                <button type="button" onClick={() => applyKeypad("CLEAR")}>
+                <button
+                  type="button"
+                  onClick={() => applyKeypad("CLEAR")}
+                  data-tooltip="Clear the active quantity or cash value"
+                >
                   Clear
                 </button>
                 <button
@@ -1188,6 +1221,7 @@ export default function PosPage() {
                   className="enter"
                   disabled={!canCompleteSale}
                   onClick={() => void checkout()}
+                  data-tooltip="Complete the active payment (F12)"
                 >
                   Pay <kbd>F12</kbd>
                 </button>
@@ -1302,6 +1336,8 @@ export default function PosPage() {
                       onClick={() =>
                         setCart((rows) => rows.filter((row) => row !== line))
                       }
+                      aria-label={`Remove ${line.name} from the bill`}
+                      data-tooltip={`Remove ${line.name} from the bill`}
                     >
                       ×
                     </button>
@@ -1531,6 +1567,7 @@ export default function PosPage() {
                   onClick={() => void hold()}
                   aria-label="Hold sale"
                   title="Hold sale (F8)"
+                  data-tooltip="Hold this bill and return to it later (F8)"
                 >
                   <span aria-hidden="true">Ⅱ</span>
                 </button>
@@ -1546,6 +1583,11 @@ export default function PosPage() {
                     tenderMode === "CASH"
                       ? "Complete cash sale (F12)"
                       : "Complete local card sale (F12)"
+                  }
+                  data-tooltip={
+                    tenderMode === "CASH"
+                      ? "Complete and save this cash sale (F12)"
+                      : "Complete and save this card sale (F12)"
                   }
                 >
                   <span aria-hidden="true">{busy ? "…" : "✓"}</span>
