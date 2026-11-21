@@ -12,6 +12,7 @@ import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
 import {
   accountTokenSchema,
   acceptInviteSchema,
+  changeTemporaryPasswordSchema,
   forgotPasswordSchema,
   loginSchema,
   registerSchema,
@@ -29,6 +30,7 @@ import {
 import { Public } from "./public.decorator.js";
 import type { RequestContext, ResponseContext } from "./security.types.js";
 import { TokenService } from "./token.service.js";
+import { AllowTemporaryPassword } from "./temporary-password.decorator.js";
 import { parseInput } from "./validation.js";
 
 @ApiTags("Authentication")
@@ -138,9 +140,33 @@ export class AuthController {
   }
 
   @ApiBearerAuth()
+  @AllowTemporaryPassword()
   @Get("me")
   me(@Req() request: RequestContext) {
     return this.auth.me(request.user!.id);
+  }
+
+  @Public()
+  @Post("activate-invitation")
+  activateInvitation(@Body() body: unknown, @Req() request: RequestContext) {
+    return this.auth.activateInvitation(
+      parseInput(accountTokenSchema, body),
+      request,
+    );
+  }
+
+  @ApiBearerAuth()
+  @AllowTemporaryPassword()
+  @Post("change-temporary-password")
+  changeTemporaryPassword(
+    @Body() body: unknown,
+    @Req() request: RequestContext,
+  ) {
+    return this.auth.changeTemporaryPassword(
+      request.user!.id,
+      parseInput(changeTemporaryPasswordSchema, body),
+      request,
+    );
   }
 
   @Public()

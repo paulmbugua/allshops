@@ -4,16 +4,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:app_links/app_links.dart';
 import 'core/api_client.dart';
 import 'core/app_logger.dart';
 import 'core/offline_store.dart';
 import 'core/theme.dart';
 import 'features/auth/welcome_screen.dart';
 import 'features/home/home_screen.dart';
+import 'features/auth/account_link_screens.dart';
 import 'core/models.dart';
 
 final apiProvider = Provider<ApiClient>((ref) => ApiClient());
 final offlineStoreProvider = Provider<OfflineStore>((ref) => OfflineStore());
+final rootNavigatorKey = GlobalKey<NavigatorState>();
 
 class AppLanguageScope extends InheritedWidget {
   const AppLanguageScope({
@@ -108,10 +111,18 @@ class AllShopsApp extends StatefulWidget {
 
 class _AllShopsAppState extends State<AllShopsApp> {
   static const storage = FlutterSecureStorage();
+  final appLinks = AppLinks();
+  StreamSubscription<Uri>? linkSubscription;
   String language = 'en';
   @override
   void initState() {
     super.initState();
+    linkSubscription = appLinks.uriLinkStream.listen(_openAccountLink);
+    unawaited(
+      appLinks.getInitialLink().then((uri) {
+        if (uri != null) _openAccountLink(uri);
+      }),
+    );
     storage
         .read(key: 'allshops_display_language')
         .timeout(const Duration(seconds: 2))
@@ -121,6 +132,31 @@ class _AllShopsAppState extends State<AllShopsApp> {
           }
         })
         .catchError((Object _) => null);
+  }
+
+  void _openAccountLink(Uri uri) {
+    final token = uri.queryParameters['token'];
+    if (token == null || token.isEmpty) return;
+    Widget? screen;
+    if (uri.path.endsWith('/staff-activation')) {
+      screen = StaffActivationScreen(token: token);
+    } else if (uri.path.endsWith('/activate-account')) {
+      screen = AccountActivationScreen(token: token);
+    } else if (uri.path.endsWith('/reset-password')) {
+      screen = MobileResetPasswordScreen(token: token);
+    }
+    if (screen == null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      rootNavigatorKey.currentState?.push(
+        MaterialPageRoute(builder: (_) => screen!),
+      );
+    });
+  }
+
+  @override
+  void dispose() {
+    linkSubscription?.cancel();
+    super.dispose();
   }
 
   void setLanguage(String value) {
@@ -139,6 +175,7 @@ class _AllShopsAppState extends State<AllShopsApp> {
     language: language,
     setLanguage: setLanguage,
     child: MaterialApp(
+      navigatorKey: rootNavigatorKey,
       title: 'AllShops POS + ERP',
       debugShowCheckedModeBanner: false,
       theme: AllShopsTheme.light,
@@ -269,6 +306,9 @@ class _SessionGateState extends ConsumerState<SessionGate> {
               ? _retry
               : null,
         );
+      }
+      if (user.mustChangePassword) {
+        return TemporaryPasswordScreen(user: user);
       }
       return HomeScreen(user: user, membership: user.memberships.first);
     },

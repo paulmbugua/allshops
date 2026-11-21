@@ -36,7 +36,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
           .read(apiProvider)
           .post<Map<String, dynamic>>(
             '/auth/forgot-password',
-            data: {'email': email.text.trim()},
+            data: {'email': email.text.trim(), 'clientSurface': 'MOBILE'},
           );
       if (mounted) setState(() => message = result['message']?.toString());
     } catch (error) {

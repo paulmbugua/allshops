@@ -12,6 +12,7 @@ import { randomBytes, randomUUID } from "node:crypto";
 import type {
   AcceptInviteInput,
   AccountTokenInput,
+  ChangeTemporaryPasswordInput,
   ForgotPasswordInput,
   LoginInput,
   RegisterInput,
@@ -75,6 +76,7 @@ export class AuthService {
         recipientName: input.name,
         token: activation.token,
         expiresAt: activation.expiresAt,
+        clientSurface: input.clientSurface,
       })
       .then((result) => result.status)
       .catch((error: unknown) => {
@@ -138,6 +140,7 @@ export class AuthService {
           recipientName: user.name,
           token: reset.token,
           expiresAt: reset.expiresAt,
+          clientSurface: input.clientSurface,
         })
         .catch((error: unknown) => {
           this.logger.warn(
@@ -178,6 +181,7 @@ export class AuthService {
           recipientName: user.name,
           token: activation.token,
           expiresAt: activation.expiresAt,
+          clientSurface: input.clientSurface,
         })
         .catch((error: unknown) => {
           this.logger.warn(
@@ -192,7 +196,10 @@ export class AuthService {
     };
   }
 
-  async sendPasswordResetForUser(userId: string) {
+  async sendPasswordResetForUser(
+    userId: string,
+    clientSurface: "WEB" | "MOBILE" = "WEB",
+  ) {
     const user = await prisma.user.findUniqueOrThrow({
       where: { id: userId },
       select: { id: true, name: true, email: true, status: true },
@@ -213,6 +220,7 @@ export class AuthService {
         recipientName: user.name,
         token: reset.token,
         expiresAt: reset.expiresAt,
+        clientSurface,
       })
       .then((result) => result.status)
       .catch(() => "FAILED" as const);
@@ -230,7 +238,7 @@ export class AuthService {
     await prisma.$transaction([
       prisma.user.update({
         where: { id: token.userId },
-        data: { passwordHash },
+        data: { passwordHash, mustChangePassword: false },
       }),
       prisma.authSession.updateMany({
         where: { userId: token.userId, revokedAt: null },
@@ -242,6 +250,113 @@ export class AuthService {
           action: "PASSWORD_RESET_COMPLETED",
           entityType: "User",
           entityId: token.userId,
+          ipAddress: this.ip(request),
+        },
+      }),
+    ]);
+    return { success: true };
+  }
+
+  async activateInvitation(input: AccountTokenInput, request: RequestContext) {
+    const tokenHash = this.tokens.invitationHash(input.token);
+    const invitation = await prisma.invitation.findFirst({
+      where: {
+        tokenHash,
+        acceptedAt: null,
+        revokedAt: null,
+        expiresAt: { gt: new Date() },
+      },
+      include: { user: { select: { email: true } } },
+    });
+    if (!invitation) {
+      throw new BadRequestException({
+        code: "INVALID_INVITATION",
+        message: "This activation link is invalid, expired, or already used.",
+      });
+    }
+    await prisma.$transaction(async (tx) => {
+      const claimed = await tx.invitation.updateMany({
+        where: { id: invitation.id, acceptedAt: null, revokedAt: null },
+        data: { acceptedAt: new Date() },
+      });
+      if (claimed.count !== 1) {
+        throw new BadRequestException({
+          code: "INVITATION_ALREADY_USED",
+          message: "This activation link has already been used.",
+        });
+      }
+      await tx.user.update({
+        where: { id: invitation.userId },
+        data: { status: "ACTIVE", emailVerifiedAt: new Date() },
+      });
+      await tx.organizationUser.update({
+        where: {
+          organizationId_userId: {
+            organizationId: invitation.organizationId,
+            userId: invitation.userId,
+          },
+        },
+        data: {
+          roleId: invitation.roleId,
+          branchId: invitation.branchId,
+          status: "ACTIVE",
+        },
+      });
+      await tx.auditLog.create({
+        data: {
+          organizationId: invitation.organizationId,
+          userId: invitation.userId,
+          action: "USER_INVITATION_ACTIVATED",
+          entityType: "OrganizationUser",
+          entityId: invitation.userId,
+          ipAddress: this.ip(request),
+        },
+      });
+    });
+    return {
+      success: true,
+      email: invitation.user.email,
+      passwordChangeRequired: true,
+    };
+  }
+
+  async changeTemporaryPassword(
+    userId: string,
+    input: ChangeTemporaryPasswordInput,
+    request: RequestContext,
+  ) {
+    if (input.currentPassword === input.newPassword) {
+      throw new BadRequestException({
+        code: "PASSWORD_UNCHANGED",
+        message: "Choose a new password different from the temporary password.",
+      });
+    }
+    const user = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
+    if (!user.mustChangePassword) {
+      throw new BadRequestException({
+        code: "PASSWORD_CHANGE_NOT_REQUIRED",
+        message: "This account no longer requires a temporary-password change.",
+      });
+    }
+    const currentValid = await verify(user.passwordHash, input.currentPassword);
+    if (!currentValid) {
+      throw new UnauthorizedException({
+        code: "INVALID_TEMPORARY_PASSWORD",
+        message: "The temporary password is incorrect.",
+      });
+    }
+    const passwordHash = await hash(input.newPassword, passwordOptions);
+    await prisma.$transaction([
+      prisma.user.update({
+        where: { id: userId },
+        data: { passwordHash, mustChangePassword: false },
+      }),
+      prisma.auditLog.create({
+        data: {
+          userId,
+          action: "TEMPORARY_PASSWORD_CHANGED",
+          entityType: "User",
+          entityId: userId,
           ipAddress: this.ip(request),
         },
       }),
@@ -410,6 +525,7 @@ export class AuthService {
           passwordHash,
           status: "ACTIVE",
           emailVerifiedAt: new Date(),
+          mustChangePassword: false,
           ...(input.name ? { name: input.name } : {}),
         },
       });
@@ -444,8 +560,12 @@ export class AuthService {
     return this.createSession(invitation.userId, request);
   }
 
-  async createInvitedPasswordHash(): Promise<string> {
-    return hash(randomBytes(32).toString("hex"), passwordOptions);
+  async createTemporaryCredentials() {
+    const temporaryPassword = `As${randomBytes(9).toString("base64url")}!7`;
+    return {
+      temporaryPassword,
+      passwordHash: await hash(temporaryPassword, passwordOptions),
+    };
   }
 
   private async issueAccountToken(
@@ -532,6 +652,7 @@ export class AuthService {
         email: true,
         emailVerifiedAt: true,
         status: true,
+        mustChangePassword: true,
         memberships: {
           where: { status: { in: ["ACTIVE", "INVITED"] } },
           select: {
@@ -563,6 +684,7 @@ export class AuthService {
       email: user.email,
       emailVerifiedAt: user.emailVerifiedAt?.toISOString() ?? null,
       status: user.status,
+      mustChangePassword: user.mustChangePassword,
       memberships: user.memberships.map((membership) => ({
         id: membership.id,
         organizationId: membership.organizationId,

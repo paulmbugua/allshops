@@ -222,6 +222,7 @@ class _UserCardState extends ConsumerState<_UserCard> {
           .read(apiProvider)
           .post<Object?>(
             '${widget.base}/users/${widget.user['id']}/resend-invitation',
+            data: {'clientSurface': 'MOBILE'},
           );
       if (mounted) {
         setState(() => error = 'A fresh activation link was emailed.');
@@ -237,6 +238,7 @@ class _UserCardState extends ConsumerState<_UserCard> {
           .read(apiProvider)
           .post<Map<String, dynamic>>(
             '${widget.base}/users/${widget.user['id']}/send-password-reset',
+            data: {'clientSurface': 'MOBILE'},
           );
       if (mounted) {
         setState(
@@ -423,6 +425,7 @@ class _InviteUserSheetState extends ConsumerState<_InviteUserSheet> {
               'email': email.text.trim(),
               'roleId': roleId,
               'branchId': branchId,
+              'clientSurface': 'MOBILE',
             },
           );
       if (mounted) Navigator.pop(context, true);
@@ -453,7 +456,7 @@ class _InviteUserSheetState extends ConsumerState<_InviteUserSheet> {
             style: TextStyle(fontSize: 23, fontWeight: FontWeight.w900),
           ),
           const Text(
-            'They receive a one-time activation email and create their private password.',
+            'They receive an activation link and temporary password, then create a private password at first sign-in.',
             style: TextStyle(color: Colors.blueGrey),
           ),
           const SizedBox(height: 16),

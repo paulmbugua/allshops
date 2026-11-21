@@ -76,6 +76,7 @@ export const registerSchema = z.object({
   name: z.string().trim().min(2).max(120),
   email: z.string().trim().toLowerCase().email(),
   password: z.string().min(8).max(128),
+  clientSurface: z.enum(["WEB", "MOBILE"]).default("WEB"),
 });
 
 export const loginSchema = z.object({
@@ -88,6 +89,7 @@ export const inviteUserSchema = z.object({
   name: z.string().trim().min(2).max(120),
   roleId: z.string().uuid(),
   branchId: z.string().uuid().nullable().optional(),
+  clientSurface: z.enum(["WEB", "MOBILE"]).default("WEB"),
 });
 
 export const acceptInviteSchema = z.object({
@@ -102,6 +104,16 @@ export const accountTokenSchema = z.object({
 
 export const forgotPasswordSchema = z.object({
   email: z.string().trim().toLowerCase().email(),
+  clientSurface: z.enum(["WEB", "MOBILE"]).default("WEB"),
+});
+
+export const changeTemporaryPasswordSchema = z.object({
+  currentPassword: z.string().min(8).max(128),
+  newPassword: z.string().min(8).max(128),
+});
+
+export const clientSurfaceSchema = z.object({
+  clientSurface: z.enum(["WEB", "MOBILE"]).default("WEB"),
 });
 
 export const resetPasswordSchema = accountTokenSchema.extend({
@@ -1203,6 +1215,10 @@ export type AcceptInviteInput = z.infer<typeof acceptInviteSchema>;
 export type AccountTokenInput = z.infer<typeof accountTokenSchema>;
 export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
+export type ChangeTemporaryPasswordInput = z.infer<
+  typeof changeTemporaryPasswordSchema
+>;
+export type ClientSurfaceInput = z.infer<typeof clientSurfaceSchema>;
 export type UpdateMembershipInput = z.infer<typeof updateMembershipSchema>;
 export type CreateCategoryInput = z.infer<typeof createCategorySchema>;
 export type UpdateCategoryInput = z.infer<typeof updateCategorySchema>;

@@ -44,10 +44,7 @@ try {
     .set(bearer(registerA.body.accessToken))
     .send({ name: "Blocked Organization", businessType: "RETAIL" });
   assert.equal(blockedBeforeActivation.status, 403);
-  assert.equal(
-    blockedBeforeActivation.body.code,
-    "EMAIL_ACTIVATION_REQUIRED",
-  );
+  assert.equal(blockedBeforeActivation.body.code, "EMAIL_ACTIVATION_REQUIRED");
   const activatedA = await request(app.getHttpServer())
     .post("/api/v1/auth/activate-account")
     .send({ token: registerA.body.activationToken });
@@ -252,6 +249,65 @@ try {
   assert.ok(cashierMembership.permissions.includes("payment.record"));
   assert.ok(!cashierMembership.permissions.includes("inventory.adjust"));
   assert.ok(!cashierMembership.permissions.includes("sync.conflict.resolve"));
+
+  const temporaryInvite = await request(app.getHttpServer())
+    .post(`/api/v1/organizations/${orgA}/users`)
+    .set(bearer(tokenA))
+    .send({
+      name: "Temporary Cashier",
+      email: `temporary-${suffix}@example.com`,
+      roleId: cashierRole.id,
+      branchId: branchA,
+      clientSurface: "MOBILE",
+    });
+  assert.equal(temporaryInvite.status, 201);
+  assert.ok(temporaryInvite.body.invitationToken);
+  assert.ok(temporaryInvite.body.temporaryPassword);
+
+  const activatedTemporary = await request(app.getHttpServer())
+    .post("/api/v1/auth/activate-invitation")
+    .send({ token: temporaryInvite.body.invitationToken });
+  assert.equal(activatedTemporary.status, 201);
+  assert.equal(activatedTemporary.body.passwordChangeRequired, true);
+
+  const temporaryLogin = await request(app.getHttpServer())
+    .post("/api/v1/auth/login")
+    .send({
+      email: `temporary-${suffix}@example.com`,
+      password: temporaryInvite.body.temporaryPassword,
+    });
+  assert.equal(temporaryLogin.status, 201);
+  assert.equal(temporaryLogin.body.user.mustChangePassword, true);
+  const temporaryToken = temporaryLogin.body.accessToken as string;
+
+  const temporaryMe = await request(app.getHttpServer())
+    .get("/api/v1/auth/me")
+    .set(bearer(temporaryToken));
+  assert.equal(temporaryMe.status, 200);
+  assert.equal(temporaryMe.body.mustChangePassword, true);
+
+  const blockedBeforePasswordChange = await request(app.getHttpServer())
+    .get(`/api/v1/organizations/${orgA}/branches`)
+    .set(bearer(temporaryToken));
+  assert.equal(blockedBeforePasswordChange.status, 403);
+  assert.equal(
+    blockedBeforePasswordChange.body.code,
+    "PASSWORD_CHANGE_REQUIRED",
+  );
+
+  const changedTemporaryPassword = await request(app.getHttpServer())
+    .post("/api/v1/auth/change-temporary-password")
+    .set(bearer(temporaryToken))
+    .send({
+      currentPassword: temporaryInvite.body.temporaryPassword,
+      newPassword: `${password}-private`,
+    });
+  assert.equal(changedTemporaryPassword.status, 201);
+
+  const allowedAfterPasswordChange = await request(app.getHttpServer())
+    .get(`/api/v1/organizations/${orgA}/branches`)
+    .set(bearer(temporaryToken));
+  assert.equal(allowedAfterPasswordChange.status, 200);
 
   const deniedRoleDirectory = await request(app.getHttpServer())
     .get(`/api/v1/organizations/${orgA}/roles`)

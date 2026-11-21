@@ -9,6 +9,8 @@ type InvitationMail = {
   employeeNumber: string;
   branchName?: string | null;
   invitationToken: string;
+  temporaryPassword: string;
+  clientSurface: "WEB" | "MOBILE";
   expiresAt: Date;
   logoUrl?: string | null;
   primaryColor?: string;
@@ -57,7 +59,11 @@ export class MailService {
       /\/$/,
       "",
     );
-    const invitationUrl = `${appUrl}/accept-invite?token=${encodeURIComponent(input.invitationToken)}`;
+    const invitationPath =
+      input.clientSurface === "MOBILE"
+        ? "mobile/staff-activation"
+        : "staff-activation";
+    const invitationUrl = `${appUrl}/${invitationPath}?token=${encodeURIComponent(input.invitationToken)}`;
     const branch = input.branchName ? ` at ${input.branchName}` : "";
     const primary = input.primaryColor ?? "#172C2B";
     const accent = input.accentColor ?? "#FFCF5C";
@@ -86,7 +92,9 @@ export class MailService {
         "",
         `${input.organizationName} has created an AllShops account for you as ${input.roleName}${branch}.`,
         `Your employee ID is ${input.employeeNumber}.`,
-        `Create your private password here: ${invitationUrl}`,
+        `Temporary password: ${input.temporaryPassword}`,
+        `Activate your account here: ${invitationUrl}`,
+        "After activation, sign in with the temporary password. You will immediately be asked to create a private password.",
         `This secure link expires ${input.expiresAt.toISOString()}.`,
         "",
         "If you were not expecting this invitation, you can ignore this email.",
@@ -96,9 +104,10 @@ export class MailService {
           ${logo}<p style="color:${primary};font-weight:700">ALLSHOPS TEAM ACCESS</p>
           <h1 style="margin:8px 0">Welcome, ${escapeHtml(input.recipientName)}</h1>
           <p>${escapeHtml(input.organizationName)} has created an account for you as <strong>${escapeHtml(input.roleName)}</strong>${escapeHtml(branch)}.</p>
-          <p style="padding:12px 14px;border-radius:10px;background:white"><strong>Employee ID:</strong> ${escapeHtml(input.employeeNumber)}</p>
-          <p style="margin:28px 0"><a href="${escapeHtml(invitationUrl)}" style="padding:14px 20px;border-radius:10px;background:${primary};color:white;text-decoration:none;font-weight:700">Create my password</a></p>
-          <p style="font-size:13px;color:#60766f">This one-time link expires ${escapeHtml(input.expiresAt.toLocaleString("en-QA"))}. Never share it with anyone.</p>
+          <p style="padding:12px 14px;border-radius:10px;background:white"><strong>Employee ID:</strong> ${escapeHtml(input.employeeNumber)}<br><strong>Temporary password:</strong> <code style="font-size:16px">${escapeHtml(input.temporaryPassword)}</code></p>
+          <p style="margin:28px 0"><a href="${escapeHtml(invitationUrl)}" style="padding:14px 20px;border-radius:10px;background:${primary};color:white;text-decoration:none;font-weight:700">Activate my account</a></p>
+          <p>After activation, sign in with the temporary password. AllShops will require you to replace it before opening the workspace.</p>
+          <p style="font-size:13px;color:#60766f">This one-time link expires ${escapeHtml(input.expiresAt.toLocaleString("en-KE"))}. Never share the link or temporary password.</p>
         </div>
       </div>`,
     });
@@ -110,10 +119,12 @@ export class MailService {
     recipientName: string;
     token: string;
     expiresAt: Date;
+    clientSurface?: "WEB" | "MOBILE";
   }) {
     return this.sendAccountLink({
       ...input,
       path: "activate-account",
+      clientSurface: input.clientSurface,
       subject: "Activate your AllShops account",
       eyebrow: "VERIFY YOUR EMAIL",
       heading: `Welcome to AllShops, ${input.recipientName}`,
@@ -128,10 +139,12 @@ export class MailService {
     recipientName: string;
     token: string;
     expiresAt: Date;
+    clientSurface?: "WEB" | "MOBILE";
   }) {
     return this.sendAccountLink({
       ...input,
       path: "reset-password",
+      clientSurface: input.clientSurface,
       subject: "Reset your AllShops password",
       eyebrow: "PASSWORD RECOVERY",
       heading: "Choose a new password",
@@ -152,6 +165,7 @@ export class MailService {
     heading: string;
     message: string;
     action: string;
+    clientSurface?: "WEB" | "MOBILE";
   }) {
     const transporter = this.transporter();
     if (!transporter) return { status: "NOT_CONFIGURED" as const };
@@ -159,7 +173,9 @@ export class MailService {
       /\/$/,
       "",
     );
-    const url = `${appUrl}/${input.path}?token=${encodeURIComponent(input.token)}`;
+    const path =
+      input.clientSurface === "MOBILE" ? `mobile/${input.path}` : input.path;
+    const url = `${appUrl}/${path}?token=${encodeURIComponent(input.token)}`;
     const fromAddress = process.env.MAIL_FROM_ADDRESS?.trim();
     const fromName = process.env.MAIL_FROM_NAME?.trim();
     const from =
@@ -190,7 +206,7 @@ export class MailService {
           <h1>${escapeHtml(input.heading)}</h1>
           <p>${escapeHtml(input.message)}</p>
           <p style="margin:30px 0"><a href="${escapeHtml(url)}" style="padding:14px 22px;border-radius:11px;background:#087f5b;color:white;text-decoration:none;font-weight:800">${escapeHtml(input.action)}</a></p>
-          <p style="font-size:13px;color:#60766f">This secure link expires ${escapeHtml(input.expiresAt.toLocaleString("en-QA"))} and can only be used once.</p>
+          <p style="font-size:13px;color:#60766f">This secure link expires ${escapeHtml(input.expiresAt.toLocaleString("en-KE"))} and can only be used once.</p>
         </div>
       </div>`,
     });

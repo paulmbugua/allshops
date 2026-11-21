@@ -118,7 +118,7 @@ export class UsersService {
     }
 
     const invitationToken = this.tokens.randomInvitationToken();
-    const passwordHash = await this.auth.createInvitedPasswordHash();
+    const credentials = await this.auth.createTemporaryCredentials();
     const result = await prisma.$transaction(async (tx) => {
       await this.entitlements.assertWithinLimit(
         tx,
@@ -129,7 +129,8 @@ export class UsersService {
         data: {
           name: input.name,
           email: input.email,
-          passwordHash,
+          passwordHash: credentials.passwordHash,
+          mustChangePassword: true,
           status: "INVITED",
         },
       });
@@ -208,6 +209,8 @@ export class UsersService {
           employeeNumber: result.employeeNumber,
           branchName: branch?.name,
           invitationToken,
+          temporaryPassword: credentials.temporaryPassword,
+          clientSurface: input.clientSurface,
           expiresAt: result.expiresAt,
           logoUrl: organization.logoUrl,
           primaryColor: organization.brandPrimaryColor,
@@ -221,7 +224,9 @@ export class UsersService {
       ...result,
       invitationRequired: true,
       emailDelivery,
-      ...(process.env.NODE_ENV !== "production" ? { invitationToken } : {}),
+      ...(process.env.NODE_ENV !== "production"
+        ? { invitationToken, temporaryPassword: credentials.temporaryPassword }
+        : {}),
     };
   }
 
@@ -340,6 +345,7 @@ export class UsersService {
     tenant: TenantContext,
     actorId: string,
     membershipId: string,
+    clientSurface: "WEB" | "MOBILE" = "WEB",
   ) {
     const membership = await prisma.organizationUser.findFirst({
       where: {
@@ -368,6 +374,7 @@ export class UsersService {
         message: "A pending invitation was not found for this user.",
       });
     const invitationToken = this.tokens.randomInvitationToken();
+    const credentials = await this.auth.createTemporaryCredentials();
     const expiresAt = new Date(
       Date.now() + Number(process.env.INVITATION_TTL_HOURS ?? 48) * 3_600_000,
     );
@@ -380,6 +387,15 @@ export class UsersService {
           revokedAt: null,
         },
         data: { revokedAt: new Date() },
+      });
+      await tx.user.update({
+        where: { id: membership.user.id },
+        data: {
+          passwordHash: credentials.passwordHash,
+          mustChangePassword: true,
+          status: "INVITED",
+          emailVerifiedAt: null,
+        },
       });
       const invitation = await tx.invitation.create({
         data: {
@@ -414,6 +430,8 @@ export class UsersService {
           employeeNumber: membership.employeeNumber,
           branchName: membership.branch?.name,
           invitationToken,
+          temporaryPassword: credentials.temporaryPassword,
+          clientSurface,
           expiresAt,
           logoUrl: membership.organization.logoUrl,
           primaryColor: membership.organization.brandPrimaryColor,
@@ -426,7 +444,9 @@ export class UsersService {
     return {
       expiresAt,
       emailDelivery,
-      ...(process.env.NODE_ENV !== "production" ? { invitationToken } : {}),
+      ...(process.env.NODE_ENV !== "production"
+        ? { invitationToken, temporaryPassword: credentials.temporaryPassword }
+        : {}),
     };
   }
 
@@ -434,6 +454,7 @@ export class UsersService {
     tenant: TenantContext,
     requestedBy: string,
     membershipId: string,
+    clientSurface: "WEB" | "MOBILE" = "WEB",
   ) {
     const membership = await prisma.organizationUser.findFirst({
       where: {
@@ -450,6 +471,7 @@ export class UsersService {
       });
     const delivery = await this.auth.sendPasswordResetForUser(
       membership.userId,
+      clientSurface,
     );
     await prisma.auditLog.create({
       data: {

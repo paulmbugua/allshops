@@ -456,6 +456,7 @@ model User {
   email           String?    @unique
   phone           String?    @unique
   passwordHash    String
+  mustChangePassword Boolean @default(false)
   emailVerifiedAt DateTime?
   mfaEnabled      Boolean    @default(false)
   isPlatformAdmin Boolean    @default(false)

@@ -291,8 +291,10 @@ export default function UserSettingsPage() {
           <form className="form compact" onSubmit={invite}>
             <h2>Add user</h2>
             <p className="muted">
-              A branded, one-time activation link is emailed to new users. They
-              choose their own password; administrators never see or store it.
+              New users receive a branded activation link, their employee ID and
+              a temporary password. After activation, their first sign-in
+              requires them to choose a new private password; administrators
+              never see or store that private password.
             </p>
             <div className="form-grid">
               <label>

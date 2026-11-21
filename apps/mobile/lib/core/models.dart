@@ -39,15 +39,18 @@ class CurrentUser {
     required this.name,
     required this.email,
     required this.memberships,
+    required this.mustChangePassword,
   });
   final String id;
   final String name;
   final String email;
   final List<Membership> memberships;
+  final bool mustChangePassword;
   factory CurrentUser.fromJson(Map<String, dynamic> json) => CurrentUser(
     id: json['id'] as String,
     name: json['name'] as String,
     email: json['email'] as String,
+    mustChangePassword: json['mustChangePassword'] as bool? ?? false,
     memberships: (json['memberships'] as List<dynamic>? ?? [])
         .map((row) => Membership.fromJson(row as Map<String, dynamic>))
         .toList(),

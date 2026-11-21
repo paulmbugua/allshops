@@ -7,6 +7,7 @@ All routes are under `/api/v1`. This inventory is intentionally grouped by trust
 - `GET /health`, `/health/live`, `/health/ready`, and `/version`
 - `GET /plans`
 - `POST /auth/register`, `/auth/login`, `/auth/refresh`, and `/auth/accept-invite`
+- Staff activation: `POST /auth/activate-invitation`; first-login password replacement: `POST /auth/change-temporary-password`
 
 Authentication routes have dedicated IP/principal rate limits. Health responses expose state and build identity only, not credentials or database details.
 

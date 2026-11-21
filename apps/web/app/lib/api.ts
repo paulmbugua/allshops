@@ -8,12 +8,25 @@ export const API_URL =
  * Repoint only those legacy local origins to the current configured API while
  * leaving every normal HTTPS asset untouched.
  */
-export function resolveApiAssetUrl(value: string | null | undefined): string | null {
+export function resolveApiAssetUrl(
+  value: string | null | undefined,
+): string | null {
   if (!value) return null;
   try {
-    const parsed = new URL(value, typeof window === "undefined" ? "http://localhost" : window.location.origin);
-    if (parsed.hostname !== "localhost" && parsed.hostname !== "127.0.0.1") return value;
-    const configured = new URL(API_URL, typeof window === "undefined" ? "http://localhost" : window.location.origin);
+    const parsed = new URL(
+      value,
+      typeof window === "undefined"
+        ? "http://localhost"
+        : window.location.origin,
+    );
+    if (parsed.hostname !== "localhost" && parsed.hostname !== "127.0.0.1")
+      return value;
+    const configured = new URL(
+      API_URL,
+      typeof window === "undefined"
+        ? "http://localhost"
+        : window.location.origin,
+    );
     return `${configured.origin}${parsed.pathname}${parsed.search}`;
   } catch {
     return value;
@@ -39,6 +52,7 @@ export interface CurrentUser {
   email: string;
   emailVerifiedAt: string | null;
   status: string;
+  mustChangePassword: boolean;
   memberships: Membership[];
 }
 export interface AuthResult {
@@ -113,11 +127,19 @@ export async function api<T>(
   return payload as T;
 }
 
-export async function apiText(path: string, init: RequestInit = {}): Promise<string> {
+export async function apiText(
+  path: string,
+  init: RequestInit = {},
+): Promise<string> {
   const headers = new Headers(init.headers);
   const token = sessionStorage.getItem("allshops_access");
   if (token) headers.set("Authorization", `Bearer ${token}`);
-  const response = await fetch(`${API_URL}${path}`, { ...init, headers, credentials: "include" });
-  if (!response.ok) throw new ApiError("Request failed.", response.status, "ERROR");
+  const response = await fetch(`${API_URL}${path}`, {
+    ...init,
+    headers,
+    credentials: "include",
+  });
+  if (!response.ok)
+    throw new ApiError("Request failed.", response.status, "ERROR");
   return response.text();
 }

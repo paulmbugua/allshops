@@ -9,6 +9,7 @@ import { Reflector } from "@nestjs/core";
 import { prisma } from "@allshops/database";
 
 import { IS_PUBLIC } from "./public.decorator.js";
+import { ALLOW_TEMPORARY_PASSWORD } from "./temporary-password.decorator.js";
 import type { RequestContext } from "./security.types.js";
 import { TokenService } from "./token.service.js";
 
@@ -49,6 +50,7 @@ export class AuthGuard implements CanActivate {
         email: true,
         emailVerifiedAt: true,
         isPlatformAdmin: true,
+        mustChangePassword: true,
       },
     });
     if (!user?.email) {
@@ -69,6 +71,17 @@ export class AuthGuard implements CanActivate {
       email: user.email,
       isPlatformAdmin: user.isPlatformAdmin,
     };
+    const temporaryPasswordAllowed =
+      this.reflector.getAllAndOverride<boolean>(ALLOW_TEMPORARY_PASSWORD, [
+        context.getHandler(),
+        context.getClass(),
+      ]) ?? false;
+    if (user.mustChangePassword && !temporaryPasswordAllowed) {
+      throw new ForbiddenException({
+        code: "PASSWORD_CHANGE_REQUIRED",
+        message: "Replace your temporary password before using the workspace.",
+      });
+    }
     return true;
   }
 }

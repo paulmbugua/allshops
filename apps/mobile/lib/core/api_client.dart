@@ -265,6 +265,7 @@ class ApiClient {
         'name': name.trim(),
         'email': email.trim().toLowerCase(),
         'password': password,
+        'clientSurface': 'MOBILE',
       },
     );
     AppLogger.info('auth', 'registration_succeeded');
@@ -275,7 +276,7 @@ class ApiClient {
     AppLogger.info('auth', 'activation_resend_started');
     await _dio.post<Map<String, dynamic>>(
       '/auth/resend-activation',
-      data: {'email': email.trim().toLowerCase()},
+      data: {'email': email.trim().toLowerCase(), 'clientSurface': 'MOBILE'},
     );
     AppLogger.info('auth', 'activation_resend_accepted');
   }

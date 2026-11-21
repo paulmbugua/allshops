@@ -30,6 +30,10 @@ export default function LoginPage() {
         }),
       });
       setAccessToken(result.accessToken);
+      if (result.user.mustChangePassword) {
+        window.location.assign("/change-password");
+        return;
+      }
       const requested = new URLSearchParams(window.location.search).get(
         "organization",
       );

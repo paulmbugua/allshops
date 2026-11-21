@@ -1,6 +1,10 @@
 import { Body, Controller, Get, Param, Patch, Post, Req } from "@nestjs/common";
 import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
-import { inviteUserSchema, updateMembershipSchema } from "@allshops/contracts";
+import {
+  clientSurfaceSchema,
+  inviteUserSchema,
+  updateMembershipSchema,
+} from "@allshops/contracts";
 import { RequirePermission } from "./permissions.decorator.js";
 import type { RequestContext } from "./security.types.js";
 import { UsersService } from "./users.service.js";
@@ -29,24 +33,28 @@ export class UsersController {
   @Post(":membershipId/resend-invitation")
   resendInvitation(
     @Param("membershipId") membershipId: string,
+    @Body() body: unknown,
     @Req() request: RequestContext,
   ) {
     return this.users.resendInvitation(
       request.tenant!,
       request.user!.id,
       assertUuid(membershipId, "membershipId"),
+      parseInput(clientSurfaceSchema, body ?? {}).clientSurface,
     );
   }
   @RequirePermission("user.update")
   @Post(":membershipId/send-password-reset")
   sendPasswordReset(
     @Param("membershipId") membershipId: string,
+    @Body() body: unknown,
     @Req() request: RequestContext,
   ) {
     return this.users.sendPasswordReset(
       request.tenant!,
       request.user!.id,
       assertUuid(membershipId, "membershipId"),
+      parseInput(clientSurfaceSchema, body ?? {}).clientSurface,
     );
   }
   @RequirePermission("user.update", "role.assign")

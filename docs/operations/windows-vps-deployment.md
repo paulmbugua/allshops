@@ -47,7 +47,9 @@ server. Create the role/database with pgAdmin or `psql.exe`:
 
 Staff activation emails require the `SMTP_*` values in the same file. Use the
 SMTP credentials supplied by the merchant's email provider; `SMTP_FROM` should
-be a verified sender on that domain. AllShops emails a one-time activation link
+be a verified sender on that domain. AllShops emails assigned staff a one-time
+activation link, employee details and a generated temporary password. The
+first successful sign-in is restricted to replacing that temporary password
 and never generates or emails reusable staff passwords.
 
 ```sql

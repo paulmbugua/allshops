@@ -6,9 +6,11 @@ import '../../core/models.dart';
 import '../home/home_screen.dart';
 import 'forgot_password_screen.dart';
 import 'register_screen.dart';
+import 'account_link_screens.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
-  const LoginScreen({super.key});
+  const LoginScreen({this.initialEmail, super.key});
+  final String? initialEmail;
   @override
   ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
@@ -21,6 +23,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   bool activationRequired = false;
   bool activationSent = false;
   String? error;
+  @override
+  void initState() {
+    super.initState();
+    email.text = widget.initialEmail ?? '';
+  }
+
+  @override
+  void dispose() {
+    email.dispose();
+    password.dispose();
+    super.dispose();
+  }
+
   Future<void> submit() async {
     setState(() {
       busy = true;
@@ -32,6 +47,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       final body = await ref.read(apiProvider).login(email.text, password.text);
       final user = CurrentUser.fromJson(body['user'] as Map<String, dynamic>);
       if (!mounted) return;
+      if (user.mustChangePassword) {
+        await Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (_) => TemporaryPasswordScreen(user: user),
+          ),
+        );
+        return;
+      }
       if (user.memberships.isEmpty) {
         throw Exception('No active business membership is available.');
       }
@@ -234,6 +257,24 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       context,
                       'New business? Create account',
                       'Biashara mpya? Fungua akaunti',
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                TextButton.icon(
+                  onPressed: busy
+                      ? null
+                      : () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const StaffActivationEntryScreen(),
+                          ),
+                        ),
+                  icon: const Icon(Icons.verified_user_outlined),
+                  label: Text(
+                    tr(
+                      context,
+                      'Assigned staff? Activate account',
+                      'Mfanyakazi aliyepewa jukumu? Washa akaunti',
                     ),
                   ),
                 ),

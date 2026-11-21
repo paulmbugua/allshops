@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.allshops.pos",
+      "sha256_cert_fingerprints": [
+        "46:A9:EB:74:F0:74:82:AD:9C:7D:4C:E5:9B:2C:7E:30:D4:BA:69:37:37:C5:E9:B8:E2:E7:31:35:5B:10:CF:A9"
+      ]
+    }
+  }
+]
