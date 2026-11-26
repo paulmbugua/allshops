@@ -671,35 +671,57 @@ try {
   assert.equal(variantBarcodeLookup.status, 200);
   assert.equal(variantBarcodeLookup.body.productId, stockId);
   assert.equal(variantBarcodeLookup.body.variantId, variant.body.id);
+  const enrolled = await prisma.customer.create({
+    data: {
+      organizationId: orgId,
+      createdBy: ownerUser.id,
+      name: "Test Member",
+      phone: "+254 (712) 345-678",
+    },
+  });
   const loyaltySale = await request(server)
     .post(endpoint)
     .set(bearer(cashier))
     .set("Idempotency-Key", key())
     .send({
       branchId,
+      customerId: enrolled.id,
       items: [{ productId: serviceId, quantity: "8" }],
       payments: [{ method: "CASH", amountMinor: 20_000 }],
     });
   assert.equal(loyaltySale.status, 201);
   const loyaltyBase = `/api/v1/organizations/${orgId}/sales/${loyaltySale.body.id}`;
-  const award = (phone: string, name: string) =>
+  const award = (phone: string) =>
     request(server)
       .post(`${loyaltyBase}/loyalty-award`)
       .set(bearer(cashier))
-      .send({ phone, name });
-  const firstAward = await award("+254 712 345 678", "Test Member");
+      .send({ phone });
+  assert.equal((await award("0712345679")).status, 404);
+  const duplicate = await prisma.customer.create({
+    data: {
+      organizationId: orgId,
+      createdBy: ownerUser.id,
+      name: "Duplicate",
+      phone: "0712345678",
+    },
+  });
+  assert.equal((await award("0712345678")).status, 409);
+  await prisma.customer.update({
+    where: { id: duplicate.id },
+    data: { isActive: false },
+  });
+  const firstAward = await award("+254 712 345 678");
   assert.equal(firstAward.status, 201);
   assert.deepEqual(firstAward.body, { memberName: "Test Member", points: 2 });
-  assert.deepEqual(
-    (await award("0712345678", "Test Member")).body,
-    firstAward.body,
-  );
-  assert.equal((await award("0712345679", "Other Member")).status, 409);
+  assert.deepEqual((await award("0712345678")).body, firstAward.body);
+  assert.equal((await award("0712345679")).status, 409);
   const loyaltyReceipt = await request(server)
     .get(`${loyaltyBase}/receipt`)
     .set(bearer(cashier));
   assert.equal(loyaltyReceipt.status, 200);
   assert.deepEqual(loyaltyReceipt.body.loyaltyAward, firstAward.body);
+  assert.equal(loyaltyReceipt.body.customerPhone, null);
+  assert.ok(!loyaltyReceipt.text.includes(enrolled.phone!));
   console.log("Loyalty award and receipt regression checks passed.");
   const mpesaEnv = {
     MPESA_ORGANIZATION_ID: orgId,

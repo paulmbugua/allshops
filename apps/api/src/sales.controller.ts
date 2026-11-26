@@ -35,7 +35,7 @@ const kenyaMobile = z
   .string()
   .trim()
   .max(24)
-  .transform((value) => value.replace(/[\s-]/g, "").replace(/^\+?254/, "0"))
+  .transform((value) => value.replace(/[\s()-]/g, "").replace(/^\+?254/, "0"))
   .pipe(
     z.string().regex(/^0[17]\d{8}$/, "Enter a valid Kenyan mobile number."),
   );
@@ -190,29 +190,12 @@ export class SalesController {
     @Body() body: unknown,
     @Req() request: RequestContext,
   ) {
-    const member = parseInput(
-      z.object({
-        phone: z
-          .string()
-          .trim()
-          .max(24)
-          .transform((value) =>
-            value.replace(/[\s-]/g, "").replace(/^\+?254/, "0"),
-          )
-          .pipe(
-            z
-              .string()
-              .regex(/^0[17]\d{8}$/, "Enter a valid Kenyan mobile number."),
-          ),
-        name: z.string().trim().min(2).max(120),
-      }),
-      body,
-    );
+    const member = parseInput(z.object({ phone: kenyaMobile }), body);
     return this.sales.awardLoyalty(
       request.tenant!,
       request.user!.id,
       assertUuid(saleId, "saleId"),
-      member,
+      member.phone,
     );
   }
 

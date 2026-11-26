@@ -1266,7 +1266,7 @@ export class SalesService {
     tenant: TenantContext,
     userId: string,
     saleId: string,
-    member: { phone: string; name: string },
+    memberPhone: string,
   ) {
     return prisma.$transaction(async (tx) => {
       const sale = await tx.sale.findFirst({
@@ -1283,6 +1283,17 @@ export class SalesService {
         },
       });
       if (!sale) throw new NotFoundException("Sale not found.");
+      const existing = await tx.saleLoyaltyAward.findUnique({
+        where: { saleId },
+      });
+      if (existing) {
+        if (existing.memberPhone !== memberPhone) {
+          throw new ConflictException(
+            "Loyalty points have already been awarded for this sale.",
+          );
+        }
+        return { memberName: existing.memberName, points: existing.points };
+      }
       const points = Math.floor(sale.totalMinor / 10_000);
       if (
         sale.status !== "COMPLETED" ||
@@ -1294,11 +1305,26 @@ export class SalesService {
           "Loyalty points apply to completed, paid sales of Ksh 100 or more.",
         );
       }
+      const members = await tx.$queryRaw<Array<{ name: string }>>`
+        SELECT "name" FROM "customers"
+        WHERE "organizationId" = ${tenant.organizationId}::uuid AND "isActive"
+          AND regexp_replace(regexp_replace("phone", '[[:space:]()-]', '', 'g'), '^([+])?254', '0') = ${memberPhone}
+        LIMIT 2
+      `;
+      const member = members[0];
+      if (!member)
+        throw new NotFoundException(
+          "No active customer has this phone number. Check the number or enroll the customer first.",
+        );
+      if (members.length > 1)
+        throw new ConflictException(
+          "More than one customer uses this phone number. Update the duplicate customer records before awarding points.",
+        );
       const created = await tx.saleLoyaltyAward.createMany({
         data: {
           saleId,
           organizationId: tenant.organizationId,
-          memberPhone: member.phone,
+          memberPhone,
           memberName: member.name,
           points,
         },
@@ -1307,10 +1333,7 @@ export class SalesService {
       const award = await tx.saleLoyaltyAward.findUniqueOrThrow({
         where: { saleId },
       });
-      if (
-        award.memberPhone !== member.phone ||
-        award.memberName !== member.name
-      ) {
+      if (award.memberPhone !== memberPhone) {
         throw new ConflictException(
           "Loyalty points have already been awarded for this sale.",
         );
@@ -1353,7 +1376,7 @@ export class SalesService {
         afterJson: { invoiceNumber: detail.invoiceNumber },
       },
     });
-    return detail;
+    return { ...detail, customerPhone: null };
   }
 
   private async finalize(

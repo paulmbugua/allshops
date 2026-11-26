@@ -70,13 +70,6 @@ export default function ReceiptPage() {
             </>
           )}
         </p>
-        {sale.loyaltyAward && (
-          <p>
-            <b>Loyalty points earned: {sale.loyaltyAward.points}</b>
-            <br />
-            Loyalty member: {sale.loyaltyAward.memberName}
-          </p>
-        )}
         <table>
           <thead>
             <tr>
@@ -167,6 +160,13 @@ export default function ReceiptPage() {
           </section>
         ) : null}
         <footer>
+          {sale.loyaltyAward && (
+            <p>
+              <b>Loyalty points earned: {sale.loyaltyAward.points}</b>
+              <br />
+              Loyalty member: {sale.loyaltyAward.memberName}
+            </p>
+          )}
           <p>Thank you</p>
           <p lang="sw">Asante sana</p>
         </footer>

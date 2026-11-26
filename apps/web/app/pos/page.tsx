@@ -865,10 +865,7 @@ export default function PosPage() {
         `/organizations/${organizationId}/sales/${completedSale.id}/loyalty-award`,
         {
           method: "POST",
-          body: JSON.stringify({
-            phone: form.get("phone"),
-            name: form.get("name"),
-          }),
+          body: JSON.stringify({ phone: form.get("phone") }),
         },
       );
       const updated = { ...completedSale, loyaltyAward: award };
@@ -1913,16 +1910,9 @@ export default function PosPage() {
                     autoFocus
                   />
                 </label>
-                <label>
-                  Member name
-                  <input
-                    name="name"
-                    required
-                    minLength={2}
-                    maxLength={120}
-                    defaultValue={completedSale.customerName ?? ""}
-                  />
-                </label>
+                <small className="muted">
+                  Use the phone number on the customer’s AllShops profile.
+                </small>
                 {loyaltyError && <p role="alert">{loyaltyError}</p>}
                 <div className="actions">
                   <button type="submit" disabled={loyaltyBusy}>
