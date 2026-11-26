@@ -43,11 +43,13 @@ interface Customer {
   creditLimitMinor?: number | null;
 }
 type TenderMode = "CASH" | "LOCAL_CARD";
+type MpesaPayer = { maskedPhone: string; enrolledName: string | null };
 type MpesaIntent = {
   id: string;
   status: string;
   amountMinor: number;
   sale?: Sale;
+  payer?: MpesaPayer;
 };
 type ProductTileMode = "QUICK" | "IMAGE";
 
@@ -86,6 +88,9 @@ export default function PosPage() {
   const [mpesaSelected, setMpesaSelected] = useState(false);
   const [mpesaPhone, setMpesaPhone] = useState("");
   const [mpesaIntent, setMpesaIntent] = useState<MpesaIntent>();
+  const [mpesaPayer, setMpesaPayer] = useState<MpesaPayer>();
+  const [mpesaAutoChecks, setMpesaAutoChecks] = useState(0);
+  const mpesaRequestInFlight = useRef(false);
   const [mobileCartOpen, setMobileCartOpen] = useState(false);
   const [loyaltyOpen, setLoyaltyOpen] = useState(false);
   const [loyaltyBusy, setLoyaltyBusy] = useState(false);
@@ -751,7 +756,7 @@ export default function PosPage() {
       setBusy(false);
     }
   }
-  function finishSale(sale: Sale, print: boolean) {
+  function finishSale(sale: Sale, print: boolean, payer?: MpesaPayer) {
     setCompletedSale(sale);
     setPreviousSale(sale);
     setCart([]);
@@ -766,12 +771,24 @@ export default function PosPage() {
     setMpesaIntent(undefined);
     setMpesaSelected(false);
     setMpesaPhone("");
+    setMpesaPayer(payer);
+    setMpesaAutoChecks(0);
     setLoyaltyOpen(false);
     setLoyaltyError("");
     setPendingReceipt(print);
   }
-  async function handleMpesa() {
-    if (!organizationId || busy || appointmentId) return;
+  async function handleMpesa(automatic = false) {
+    if (
+      !organizationId ||
+      busy ||
+      appointmentId ||
+      mpesaRequestInFlight.current ||
+      (!mpesaIntent && !mpesaEnabled)
+    )
+      return;
+    mpesaRequestInFlight.current = true;
+    if (automatic) setMpesaAutoChecks((count) => count + 1);
+    if (!mpesaIntent) setMpesaAutoChecks(0);
     setBusy(true);
     setMessage("");
     const endpoint = `/organizations/${organizationId}/pos/mpesa`;
@@ -790,7 +807,7 @@ export default function PosPage() {
           });
       if (intent.sale) {
         rememberSoldProducts(cart);
-        finishSale(intent.sale, autoPrint);
+        finishSale(intent.sale, autoPrint, intent.payer);
       } else if (intent.status === "FAILED") {
         setMpesaIntent(undefined);
         setMessage(
@@ -810,9 +827,27 @@ export default function PosPage() {
           : "Could not check the M-Pesa request.",
       );
     } finally {
+      mpesaRequestInFlight.current = false;
       setBusy(false);
     }
   }
+  useEffect(() => {
+    if (!paymentPanelOpen || busy || !mpesaIntent || mpesaAutoChecks >= 12)
+      return;
+    if (mpesaIntent.status !== "PENDING" && mpesaIntent.status !== "SENDING")
+      return;
+    const timer = window.setTimeout(() => void handleMpesa(true), 5_000);
+    return () => window.clearTimeout(timer);
+  }, [
+    paymentPanelOpen,
+    busy,
+    mpesaIntent,
+    mpesaAutoChecks,
+    organizationId,
+    autoPrint,
+    cart,
+    appointmentId,
+  ]);
   function toggleAutoPrint() {
     const next = !autoPrint;
     setAutoPrint(next);
@@ -1622,12 +1657,14 @@ export default function PosPage() {
                         <small>{description}</small>
                       </button>
                     ))}
-                    {mpesaEnabled && !appointmentId && (
+                    {!appointmentId && (
                       <button
                         type="button"
                         disabled={busy}
                         className={
-                          mpesaSelected ? "product-tile active" : "product-tile"
+                          mpesaSelected
+                            ? "product-tile pos-mpesa-option active"
+                            : "product-tile pos-mpesa-option"
                         }
                         onClick={() => {
                           setMpesaSelected(true);
@@ -1636,7 +1673,11 @@ export default function PosPage() {
                         }}
                       >
                         <strong>M-Pesa</strong>
-                        <small>Send a prompt to the customer's phone.</small>
+                        <small>
+                          {mpesaEnabled
+                            ? "Send a prompt to the customer's phone."
+                            : "PayBill setup required"}
+                        </small>
                       </button>
                     )}
                   </div>
@@ -1746,12 +1787,21 @@ export default function PosPage() {
                       </label>
                     </div>
                   )}
+                {mpesaSelected && !mpesaEnabled && !mpesaIntent && (
+                  <p className="notice" role="status">
+                    M-Pesa needs the business owner’s Safaricom PayBill and
+                    Daraja connection. Ask the owner to finish setup.
+                  </p>
+                )}
                 {mpesaSelected &&
+                  (mpesaEnabled || mpesaIntent) &&
                   (mpesaIntent ? (
                     <p className="notice" role="status">
                       {mpesaIntent.status === "REVIEW"
                         ? "This request needs review. Check the PayBill statement before taking another payment."
-                        : "Ask the customer to approve the prompt, then check payment status here."}
+                        : mpesaAutoChecks >= 12
+                          ? "Still waiting for confirmation. Check payment status before asking the customer to pay again."
+                          : "Ask the customer to approve the prompt on their phone. AllShops is checking for confirmation."}
                     </p>
                   ) : (
                     <label>
@@ -1775,7 +1825,9 @@ export default function PosPage() {
                   type="button"
                   disabled={
                     mpesaSelected
-                      ? busy || (!mpesaIntent && (!mpesaPhone.trim() || !total))
+                      ? busy ||
+                        (!mpesaIntent &&
+                          (!mpesaEnabled || !mpesaPhone.trim() || !total))
                       : !canCompleteSale
                   }
                   onClick={() =>
@@ -1787,7 +1839,9 @@ export default function PosPage() {
                     : mpesaSelected
                       ? mpesaIntent
                         ? "Check payment status"
-                        : "Send M-Pesa prompt"
+                        : mpesaEnabled
+                          ? "Send M-Pesa prompt"
+                          : "PayBill setup required"
                       : "Complete payment"}
                 </button>
               </dialog>
@@ -1859,9 +1913,19 @@ export default function PosPage() {
           )}
           <div className="pos-success-card">
             <span className="sale-check">✓</span>
-            <p className="eyebrow">Payment approved</p>
+            <p className="eyebrow">
+              {mpesaPayer ? "M-Pesa payment received" : "Payment approved"}
+            </p>
             <h2 id="sale-complete-title">Sale complete</h2>
             <p className="muted">{completedSale.invoiceNumber}</p>
+            {mpesaPayer && (
+              <div className="notice pos-mpesa-payer">
+                <strong>
+                  {mpesaPayer.enrolledName ?? "Customer not found in AllShops"}
+                </strong>
+                <span>M-Pesa phone {mpesaPayer.maskedPhone}</span>
+              </div>
+            )}
             <div className="sale-complete-numbers">
               <span>
                 Total <b>{formatMinorCurrency(completedSale.totalMinor)}</b>
@@ -1878,10 +1942,12 @@ export default function PosPage() {
                   </b>
                 </span>
               )}
-              <strong>
-                Change due{" "}
-                <b>{formatMinorCurrency(completedSale.changeMinor)}</b>
-              </strong>
+              {!mpesaPayer && (
+                <strong>
+                  Change due{" "}
+                  <b>{formatMinorCurrency(completedSale.changeMinor)}</b>
+                </strong>
+              )}
             </div>
             {completedSale.loyaltyAward ? (
               <p className="notice" role="status">
@@ -1951,7 +2017,8 @@ export default function PosPage() {
                 autoFocus
                 disabled={loyaltyOpen || loyaltyBusy}
               >
-                New sale <span className="button-shortcut">↵ Enter</span>
+                {mpesaPayer ? "Finish & new sale" : "New sale"}{" "}
+                <span className="button-shortcut">↵ Enter</span>
               </button>
             </div>
           </div>

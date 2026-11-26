@@ -33,6 +33,7 @@ type MpesaSnapshot = {
   prices: Array<{ key: string; unitPriceMinor: number }>;
   host: string;
   shortcode: string;
+  payer?: { maskedPhone: string; enrolledName: string | null };
 };
 const activeMpesaStatuses = ["SENDING", "PENDING", "REVIEW"];
 const mpesaSummary = { id: true, amountMinor: true, status: true } as const;
@@ -1098,6 +1099,15 @@ export class SalesService {
         "M-Pesa Express PayBill requires a positive whole-shilling KES total.",
       );
     const token = await darajaToken(config);
+    const members = await this.loyaltyMembers(
+      prisma,
+      tenant.organizationId,
+      phone,
+    );
+    const payer = {
+      maskedPhone: `${phone.slice(0, 2)}•••${phone.slice(-4)}`,
+      enrolledName: members.length === 1 ? members[0]!.name : null,
+    };
     const id = randomUUID();
     const started = await prisma.mpesaCheckout.createMany({
       data: {
@@ -1112,6 +1122,7 @@ export class SalesService {
           prices: quote.priceSnapshots,
           host: config.host,
           shortcode: config.shortcode,
+          payer,
         }),
       },
       skipDuplicates: true,
@@ -1175,13 +1186,18 @@ export class SalesService {
       },
     });
     if (!intent) throw new NotFoundException("M-Pesa request not found.");
+    const snapshot = intent.checkout as unknown as MpesaSnapshot;
     const summary = {
       id,
       status: intent.status,
       amountMinor: intent.amountMinor,
     };
     if (intent.status === "COMPLETED" && intent.saleId)
-      return { ...summary, sale: await this.detail(tenant, intent.saleId) };
+      return {
+        ...summary,
+        payer: snapshot.payer,
+        sale: await this.detail(tenant, intent.saleId),
+      };
     if (intent.status === "FAILED" || !intent.providerRequestId) {
       return intent.status === "SENDING" &&
         Date.now() - intent.updatedAt.getTime() > 60_000
@@ -1189,7 +1205,6 @@ export class SalesService {
         : summary;
     }
     const config = darajaConfig(tenant.organizationId);
-    const snapshot = intent.checkout as unknown as MpesaSnapshot;
     if (
       !config ||
       config.host !== snapshot.host ||
@@ -1252,7 +1267,7 @@ export class SalesService {
         data: { saleId: sale.id, status: "COMPLETED" },
         select: mpesaSummary,
       });
-      return { ...completed, sale };
+      return { ...completed, payer: snapshot.payer, sale };
     } catch {
       await prisma.mpesaCheckout.updateMany({
         where: { id, status: "PENDING" },
@@ -1260,6 +1275,19 @@ export class SalesService {
       });
       return { ...summary, status: "REVIEW" };
     }
+  }
+
+  private loyaltyMembers(
+    tx: Transaction,
+    organizationId: string,
+    memberPhone: string,
+  ) {
+    return tx.$queryRaw<Array<{ name: string }>>`
+      SELECT "name" FROM "customers"
+      WHERE "organizationId" = ${organizationId}::uuid AND "isActive"
+        AND regexp_replace(regexp_replace("phone", '[[:space:]()-]', '', 'g'), '^([+])?254', '0') = ${memberPhone}
+      LIMIT 2
+    `;
   }
 
   async awardLoyalty(
@@ -1305,12 +1333,11 @@ export class SalesService {
           "Loyalty points apply to completed, paid sales of Ksh 100 or more.",
         );
       }
-      const members = await tx.$queryRaw<Array<{ name: string }>>`
-        SELECT "name" FROM "customers"
-        WHERE "organizationId" = ${tenant.organizationId}::uuid AND "isActive"
-          AND regexp_replace(regexp_replace("phone", '[[:space:]()-]', '', 'g'), '^([+])?254', '0') = ${memberPhone}
-        LIMIT 2
-      `;
+      const members = await this.loyaltyMembers(
+        tx,
+        tenant.organizationId,
+        memberPhone,
+      );
       const member = members[0];
       if (!member)
         throw new NotFoundException(

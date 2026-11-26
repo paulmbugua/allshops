@@ -791,6 +791,10 @@ try {
     const paid = await check();
     assert.equal(paid.body.status, "COMPLETED", JSON.stringify(paid.body));
     assert.equal(paid.body.sale.totalMinor, 20_000);
+    assert.deepEqual(paid.body.payer, {
+      maskedPhone: "07•••5678",
+      enrolledName: "Test Member",
+    });
     assert.equal((await check()).body.sale.id, paid.body.sale.id);
     console.log(
       "M-Pesa prompt, confirmation and repeat-request checks passed.",
