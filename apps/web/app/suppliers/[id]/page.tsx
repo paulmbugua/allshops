@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
 import { AppShell } from "../../components/app-shell";
 import { Can } from "../../components/permission-context";
@@ -10,9 +10,11 @@ import type { Supplier } from "../../lib/phase4";
 
 export default function SupplierDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const router = useRouter();
   const organizationId = selectedOrganization();
   const [supplier, setSupplier] = useState<Supplier>();
   const [message, setMessage] = useState("");
+  const [saving, setSaving] = useState(false);
   const load = () =>
     organizationId &&
     api<Supplier>(`/organizations/${organizationId}/suppliers/${id}`)
@@ -23,8 +25,14 @@ export default function SupplierDetailPage() {
   }, [organizationId, id]);
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!organizationId) return;
+    if (!organizationId || saving) return;
+    const submitter = (event.nativeEvent as SubmitEvent).submitter;
+    const addAnother =
+      submitter instanceof HTMLButtonElement &&
+      submitter.value === "add-another";
     const form = new FormData(event.currentTarget);
+    setSaving(true);
+    setMessage("");
     try {
       await api(`/organizations/${organizationId}/suppliers/${id}`, {
         method: "PATCH",
@@ -35,10 +43,16 @@ export default function SupplierDetailPage() {
           isActive: form.get("isActive") === "on",
         }),
       });
+      if (addAnother) {
+        router.push("/suppliers/new");
+        return;
+      }
       setMessage("Supplier updated.");
       void load();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Update failed.");
+    } finally {
+      setSaving(false);
     }
   }
   if (!supplier)
@@ -93,7 +107,21 @@ export default function SupplierDetailPage() {
                 Active
               </label>
             </div>
-            <button>Save profile</button>
+            <div className="actions">
+              <button type="submit" disabled={saving}>
+                {saving ? "Saving…" : "Save profile"}
+              </button>
+              <Can permissions={["supplier.create"]}>
+                <button
+                  type="submit"
+                  className="secondary"
+                  value="add-another"
+                  disabled={saving}
+                >
+                  Save &amp; Add
+                </button>
+              </Can>
+            </div>
           </form>
         </Can>
         <h2>Purchases</h2>
