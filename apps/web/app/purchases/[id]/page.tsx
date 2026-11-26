@@ -56,7 +56,8 @@ export default function PurchaseDetailPage() {
   async function pay(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!organizationId || !purchase) return;
-    const form = new FormData(event.currentTarget);
+    const paymentForm = event.currentTarget;
+    const form = new FormData(paymentForm);
     try {
       await api(
         `/organizations/${organizationId}/suppliers/${purchase.supplier.id}/payments`,
@@ -73,7 +74,7 @@ export default function PurchaseDetailPage() {
         },
       );
       setMessage("Supplier payment recorded.");
-      event.currentTarget.reset();
+      paymentForm.reset();
       void load();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Payment failed.");
