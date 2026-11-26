@@ -4603,9 +4603,9 @@ html[dir="rtl"] .pricing-includes li::before {
 .pos-keypad-workbench {
   display: grid;
   flex: 0 0 auto;
-  grid-template-columns: minmax(6.5rem, 0.8fr) minmax(9rem, 1.2fr) minmax(
-      4.5rem,
-      0.55fr
+  grid-template-columns: minmax(0, 1.45fr) minmax(0, 1.35fr) minmax(
+      3.25rem,
+      0.58fr
     );
   gap: 0.4rem;
   height: 10rem;
@@ -4624,9 +4624,10 @@ html[dir="rtl"] .pricing-includes li::before {
   display: grid;
   min-width: 0;
   min-height: 0;
-  grid-template-columns: auto 1fr;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: auto 1fr;
   align-items: center;
-  column-gap: 0.35rem;
+  gap: 0.2rem;
   border: 1px solid #46637c;
   border-radius: 0.4rem;
   padding: 0.35rem;
@@ -4634,20 +4635,24 @@ html[dir="rtl"] .pricing-includes li::before {
   color: #fff;
 }
 .pos-ticket-actions button > span {
-  grid-row: 1 / 3;
+  grid-area: 1 / 1;
+  justify-self: start;
   color: #ffdc72;
   font-size: 1rem;
+  line-height: 1;
 }
 .pos-ticket-actions strong {
-  overflow: hidden;
-  font-size: 0.64rem;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  grid-column: 1 / -1;
+  font-size: 0.82rem;
+  line-height: 1.15;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
-.pos-ticket-actions kbd,
-.pos-keypad-modes kbd {
-  color: #bdd2e5;
-  font-size: 0.5rem;
+.pos-ticket-actions kbd {
+  grid-area: 1 / 2;
+  justify-self: end;
+  color: #e0efff;
+  font-size: 0.68rem;
 }
 .pos-number-pad {
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -4794,12 +4799,6 @@ html[dir="rtl"] .pricing-includes li::before {
   }
   .pos-previous-summary {
     grid-template-columns: repeat(2, minmax(7rem, 1fr));
-  }
-  .pos-keypad-workbench {
-    grid-template-columns: minmax(5.5rem, 0.7fr) minmax(8rem, 1.3fr) minmax(
-        4rem,
-        0.55fr
-      );
   }
 }
 
@@ -5034,17 +5033,13 @@ body {
   }
   .pos-keypad-workbench {
     height: 13.75rem;
-    grid-template-columns: minmax(8.5rem, 0.9fr) minmax(13rem, 1.35fr) minmax(
-        5.5rem,
-        0.58fr
-      );
   }
   .pos-ticket-actions {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     grid-template-rows: repeat(3, minmax(0, 1fr));
   }
   .pos-ticket-actions button {
-    padding: 0.55rem;
+    padding: 0.55rem 0.4rem;
     background: #526173;
   }
   .pos-ticket-actions button:nth-child(4),
@@ -5054,9 +5049,6 @@ body {
   }
   .pos-ticket-actions button > span {
     font-size: 1.35rem;
-  }
-  .pos-ticket-actions strong {
-    font-size: 0.76rem;
   }
   .pos-number-pad button,
   .pos-keypad-modes button {
