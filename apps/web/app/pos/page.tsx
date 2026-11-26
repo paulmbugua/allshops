@@ -1741,7 +1741,9 @@ export default function PosPage() {
                     </div>
                     <div
                       className={
-                        cashShortfall > 0 ? "cash-change short" : "cash-change"
+                        cashShortfall > 0
+                          ? "cash-change pos-cash-due short"
+                          : "cash-change pos-cash-due"
                       }
                     >
                       <span>

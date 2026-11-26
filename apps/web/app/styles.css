@@ -5648,6 +5648,22 @@ body {
   background: #e6eef6;
   color: #173650;
 }
+.pos-cart .pos-payment-dialog .pos-cash-due {
+  flex-wrap: wrap;
+  gap: 0.25rem 0.75rem;
+  padding: 0.7rem 0.85rem;
+  font-size: 1rem;
+  font-weight: 750;
+}
+.pos-cart .pos-payment-dialog .pos-cash-due strong {
+  min-width: 0;
+  margin-inline-start: auto;
+  font-size: clamp(1.6rem, 4vw, 2rem);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.15;
+  text-align: end;
+  overflow-wrap: anywhere;
+}
 .pos-cart .pos-payment-dialog .payment-choice-grid .product-tile {
   background: #fff;
   color: #173650;
