@@ -404,6 +404,7 @@ model Organization {
   fiscalOutbox           FiscalOutbox[]
 
   @@index([status])
+  mpesaCheckouts MpesaCheckout[]
   @@map("organizations")
 }
 
@@ -447,6 +448,7 @@ model Branch {
 
   @@unique([organizationId, code])
   @@index([organizationId, isActive])
+  mpesaCheckouts MpesaCheckout[]
   @@map("branches")
 }
 
@@ -508,6 +510,7 @@ model User {
   alertsAcknowledged        OperationalAlert[]           @relation("AlertAcknowledger")
 
   @@index([status])
+  mpesaCheckouts MpesaCheckout[]
   @@map("users")
 }
 
@@ -1274,6 +1277,8 @@ model Sale {
   paystackPayment            PaystackPaymentIntent?
   refunds                    SaleRefund[]
   fiscalDocument             FiscalDocument?
+  loyaltyAward               SaleLoyaltyAward?
+  mpesaCheckout              MpesaCheckout?
 
   @@unique([organizationId, invoiceNumber])
   @@unique([organizationId, transactionUuid])
@@ -1285,6 +1290,40 @@ model Sale {
   @@index([organizationId, branchId, status, completedAt])
   @@index([organizationId, createdBy, status, completedAt])
   @@map("sales")
+}
+
+model SaleLoyaltyAward {
+  saleId         String   @id @db.Uuid
+  organizationId String  @db.Uuid
+  memberPhone    String
+  memberName     String
+  points         Int
+  createdAt      DateTime @default(now())
+  sale           Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, memberPhone])
+  @@map("sale_loyalty_awards")
+}
+
+model MpesaCheckout {
+  id                String   @id @default(uuid()) @db.Uuid
+  organizationId    String   @db.Uuid
+  branchId          String   @db.Uuid
+  createdBy         String   @db.Uuid
+  status            String
+  amountMinor       Int
+  checkout          Json
+  providerRequestId String?  @unique
+  saleId            String?  @unique @db.Uuid
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  branch            Branch @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  creator           User @relation(fields: [createdBy], references: [id], onDelete: Restrict)
+  sale              Sale? @relation(fields: [saleId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, createdBy, status])
+  @@map("mpesa_checkouts")
 }
 
 model OfflineTransaction {

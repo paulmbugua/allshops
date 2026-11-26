@@ -3,35 +3,98 @@ import {
   Controller,
   Get,
   Headers,
+  HttpCode,
   Param,
   Post,
   Query,
   Req,
 } from "@nestjs/common";
 import { ApiBearerAuth, ApiHeader, ApiTags } from "@nestjs/swagger";
+import { z } from "zod";
 import {
   checkoutSchema,
   completeHeldSaleSchema,
   holdSaleSchema,
   idempotencyKeySchema,
+  initializeCardPaymentSchema,
   posBarcodeLookupSchema,
   posProductListSchema,
   refundSchema,
   salesListSchema,
 } from "@allshops/contracts";
 import { RequirePermission } from "./permissions.decorator.js";
+import { Public } from "./public.decorator.js";
+import { darajaConfig } from "./daraja.js";
 import { SalesService } from "./sales.service.js";
 import type { RequestContext } from "./security.types.js";
 import { assertUuid, parseInput } from "./validation.js";
 
 const requiredIdempotencyKey = (value?: string) =>
   parseInput(idempotencyKeySchema, value);
+const kenyaMobile = z
+  .string()
+  .trim()
+  .max(24)
+  .transform((value) => value.replace(/[\s-]/g, "").replace(/^\+?254/, "0"))
+  .pipe(
+    z.string().regex(/^0[17]\d{8}$/, "Enter a valid Kenyan mobile number."),
+  );
 
 @ApiTags("Sales")
 @ApiBearerAuth()
 @Controller("organizations/:organizationId")
 export class SalesController {
   constructor(private readonly sales: SalesService) {}
+
+  @RequirePermission("sale.create", "payment.record")
+  @Get("pos/mpesa")
+  async mpesaStatus(@Req() request: RequestContext) {
+    return {
+      enabled: Boolean(darajaConfig(request.tenant!.organizationId)),
+      active: await this.sales.activeMpesa(request.tenant!, request.user!.id),
+    };
+  }
+
+  @RequirePermission("sale.create", "payment.record")
+  @Post("pos/mpesa")
+  startMpesa(@Body() body: unknown, @Req() request: RequestContext) {
+    const { phone, checkout, expectedMinor } = parseInput(
+      z.object({
+        phone: kenyaMobile,
+        checkout: initializeCardPaymentSchema,
+        expectedMinor: z.number().int().positive(),
+      }),
+      body,
+    );
+    return this.sales.startMpesa(
+      request.tenant!,
+      request.user!.id,
+      phone,
+      checkout,
+      expectedMinor,
+    );
+  }
+
+  @RequirePermission("sale.create", "payment.record")
+  @Post("pos/mpesa/:intentId/check")
+  checkMpesa(
+    @Param("intentId") intentId: string,
+    @Req() request: RequestContext,
+  ) {
+    return this.sales.checkMpesa(
+      request.tenant!,
+      request.user!.id,
+      assertUuid(intentId, "intentId"),
+    );
+  }
+
+  @Public()
+  @HttpCode(200)
+  @Post("pos/mpesa/callback")
+  mpesaCallback() {
+    // Only the authenticated Daraja status query can confirm payment.
+    return { ResultCode: 0, ResultDesc: "Accepted" };
+  }
 
   @RequirePermission("catalogue.read")
   @Get("pos/branches")
@@ -118,6 +181,39 @@ export class SalesController {
   @Get("sales/:saleId")
   detail(@Param("saleId") saleId: string, @Req() request: RequestContext) {
     return this.sales.detail(request.tenant!, assertUuid(saleId, "saleId"));
+  }
+
+  @RequirePermission("sale.create", "payment.record")
+  @Post("sales/:saleId/loyalty-award")
+  awardLoyalty(
+    @Param("saleId") saleId: string,
+    @Body() body: unknown,
+    @Req() request: RequestContext,
+  ) {
+    const member = parseInput(
+      z.object({
+        phone: z
+          .string()
+          .trim()
+          .max(24)
+          .transform((value) =>
+            value.replace(/[\s-]/g, "").replace(/^\+?254/, "0"),
+          )
+          .pipe(
+            z
+              .string()
+              .regex(/^0[17]\d{8}$/, "Enter a valid Kenyan mobile number."),
+          ),
+        name: z.string().trim().min(2).max(120),
+      }),
+      body,
+    );
+    return this.sales.awardLoyalty(
+      request.tenant!,
+      request.user!.id,
+      assertUuid(saleId, "saleId"),
+      member,
+    );
   }
 
   @ApiHeader({

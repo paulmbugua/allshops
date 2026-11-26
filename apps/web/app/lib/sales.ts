@@ -59,6 +59,7 @@ export interface Sale {
   changeMinor: number;
   currency: string;
   customerName: string | null;
+  loyaltyAward?: { memberName: string; points: number } | null;
   customerPhone: string | null;
   customerId: string | null;
   balanceMinor: number;

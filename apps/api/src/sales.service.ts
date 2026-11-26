@@ -5,6 +5,7 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  ServiceUnavailableException,
 } from "@nestjs/common";
 import { Prisma, prisma } from "@allshops/database";
 import type {
@@ -22,9 +23,19 @@ import type {
 } from "@allshops/contracts";
 import { InventoryService } from "./inventory.service.js";
 import { EntitlementService } from "./entitlement.service.js";
+import { darajaConfig, darajaStk, darajaToken } from "./daraja.js";
 import type { TenantContext } from "./security.types.js";
 
 type Transaction = Prisma.TransactionClient;
+type MpesaCheckoutInput = Omit<CheckoutInput, "payments">;
+type MpesaSnapshot = {
+  input: MpesaCheckoutInput;
+  prices: Array<{ key: string; unitPriceMinor: number }>;
+  host: string;
+  shortcode: string;
+};
+const activeMpesaStatuses = ["SENDING", "PENDING", "REVIEW"];
+const mpesaSummary = { id: true, amountMinor: true, status: true } as const;
 type ResolvedLine = {
   id: string;
   productId: string;
@@ -1040,6 +1051,284 @@ export class SalesService {
 
   detail(tenant: TenantContext, saleId: string) {
     return this.saleDetail(prisma, tenant, saleId);
+  }
+
+  activeMpesa(tenant: TenantContext, userId: string) {
+    return prisma.mpesaCheckout.findFirst({
+      where: {
+        organizationId: tenant.organizationId,
+        createdBy: userId,
+        ...(tenant.branchId ? { branchId: tenant.branchId } : {}),
+        status: { in: activeMpesaStatuses },
+      },
+      select: mpesaSummary,
+    });
+  }
+
+  async startMpesa(
+    tenant: TenantContext,
+    userId: string,
+    phone: string,
+    input: MpesaCheckoutInput,
+    expectedMinor: number,
+  ) {
+    const config = darajaConfig(tenant.organizationId);
+    if (!config)
+      throw new ServiceUnavailableException(
+        "M-Pesa is unavailable for this business.",
+      );
+    const previous = await this.activeMpesa(tenant, userId);
+    if (previous) return previous;
+    const organization = await prisma.organization.findUniqueOrThrow({
+      where: { id: tenant.organizationId },
+      select: { currency: true },
+    });
+    const quote = await this.quoteCardPayment(tenant, input);
+    const amountMinor = quote.totals.totalMinor;
+    if (amountMinor !== expectedMinor)
+      throw new ConflictException(
+        "The total changed. Review the current prices before sending a prompt.",
+      );
+    if (
+      organization.currency !== "KES" ||
+      amountMinor <= 0 ||
+      amountMinor % 100 !== 0
+    )
+      throw new BadRequestException(
+        "M-Pesa Express PayBill requires a positive whole-shilling KES total.",
+      );
+    const token = await darajaToken(config);
+    const id = randomUUID();
+    const started = await prisma.mpesaCheckout.createMany({
+      data: {
+        id,
+        branchId: input.branchId,
+        organizationId: tenant.organizationId,
+        createdBy: userId,
+        amountMinor,
+        status: "SENDING",
+        checkout: jsonValue({
+          input,
+          prices: quote.priceSnapshots,
+          host: config.host,
+          shortcode: config.shortcode,
+        }),
+      },
+      skipDuplicates: true,
+    });
+    if (!started.count) {
+      const active = await this.activeMpesa(tenant, userId);
+      if (active) return active;
+      throw new ConflictException(
+        "An M-Pesa request is already open. Reopen the register to check it.",
+      );
+    }
+    let providerRequestId: string | undefined;
+    try {
+      const result = await darajaStk<{
+        ResponseCode?: string;
+        CheckoutRequestID?: string;
+        errorCode?: string;
+      }>(config, token, "/mpesa/stkpush/v1/processrequest", {
+        TransactionType: "CustomerPayBillOnline",
+        Amount: amountMinor / 100,
+        PartyA: `254${phone.slice(1)}`,
+        PartyB: config.shortcode,
+        PhoneNumber: `254${phone.slice(1)}`,
+        CallBackURL: config.callback,
+        AccountReference: `POS${id.replace(/-/g, "").slice(0, 9)}`,
+        TransactionDesc: "POS sale",
+      });
+      if (String(result.ResponseCode) === "0" && result.CheckoutRequestID)
+        providerRequestId = result.CheckoutRequestID;
+      else if (
+        result.errorCode ||
+        (result.ResponseCode !== undefined &&
+          String(result.ResponseCode) !== "0")
+      ) {
+        return prisma.mpesaCheckout.update({
+          where: { id },
+          data: { status: "FAILED" },
+          select: mpesaSummary,
+        });
+      }
+    } catch {
+      /* The prompt may have reached Safaricom despite a timeout. */
+    }
+    return prisma.mpesaCheckout.update({
+      where: { id },
+      data: {
+        status: providerRequestId ? "PENDING" : "REVIEW",
+        providerRequestId,
+      },
+      select: mpesaSummary,
+    });
+  }
+
+  async checkMpesa(tenant: TenantContext, userId: string, id: string) {
+    const intent = await prisma.mpesaCheckout.findFirst({
+      where: {
+        id,
+        organizationId: tenant.organizationId,
+        createdBy: userId,
+        ...(tenant.branchId ? { branchId: tenant.branchId } : {}),
+      },
+    });
+    if (!intent) throw new NotFoundException("M-Pesa request not found.");
+    const summary = {
+      id,
+      status: intent.status,
+      amountMinor: intent.amountMinor,
+    };
+    if (intent.status === "COMPLETED" && intent.saleId)
+      return { ...summary, sale: await this.detail(tenant, intent.saleId) };
+    if (intent.status === "FAILED" || !intent.providerRequestId) {
+      return intent.status === "SENDING" &&
+        Date.now() - intent.updatedAt.getTime() > 60_000
+        ? { ...summary, status: "REVIEW" }
+        : summary;
+    }
+    const config = darajaConfig(tenant.organizationId);
+    const snapshot = intent.checkout as unknown as MpesaSnapshot;
+    if (
+      !config ||
+      config.host !== snapshot.host ||
+      config.shortcode !== snapshot.shortcode
+    ) {
+      throw new ServiceUnavailableException(
+        "Restore the PayBill configuration used to send this prompt before checking it.",
+      );
+    }
+    const token = await darajaToken(config);
+    let result: { ResultCode?: string | number; CheckoutRequestID?: string };
+    try {
+      result = await darajaStk(config, token, "/mpesa/stkpushquery/v1/query", {
+        CheckoutRequestID: intent.providerRequestId,
+      });
+    } catch {
+      throw new ServiceUnavailableException(
+        "Could not verify the payment yet. Check again before retrying.",
+      );
+    }
+    if (result.CheckoutRequestID !== intent.providerRequestId) return summary;
+    const code = String(result.ResultCode);
+    if (code === "1032" || code === "1") {
+      await prisma.mpesaCheckout.updateMany({
+        where: { id, status: "PENDING" },
+        data: { status: "FAILED" },
+      });
+      return prisma.mpesaCheckout.findUniqueOrThrow({
+        where: { id },
+        select: mpesaSummary,
+      });
+    }
+    if (code !== "0") return summary;
+    try {
+      const sale = await this.checkout(
+        tenant,
+        userId,
+        {
+          ...snapshot.input,
+          payments: [
+            {
+              method: "OTHER",
+              amountMinor: intent.amountMinor,
+              reference: `M-PESA${config.host.includes("sandbox") ? " SANDBOX" : ""}:${intent.providerRequestId}`,
+            },
+          ],
+        },
+        id,
+        {
+          priceOverrides: new Map(
+            snapshot.prices.map(({ key, unitPriceMinor }) => [
+              key,
+              unitPriceMinor,
+            ]),
+          ),
+        },
+      );
+      const completed = await prisma.mpesaCheckout.update({
+        where: { id },
+        data: { saleId: sale.id, status: "COMPLETED" },
+        select: mpesaSummary,
+      });
+      return { ...completed, sale };
+    } catch {
+      await prisma.mpesaCheckout.updateMany({
+        where: { id, status: "PENDING" },
+        data: { status: "REVIEW" },
+      });
+      return { ...summary, status: "REVIEW" };
+    }
+  }
+
+  async awardLoyalty(
+    tenant: TenantContext,
+    userId: string,
+    saleId: string,
+    member: { phone: string; name: string },
+  ) {
+    return prisma.$transaction(async (tx) => {
+      const sale = await tx.sale.findFirst({
+        where: {
+          id: saleId,
+          organizationId: tenant.organizationId,
+          ...(tenant.branchId ? { branchId: tenant.branchId } : {}),
+        },
+        select: {
+          status: true,
+          paymentStatus: true,
+          totalMinor: true,
+          currency: true,
+        },
+      });
+      if (!sale) throw new NotFoundException("Sale not found.");
+      const points = Math.floor(sale.totalMinor / 10_000);
+      if (
+        sale.status !== "COMPLETED" ||
+        sale.paymentStatus !== "PAID" ||
+        sale.currency !== "KES" ||
+        points < 1
+      ) {
+        throw new ConflictException(
+          "Loyalty points apply to completed, paid sales of Ksh 100 or more.",
+        );
+      }
+      const created = await tx.saleLoyaltyAward.createMany({
+        data: {
+          saleId,
+          organizationId: tenant.organizationId,
+          memberPhone: member.phone,
+          memberName: member.name,
+          points,
+        },
+        skipDuplicates: true,
+      });
+      const award = await tx.saleLoyaltyAward.findUniqueOrThrow({
+        where: { saleId },
+      });
+      if (
+        award.memberPhone !== member.phone ||
+        award.memberName !== member.name
+      ) {
+        throw new ConflictException(
+          "Loyalty points have already been awarded for this sale.",
+        );
+      }
+      if (created.count) {
+        await tx.auditLog.create({
+          data: {
+            organizationId: tenant.organizationId,
+            userId,
+            action: "SALE_LOYALTY_AWARDED",
+            entityType: "Sale",
+            entityId: saleId,
+            afterJson: { points },
+          },
+        });
+      }
+      return { memberName: award.memberName, points: award.points };
+    });
   }
 
   async receipt(
@@ -2195,6 +2484,7 @@ export class SalesService {
         ...(tenant.branchId ? { branchId: tenant.branchId } : {}),
       },
       include: {
+        loyaltyAward: { select: { memberName: true, points: true } },
         items: {
           orderBy: { createdAt: "asc" },
           include: {

@@ -4,6 +4,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type FormEvent,
   type KeyboardEvent,
 } from "react";
 import Link from "next/link";
@@ -42,6 +43,12 @@ interface Customer {
   creditLimitMinor?: number | null;
 }
 type TenderMode = "CASH" | "LOCAL_CARD";
+type MpesaIntent = {
+  id: string;
+  status: string;
+  amountMinor: number;
+  sale?: Sale;
+};
 type ProductTileMode = "QUICK" | "IMAGE";
 
 const productKey = (product: Pick<PosProduct, "productId" | "variantId">) =>
@@ -75,6 +82,15 @@ export default function PosPage() {
   const [celebrationMode, setCelebrationMode] = useState(false);
   const [focusMode, setFocusMode] = useState(false);
   const [paymentPanelOpen, setPaymentPanelOpen] = useState(false);
+  const [mpesaEnabled, setMpesaEnabled] = useState(false);
+  const [mpesaSelected, setMpesaSelected] = useState(false);
+  const [mpesaPhone, setMpesaPhone] = useState("");
+  const [mpesaIntent, setMpesaIntent] = useState<MpesaIntent>();
+  const [mobileCartOpen, setMobileCartOpen] = useState(false);
+  const [loyaltyOpen, setLoyaltyOpen] = useState(false);
+  const [loyaltyBusy, setLoyaltyBusy] = useState(false);
+  const [loyaltyError, setLoyaltyError] = useState("");
+  const [pendingReceipt, setPendingReceipt] = useState(false);
   const [completedSale, setCompletedSale] = useState<Sale>();
   const [previousSale, setPreviousSale] = useState<Sale>();
   const [productTileMode, setProductTileMode] =
@@ -96,9 +112,30 @@ export default function PosPage() {
   }>();
   const searchRef = useRef<HTMLInputElement>(null);
   const cashTenderRef = useRef<HTMLInputElement>(null);
-  const paymentRef = useRef<HTMLDivElement>(null);
+  const paymentRef = useRef<HTMLDialogElement>(null);
   const productGridRef = useRef<HTMLDivElement>(null);
-  const [pageSize, setPageSize] = useState(12);
+  const pageSize = 24;
+  useEffect(() => {
+    if (!organizationId) return;
+    let current = true;
+    void api<{ enabled: boolean; active: MpesaIntent | null }>(
+      `/organizations/${organizationId}/pos/mpesa`,
+    )
+      .then(({ enabled, active }) => {
+        if (!current) return;
+        setMpesaEnabled(enabled);
+        if (active) {
+          setMpesaIntent(active);
+          setMpesaSelected(true);
+          setMobileCartOpen(true);
+          setPaymentPanelOpen(true);
+        }
+      })
+      .catch(() => undefined);
+    return () => {
+      current = false;
+    };
+  }, [organizationId]);
   const subtotal = useMemo(
     () =>
       cart.reduce(
@@ -163,7 +200,7 @@ export default function PosPage() {
           left.name.localeCompare(right.name)
         );
       })
-      .slice(0, Math.max(8, Math.min(18, pageSize)));
+      .slice(0, pageSize);
   }, [
     pageSize,
     pinnedProductKeys,
@@ -247,7 +284,18 @@ export default function PosPage() {
         target?.tagName === "INPUT" ||
         target?.tagName === "TEXTAREA" ||
         target?.tagName === "SELECT";
-      if (completedSale && event.key === "Enter") {
+      if (paymentPanelOpen && ["F2", "F7", "F8"].includes(event.key)) {
+        event.preventDefault();
+        return;
+      }
+      if (
+        completedSale &&
+        event.key === "Enter" &&
+        !editing &&
+        target?.tagName !== "BUTTON" &&
+        !loyaltyOpen &&
+        !loyaltyBusy
+      ) {
         event.preventDefault();
         newSale();
         return;
@@ -273,19 +321,18 @@ export default function PosPage() {
         void hold();
         return;
       }
-      if (!editing && event.key === "F9") {
+      if (!editing && event.key === "F9" && !completedSale && cart.length) {
         event.preventDefault();
-        setPaymentPanelOpen(true);
-        window.setTimeout(() => {
-          paymentRef.current?.scrollIntoView({
-            behavior: "smooth",
-            block: "nearest",
-          });
-          cashTenderRef.current?.focus();
-        }, 0);
+        openPayment();
         return;
       }
-      if (!editing && event.key === "F11" && previousSale) {
+      if (
+        !editing &&
+        event.key === "F11" &&
+        previousSale &&
+        !completedSale &&
+        !paymentPanelOpen
+      ) {
         event.preventDefault();
         setPrintJob({
           saleId: previousSale.id,
@@ -294,29 +341,41 @@ export default function PosPage() {
         });
         return;
       }
-      if (!editing && event.key === "F12" && canCompleteSale) {
+      if (!editing && event.key === "F12" && cart.length && !busy) {
         event.preventDefault();
-        void checkout();
+        if (!paymentPanelOpen) openPayment();
+        else if (!mpesaSelected && canCompleteSale) void checkout();
       }
     };
     window.addEventListener("keydown", onShortcut);
     return () => window.removeEventListener("keydown", onShortcut);
-  }, [cart.length, completedSale, previousSale, total, cashTender, splitCash]);
+  }, [
+    cart.length,
+    completedSale,
+    previousSale,
+    total,
+    cashTender,
+    splitCash,
+    loyaltyOpen,
+    loyaltyBusy,
+    pendingReceipt,
+    paymentPanelOpen,
+    busy,
+    tenderMode,
+    splitTender,
+    mpesaSelected,
+  ]);
 
   useEffect(() => {
-    const grid = productGridRef.current;
-    if (!grid || typeof ResizeObserver === "undefined") return;
-    const measure = () => {
-      const gap = 8;
-      const columns = Math.max(1, Math.floor((grid.clientWidth + gap) / 112));
-      const rows = Math.max(1, Math.floor((grid.clientHeight + gap) / 132));
-      setPageSize(Math.max(4, Math.min(30, columns * rows)));
-    };
-    const observer = new ResizeObserver(measure);
-    observer.observe(grid);
-    measure();
-    return () => observer.disconnect();
-  }, []);
+    const dialog = paymentRef.current;
+    if (!dialog) return;
+    if (paymentPanelOpen && !dialog.open) dialog.showModal();
+    if (!paymentPanelOpen && dialog.open) dialog.close();
+  }, [paymentPanelOpen]);
+
+  useEffect(() => {
+    productGridRef.current?.scrollTo({ top: 0 });
+  }, [branchId, page, productTileMode, query]);
 
   useEffect(() => {
     void (async () => {
@@ -437,7 +496,7 @@ export default function PosPage() {
     return () => window.clearTimeout(timer);
   }, [organizationId, branchId, query, page, pageSize]);
 
-  useEffect(() => setPage(1), [branchId, query, focusMode, pageSize]);
+  useEffect(() => setPage(1), [branchId, query]);
 
   function add(product: PosProduct) {
     if (
@@ -617,7 +676,8 @@ export default function PosPage() {
     };
   }
   async function checkout(printPreference?: "PRINT" | "NO_PRINT") {
-    if (!organizationId || !cart.length) return;
+    if (!organizationId || !cart.length || busy || mpesaIntent || mpesaSelected)
+      return;
     setBusy(true);
     setMessage("");
     const soldLines = [...cart];
@@ -677,26 +737,77 @@ export default function PosPage() {
         },
       );
       rememberSoldProducts(soldLines);
-      setCompletedSale(sale);
-      setPreviousSale(sale);
-      setCart([]);
-      setCashTender("");
-      setSplitCash("");
-      setSplitTender(false);
-      setTerminalReference("");
-      setDiscountType("");
-      setDiscountValue("");
-      if (
-        printPreference === "PRINT" ||
-        (printPreference == null && autoPrint)
-      ) {
-        setPrintJob({ saleId: sale.id, mode: "initial", nonce: Date.now() });
-      }
+      finishSale(
+        sale,
+        printPreference === "PRINT" || (printPreference == null && autoPrint),
+      );
     } catch (error) {
       setMessage(
         error instanceof Error
           ? error.message
           : "Checkout failed; the cart was kept.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+  function finishSale(sale: Sale, print: boolean) {
+    setCompletedSale(sale);
+    setPreviousSale(sale);
+    setCart([]);
+    setCashTender("");
+    setSplitCash("");
+    setSplitTender(false);
+    setTerminalReference("");
+    setDiscountType("");
+    setDiscountValue("");
+    setPaymentPanelOpen(false);
+    setMobileCartOpen(false);
+    setMpesaIntent(undefined);
+    setMpesaSelected(false);
+    setMpesaPhone("");
+    setLoyaltyOpen(false);
+    setLoyaltyError("");
+    setPendingReceipt(print);
+  }
+  async function handleMpesa() {
+    if (!organizationId || busy || appointmentId) return;
+    setBusy(true);
+    setMessage("");
+    const endpoint = `/organizations/${organizationId}/pos/mpesa`;
+    try {
+      const intent = mpesaIntent
+        ? await api<MpesaIntent>(`${endpoint}/${mpesaIntent.id}/check`, {
+            method: "POST",
+          })
+        : await api<MpesaIntent>(endpoint, {
+            method: "POST",
+            body: JSON.stringify({
+              phone: mpesaPhone,
+              checkout: payload(),
+              expectedMinor: total,
+            }),
+          });
+      if (intent.sale) {
+        rememberSoldProducts(cart);
+        finishSale(intent.sale, autoPrint);
+      } else if (intent.status === "FAILED") {
+        setMpesaIntent(undefined);
+        setMessage(
+          "The M-Pesa request was declined or cancelled. Confirm with the customer before sending another prompt.",
+        );
+      } else {
+        setMpesaIntent(intent);
+      }
+    } catch (error) {
+      const status = await api<{ active: MpesaIntent | null }>(endpoint).catch(
+        () => null,
+      );
+      if (status?.active) setMpesaIntent(status.active);
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "Could not check the M-Pesa request.",
       );
     } finally {
       setBusy(false);
@@ -730,9 +841,55 @@ export default function PosPage() {
     clearSession();
     window.location.assign("/welcome?reason=logout");
   }
+  function openPayment() {
+    setMessage("");
+    setPaymentPanelOpen(true);
+  }
+  function printCompletedReceipt() {
+    if (!completedSale) return;
+    setPrintJob({
+      saleId: completedSale.id,
+      mode: pendingReceipt ? "initial" : "reprint",
+      nonce: Date.now(),
+    });
+    setPendingReceipt(false);
+  }
+  async function saveLoyalty(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!organizationId || !completedSale || loyaltyBusy) return;
+    const form = new FormData(event.currentTarget);
+    setLoyaltyBusy(true);
+    setLoyaltyError("");
+    try {
+      const award = await api<NonNullable<Sale["loyaltyAward"]>>(
+        `/organizations/${organizationId}/sales/${completedSale.id}/loyalty-award`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            phone: form.get("phone"),
+            name: form.get("name"),
+          }),
+        },
+      );
+      const updated = { ...completedSale, loyaltyAward: award };
+      setCompletedSale(updated);
+      setPreviousSale(updated);
+      setLoyaltyOpen(false);
+    } catch (error) {
+      setLoyaltyError(
+        error instanceof Error
+          ? error.message
+          : "Unable to add loyalty points.",
+      );
+    } finally {
+      setLoyaltyBusy(false);
+    }
+  }
   function newSale() {
+    if (loyaltyBusy) return;
+    if (pendingReceipt) printCompletedReceipt();
     setCompletedSale(undefined);
-    setPrintJob(undefined);
+    setLoyaltyOpen(false);
     setAppointmentId("");
     setCustomerId("");
     window.setTimeout(() => searchRef.current?.focus(), 0);
@@ -980,8 +1137,13 @@ export default function PosPage() {
               </span>
             </div>
             <div
-              className={`product-grid ${productTileMode === "QUICK" ? "quick-tile-grid" : "image-tile-grid"}`}
+              className={`product-grid ${productTileMode === "QUICK" ? "quick-tile-grid" : "image-tile-grid"}${customizingQuickItems ? " is-customizing" : ""}`}
               ref={productGridRef}
+              role="region"
+              aria-label={
+                query.trim() ? "Matching products" : "Fast-sale products"
+              }
+              tabIndex={0}
             >
               {displayedProducts.map((product) => {
                 const out =
@@ -1063,7 +1225,7 @@ export default function PosPage() {
                 );
               })}
             </div>
-            {query && productTotal > pageSize && (
+            {query.trim() && productTotal > pageSize && (
               <nav className="pos-pagination" aria-label="Product pages">
                 <button
                   className="secondary"
@@ -1127,18 +1289,9 @@ export default function PosPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => {
-                    setPaymentPanelOpen(true);
-                    window.setTimeout(
-                      () =>
-                        paymentRef.current?.scrollIntoView({
-                          behavior: "smooth",
-                          block: "nearest",
-                        }),
-                      0,
-                    );
-                  }}
-                  data-tooltip="Open customer and payment controls (F9)"
+                  onClick={openPayment}
+                  disabled={!cart.length || busy}
+                  data-tooltip="Open the payment window (F9)"
                 >
                   <span>◉</span>
                   <strong>Payment</strong>
@@ -1219,21 +1372,21 @@ export default function PosPage() {
                 <button
                   type="button"
                   className="enter"
-                  disabled={!canCompleteSale}
-                  onClick={() => void checkout()}
-                  data-tooltip="Complete the active payment (F12)"
+                  disabled={!cart.length || busy}
+                  onClick={openPayment}
+                  data-tooltip="Open the payment window"
                 >
-                  Pay <kbd>F12</kbd>
+                  Pay
                 </button>
               </div>
             </div>
           </div>
-          <div className={`card pos-cart ${paymentPanelOpen ? "is-open" : ""}`}>
+          <div className={`card pos-cart ${mobileCartOpen ? "is-open" : ""}`}>
             <button
               type="button"
               className="pos-mobile-cart-summary"
-              onClick={() => setPaymentPanelOpen((value) => !value)}
-              aria-expanded={paymentPanelOpen}
+              onClick={() => setMobileCartOpen((value) => !value)}
+              aria-expanded={mobileCartOpen}
               aria-controls="pos-mobile-cart-content"
             >
               <span className="pos-mobile-cart-count">{cart.length}</span>
@@ -1241,8 +1394,8 @@ export default function PosPage() {
                 <small>Current order</small>
                 <strong>{formatMinorCurrency(total)}</strong>
               </span>
-              <b>{paymentPanelOpen ? "Close" : "Review & pay"}</b>
-              <span aria-hidden="true">{paymentPanelOpen ? "⌄" : "⌃"}</span>
+              <b>{mobileCartOpen ? "Close" : "Review order"}</b>
+              <span aria-hidden="true">{mobileCartOpen ? "⌄" : "⌃"}</span>
             </button>
             <div
               id="pos-mobile-cart-content"
@@ -1346,9 +1499,10 @@ export default function PosPage() {
               </div>
               <button
                 type="button"
-                className={`pos-payment-drawer-toggle ${paymentPanelOpen ? "active" : ""}`}
-                onClick={() => setPaymentPanelOpen((value) => !value)}
-                aria-expanded={paymentPanelOpen}
+                className="pos-payment-drawer-toggle pos-payment-dialog-trigger"
+                onClick={openPayment}
+                disabled={!cart.length || busy}
+                aria-haspopup="dialog"
                 aria-controls="pos-payment-panel"
               >
                 <span className="pos-payment-drawer-icon" aria-hidden="true">
@@ -1357,21 +1511,43 @@ export default function PosPage() {
                   </svg>
                 </span>
                 <span>
-                  <strong>Customer &amp; payment</strong>
+                  <strong>Payment</strong>
                   <small>
                     {customer?.name ?? "Walk-in customer"} ·{" "}
                     {tenderMode === "CASH" ? "Cash" : "Local card"}
                   </small>
                 </span>
                 <b>{formatMinorCurrency(total)}</b>
-                <span aria-hidden="true">{paymentPanelOpen ? "⌃" : "⌄"}</span>
+                <span aria-hidden="true">→</span>
               </button>
-              <div
+              <dialog
                 id="pos-payment-panel"
-                className={`pos-cart-calculator ${paymentPanelOpen ? "is-open" : ""}`}
+                className="pos-payment-dialog"
                 ref={paymentRef}
+                aria-labelledby="pos-payment-title"
+                onCancel={(event) => {
+                  event.preventDefault();
+                  if (!busy && !mpesaIntent) setPaymentPanelOpen(false);
+                }}
               >
-                {canDiscount && (
+                <header className="pos-payment-dialog-header">
+                  <div>
+                    <h2 id="pos-payment-title">Complete payment</h2>
+                    <strong>
+                      {formatMinorCurrency(mpesaIntent?.amountMinor ?? total)}{" "}
+                      due
+                    </strong>
+                  </div>
+                  <button
+                    type="button"
+                    className="secondary"
+                    disabled={busy || Boolean(mpesaIntent)}
+                    onClick={() => setPaymentPanelOpen(false)}
+                  >
+                    Close
+                  </button>
+                </header>
+                {!mpesaIntent && canDiscount && (
                   <div className="discount-row">
                     <select
                       aria-label="Discount type"
@@ -1392,23 +1568,24 @@ export default function PosPage() {
                     />
                   </div>
                 )}
-                <h3>Payment</h3>
-                <label>
-                  Customer (optional)
-                  <select
-                    value={customerId}
-                    onChange={(event) => setCustomerId(event.target.value)}
-                  >
-                    <option value="">Walk-in customer</option>
-                    {customers.map((row) => (
-                      <option key={row.id} value={row.id}>
-                        {row.name}
-                        {row.phone ? ` · ${row.phone}` : ""}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                {customer && (
+                {!mpesaIntent && (
+                  <label>
+                    Customer (optional)
+                    <select
+                      value={customerId}
+                      onChange={(event) => setCustomerId(event.target.value)}
+                    >
+                      <option value="">Walk-in customer</option>
+                      {customers.map((row) => (
+                        <option key={row.id} value={row.id}>
+                          {row.name}
+                          {row.phone ? ` · ${row.phone}` : ""}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )}
+                {!mpesaIntent && customer && (
                   <p className="muted">
                     Outstanding{" "}
                     {formatMinorCurrency(customer.balanceMinor ?? 0)}
@@ -1417,41 +1594,67 @@ export default function PosPage() {
                       : ` · Limit ${formatMinorCurrency(customer.creditLimitMinor)}`}
                   </p>
                 )}
-                <div className="payment-choice-grid">
-                  {(
-                    [
-                      ["CASH", "Cash", "Record cash and calculate change."],
+                {!mpesaIntent && (
+                  <div className="payment-choice-grid">
+                    {(
                       [
-                        "LOCAL_CARD",
-                        "Local bank card",
-                        "Record approval from your own terminal.",
-                      ],
-                    ] as const
-                  ).map(([value, title, description]) => (
-                    <button
-                      type="button"
-                      className={
-                        tenderMode === value
-                          ? "product-tile active"
-                          : "product-tile"
-                      }
-                      key={value}
-                      onClick={() => setTenderMode(value)}
-                    >
-                      <strong>{title}</strong>
-                      <small>{description}</small>
-                    </button>
-                  ))}
-                </div>
-                <label className="pos-split-toggle">
-                  <input
-                    type="checkbox"
-                    checked={splitTender}
-                    onChange={(event) => setSplitTender(event.target.checked)}
-                  />
-                  Split payment between cash and local card
-                </label>
-                {splitTender && (
+                        ["CASH", "Cash", "Record cash and calculate change."],
+                        [
+                          "LOCAL_CARD",
+                          "Local bank card",
+                          "Record approval from your own terminal.",
+                        ],
+                      ] as const
+                    ).map(([value, title, description]) => (
+                      <button
+                        type="button"
+                        className={
+                          !mpesaSelected && tenderMode === value
+                            ? "product-tile active"
+                            : "product-tile"
+                        }
+                        key={value}
+                        disabled={busy}
+                        onClick={() => {
+                          setMpesaSelected(false);
+                          setTenderMode(value);
+                          setMessage("");
+                        }}
+                      >
+                        <strong>{title}</strong>
+                        <small>{description}</small>
+                      </button>
+                    ))}
+                    {mpesaEnabled && !appointmentId && (
+                      <button
+                        type="button"
+                        disabled={busy}
+                        className={
+                          mpesaSelected ? "product-tile active" : "product-tile"
+                        }
+                        onClick={() => {
+                          setMpesaSelected(true);
+                          setSplitTender(false);
+                          setMessage("");
+                        }}
+                      >
+                        <strong>M-Pesa</strong>
+                        <small>Send a prompt to the customer's phone.</small>
+                      </button>
+                    )}
+                  </div>
+                )}
+                {!mpesaSelected && (
+                  <label className="pos-split-toggle">
+                    <input
+                      type="checkbox"
+                      checked={splitTender}
+                      onChange={(event) => setSplitTender(event.target.checked)}
+                    />
+                    Split payment between cash and local card
+                  </label>
+                )}
+                {!mpesaSelected && splitTender && (
                   <div className="cash-panel split-payment-panel">
                     <label>
                       Cash portion (KES)
@@ -1470,7 +1673,7 @@ export default function PosPage() {
                     </div>
                   </div>
                 )}
-                {tenderMode === "CASH" && (
+                {!mpesaSelected && tenderMode === "CASH" && !splitTender && (
                   <div className="cash-panel">
                     <label>
                       Cash received (KES)
@@ -1514,38 +1717,83 @@ export default function PosPage() {
                     </div>
                   </div>
                 )}
-                {tenderMode === "LOCAL_CARD" && (
-                  <div className="payment-row">
+                {!mpesaSelected &&
+                  (tenderMode === "LOCAL_CARD" || splitTender) && (
+                    <div className="payment-row">
+                      <label>
+                        Acquiring bank / terminal
+                        <select
+                          value={localBank}
+                          onChange={(event) => setLocalBank(event.target.value)}
+                        >
+                          <option>KCB</option>
+                          <option>Equity Bank</option>
+                          <option>Co-operative Bank</option>
+                          <option>NCBA</option>
+                          <option>Absa Kenya</option>
+                          <option>Stanbic Bank</option>
+                          <option>I&amp;M Bank</option>
+                          <option>Mobile money / bank terminal</option>
+                          <option>Other local terminal</option>
+                        </select>
+                      </label>
+                      <label>
+                        Terminal reference (optional)
+                        <input
+                          maxLength={80}
+                          value={terminalReference}
+                          onChange={(event) =>
+                            setTerminalReference(event.target.value)
+                          }
+                        />
+                      </label>
+                    </div>
+                  )}
+                {mpesaSelected &&
+                  (mpesaIntent ? (
+                    <p className="notice" role="status">
+                      {mpesaIntent.status === "REVIEW"
+                        ? "This request needs review. Check the PayBill statement before taking another payment."
+                        : "Ask the customer to approve the prompt, then check payment status here."}
+                    </p>
+                  ) : (
                     <label>
-                      Acquiring bank / terminal
-                      <select
-                        value={localBank}
-                        onChange={(event) => setLocalBank(event.target.value)}
-                      >
-                        <option>KCB</option>
-                        <option>Equity Bank</option>
-                        <option>Co-operative Bank</option>
-                        <option>NCBA</option>
-                        <option>Absa Kenya</option>
-                        <option>Stanbic Bank</option>
-                        <option>I&amp;M Bank</option>
-                        <option>Mobile money / bank terminal</option>
-                        <option>Other local terminal</option>
-                      </select>
-                    </label>
-                    <label>
-                      Terminal reference (optional)
+                      Customer’s M-Pesa phone
                       <input
-                        maxLength={80}
-                        value={terminalReference}
-                        onChange={(event) =>
-                          setTerminalReference(event.target.value)
-                        }
+                        type="tel"
+                        placeholder="07XX XXX XXX"
+                        maxLength={24}
+                        value={mpesaPhone}
+                        disabled={busy}
+                        onChange={(event) => setMpesaPhone(event.target.value)}
                       />
                     </label>
-                  </div>
+                  ))}
+                {message && (
+                  <p className="notice" role="alert">
+                    {message}
+                  </p>
                 )}
-              </div>
+                <button
+                  type="button"
+                  disabled={
+                    mpesaSelected
+                      ? busy || (!mpesaIntent && (!mpesaPhone.trim() || !total))
+                      : !canCompleteSale
+                  }
+                  onClick={() =>
+                    void (mpesaSelected ? handleMpesa() : checkout())
+                  }
+                >
+                  {busy
+                    ? "Processing…"
+                    : mpesaSelected
+                      ? mpesaIntent
+                        ? "Check payment status"
+                        : "Send M-Pesa prompt"
+                      : "Complete payment"}
+                </button>
+              </dialog>
               <div className="totals pos-bottom-totals">
                 <span>
                   Subtotal <b>{formatMinorCurrency(subtotal)}</b>
@@ -1572,23 +1820,13 @@ export default function PosPage() {
                   <span aria-hidden="true">Ⅱ</span>
                 </button>
                 <button
-                  disabled={!canCompleteSale}
-                  onClick={() => void checkout()}
-                  aria-label={
-                    tenderMode === "CASH"
-                      ? "Complete cash sale"
-                      : "Complete local card sale"
-                  }
-                  title={
-                    tenderMode === "CASH"
-                      ? "Complete cash sale (F12)"
-                      : "Complete local card sale (F12)"
-                  }
-                  data-tooltip={
-                    tenderMode === "CASH"
-                      ? "Complete and save this cash sale (F12)"
-                      : "Complete and save this card sale (F12)"
-                  }
+                  type="button"
+                  disabled={!cart.length || busy}
+                  onClick={openPayment}
+                  aria-label="Open payment window"
+                  aria-haspopup="dialog"
+                  title="Payment (F12)"
+                  data-tooltip="Open the payment window (F12)"
                 >
                   <span aria-hidden="true">{busy ? "…" : "✓"}</span>
                 </button>
@@ -1631,7 +1869,9 @@ export default function PosPage() {
               <span>
                 Total <b>{formatMinorCurrency(completedSale.totalMinor)}</b>
               </span>
-              {tenderMode === "CASH" && (
+              {completedSale.payments?.some(
+                (payment) => payment.method === "CASH",
+              ) && (
                 <span>
                   Cash received{" "}
                   <b>
@@ -1646,25 +1886,81 @@ export default function PosPage() {
                 <b>{formatMinorCurrency(completedSale.changeMinor)}</b>
               </strong>
             </div>
-            <p className="muted">
-              {autoPrint
-                ? "Receipt sent to the printer."
-                : "Automatic receipt printing is off."}
-            </p>
+            {completedSale.loyaltyAward ? (
+              <p className="notice" role="status">
+                {completedSale.loyaltyAward.points} loyalty points awarded to{" "}
+                {completedSale.loyaltyAward.memberName}.
+              </p>
+            ) : completedSale.totalMinor >= 10_000 && !loyaltyOpen ? (
+              <button
+                type="button"
+                className="secondary"
+                onClick={() => setLoyaltyOpen(true)}
+              >
+                Add loyalty points
+              </button>
+            ) : null}
+            {loyaltyOpen && (
+              <form className="form pos-loyalty-form" onSubmit={saveLoyalty}>
+                <label>
+                  Customer phone
+                  <input
+                    type="tel"
+                    name="phone"
+                    required
+                    maxLength={24}
+                    placeholder="07XX XXX XXX"
+                    autoFocus
+                  />
+                </label>
+                <label>
+                  Member name
+                  <input
+                    name="name"
+                    required
+                    minLength={2}
+                    maxLength={120}
+                    defaultValue={completedSale.customerName ?? ""}
+                  />
+                </label>
+                {loyaltyError && <p role="alert">{loyaltyError}</p>}
+                <div className="actions">
+                  <button type="submit" disabled={loyaltyBusy}>
+                    {loyaltyBusy ? "Saving…" : "Award loyalty points"}
+                  </button>
+                  <button
+                    type="button"
+                    className="secondary"
+                    disabled={loyaltyBusy}
+                    onClick={() => {
+                      setLoyaltyOpen(false);
+                      setLoyaltyError("");
+                    }}
+                  >
+                    Back
+                  </button>
+                </div>
+              </form>
+            )}
+            {pendingReceipt && (
+              <p className="muted">
+                The receipt prints when you start a new sale or choose Print
+                receipt.
+              </p>
+            )}
             <div className="actions">
               <button
                 className="secondary"
-                onClick={() =>
-                  setPrintJob({
-                    saleId: completedSale.id,
-                    mode: "reprint",
-                    nonce: Date.now(),
-                  })
-                }
+                disabled={loyaltyOpen || loyaltyBusy}
+                onClick={printCompletedReceipt}
               >
-                Print again
+                Print receipt
               </button>
-              <button onClick={newSale} autoFocus>
+              <button
+                onClick={newSale}
+                autoFocus
+                disabled={loyaltyOpen || loyaltyBusy}
+              >
                 New sale <span className="button-shortcut">↵ Enter</span>
               </button>
             </div>

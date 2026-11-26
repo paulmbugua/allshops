@@ -70,6 +70,13 @@ export default function ReceiptPage() {
             </>
           )}
         </p>
+        {sale.loyaltyAward && (
+          <p>
+            <b>Loyalty points earned: {sale.loyaltyAward.points}</b>
+            <br />
+            Loyalty member: {sale.loyaltyAward.memberName}
+          </p>
+        )}
         <table>
           <thead>
             <tr>
@@ -113,7 +120,11 @@ export default function ReceiptPage() {
         <hr />
         {sale.payments.map((payment) => (
           <p key={payment.id}>
-            {payment.method.replaceAll("_", " ")}:{" "}
+            {payment.method === "OTHER" &&
+            payment.reference?.startsWith("M-PESA")
+              ? payment.reference.split(":", 1)[0]
+              : payment.method.replaceAll("_", " ")}
+            {": "}
             {formatMinorCurrency(payment.amountMinor)}
             {payment.tenderedMinor !== null && (
               <>

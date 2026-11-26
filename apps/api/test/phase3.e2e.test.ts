@@ -642,9 +642,7 @@ try {
     .set(bearer(owner));
   assert.equal(ownerPosBranches.status, 200);
   assert.equal(
-    ownerPosBranches.body.some(
-      (row: { id: string }) => row.id === branchId,
-    ),
+    ownerPosBranches.body.some((row: { id: string }) => row.id === branchId),
     true,
   );
   const cashierPosBranches = await request(server)
@@ -673,6 +671,115 @@ try {
   assert.equal(variantBarcodeLookup.status, 200);
   assert.equal(variantBarcodeLookup.body.productId, stockId);
   assert.equal(variantBarcodeLookup.body.variantId, variant.body.id);
+  const loyaltySale = await request(server)
+    .post(endpoint)
+    .set(bearer(cashier))
+    .set("Idempotency-Key", key())
+    .send({
+      branchId,
+      items: [{ productId: serviceId, quantity: "8" }],
+      payments: [{ method: "CASH", amountMinor: 20_000 }],
+    });
+  assert.equal(loyaltySale.status, 201);
+  const loyaltyBase = `/api/v1/organizations/${orgId}/sales/${loyaltySale.body.id}`;
+  const award = (phone: string, name: string) =>
+    request(server)
+      .post(`${loyaltyBase}/loyalty-award`)
+      .set(bearer(cashier))
+      .send({ phone, name });
+  const firstAward = await award("+254 712 345 678", "Test Member");
+  assert.equal(firstAward.status, 201);
+  assert.deepEqual(firstAward.body, { memberName: "Test Member", points: 2 });
+  assert.deepEqual(
+    (await award("0712345678", "Test Member")).body,
+    firstAward.body,
+  );
+  assert.equal((await award("0712345679", "Other Member")).status, 409);
+  const loyaltyReceipt = await request(server)
+    .get(`${loyaltyBase}/receipt`)
+    .set(bearer(cashier));
+  assert.equal(loyaltyReceipt.status, 200);
+  assert.deepEqual(loyaltyReceipt.body.loyaltyAward, firstAward.body);
+  console.log("Loyalty award and receipt regression checks passed.");
+  const mpesaEnv = {
+    MPESA_ORGANIZATION_ID: orgId,
+    MPESA_MODE: "sandbox",
+    MPESA_PAYBILL: "174379",
+    MPESA_CONSUMER_KEY: "fixture-key",
+    MPESA_CONSUMER_SECRET: "fixture-secret",
+    MPESA_PASSKEY: "fixture-passkey",
+    API_URL: "https://api.example.test",
+  };
+  const originalMpesaEnv = Object.entries(mpesaEnv).map(
+    ([key]) => [key, process.env[key]] as const,
+  );
+  Object.assign(process.env, mpesaEnv);
+  const realFetch = globalThis.fetch;
+  let prompts = 0;
+  let verified = false;
+  const providerRequest = `request-${suffix}`;
+  globalThis.fetch = async (url, options) => {
+    const target = String(url);
+    if (!target.startsWith("https://sandbox.safaricom.co.ke/"))
+      return realFetch(url, options);
+    if (target.includes("/oauth/"))
+      return Response.json({ access_token: "test" });
+    const body = JSON.parse(String(options?.body));
+    if (target.includes("/processrequest")) {
+      prompts++;
+      assert.equal(body.Amount, 200);
+      assert.equal(body.PhoneNumber, "254712345678");
+      return Response.json({
+        ResponseCode: "0",
+        CheckoutRequestID: providerRequest,
+      });
+    }
+    assert.equal(body.CheckoutRequestID, providerRequest);
+    return Response.json({
+      CheckoutRequestID: providerRequest,
+      ...(verified ? { ResultCode: "0" } : {}),
+    });
+  };
+  try {
+    const path = `/api/v1/organizations/${orgId}/pos/mpesa`;
+    const input = {
+      phone: "0712345678",
+      expectedMinor: 20_000,
+      checkout: { branchId, items: [{ productId: serviceId, quantity: "8" }] },
+    };
+    const start = () =>
+      request(server).post(path).set(bearer(cashier)).send(input);
+    const intent = await start();
+    assert.equal(intent.status, 201, JSON.stringify(intent.body));
+    assert.equal(intent.body.status, "PENDING");
+    assert.equal((await start()).body.id, intent.body.id);
+    assert.equal(prompts, 1);
+    const check = () =>
+      request(server)
+        .post(`${path}/${intent.body.id}/check`)
+        .set(bearer(cashier));
+    assert.equal((await check()).body.status, "PENDING");
+    assert.equal(
+      (await request(server).post(`${path}/callback`).send({ ResultCode: 0 }))
+        .status,
+      200,
+    );
+    assert.equal((await check()).body.status, "PENDING");
+    verified = true;
+    const paid = await check();
+    assert.equal(paid.body.status, "COMPLETED", JSON.stringify(paid.body));
+    assert.equal(paid.body.sale.totalMinor, 20_000);
+    assert.equal((await check()).body.sale.id, paid.body.sale.id);
+    console.log(
+      "M-Pesa prompt, confirmation and repeat-request checks passed.",
+    );
+  } finally {
+    globalThis.fetch = realFetch;
+    for (const [key, value] of originalMpesaEnv) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+  }
   assert.equal(
     (
       await request(server)
