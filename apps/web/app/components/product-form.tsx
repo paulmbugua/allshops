@@ -23,6 +23,7 @@ export function ProductForm({
   const [type, setType] = useState(initial?.type ?? "STOCK_ITEM");
   const [tracking, setTracking] = useState(initial?.trackInventory ?? true);
   const [message, setMessage] = useState("");
+  const [savedName, setSavedName] = useState("");
   const [saving, setSaving] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState(initial?.imageUrl ?? "");
@@ -82,10 +83,17 @@ export function ProductForm({
   }
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!organizationId) return;
-    const data = new FormData(event.currentTarget);
+    if (!organizationId || saving) return;
+    const form = event.currentTarget;
+    const submitter = (event.nativeEvent as SubmitEvent).submitter;
+    const addAnother =
+      !initial &&
+      submitter instanceof HTMLButtonElement &&
+      submitter.value === "add-another";
+    const data = new FormData(form);
     setSaving(true);
     setMessage("");
+    setSavedName("");
     try {
       let imageUrl = removeImage ? null : currentImageUrl;
       if (imageFile) {
@@ -123,9 +131,19 @@ export function ProductForm({
         { method: initial ? "PATCH" : "POST", body: JSON.stringify(body) },
       );
       setImageFile(null);
+      setRemoveImage(false);
+      if (addAnother) {
+        form.reset();
+        setType("STOCK_ITEM");
+        setTracking(true);
+        setCurrentImageUrl(null);
+        setImagePreview("");
+        setSavedName(product.name);
+        form.querySelector<HTMLInputElement>('input[name="name"]')?.focus();
+        return;
+      }
       setCurrentImageUrl(product.imageUrl ?? null);
       setImagePreview(product.imageUrl ?? "");
-      setRemoveImage(false);
       setMessage("Product saved.");
       onSaved(product);
     } catch (error) {
@@ -138,6 +156,13 @@ export function ProductForm({
   }
   return (
     <form className="form" onSubmit={submit}>
+      <div role="status">
+        {savedName && (
+          <p className="notice">
+            {savedName} saved. You can add another product.
+          </p>
+        )}
+      </div>
       <div className="form-grid">
         <label>
           Name
@@ -315,9 +340,21 @@ export function ProductForm({
           Active
         </label>
       </div>
-      <button disabled={saving}>
-        {saving ? "Saving…" : initial ? "Save changes" : "Create product"}
-      </button>
+      <div className="actions">
+        <button type="submit" disabled={saving}>
+          {saving ? "Saving…" : initial ? "Save changes" : "Create product"}
+        </button>
+        {!initial && (
+          <button
+            type="submit"
+            className="secondary"
+            value="add-another"
+            disabled={saving}
+          >
+            Save &amp; add another
+          </button>
+        )}
+      </div>
       {message && <p className="notice">{message}</p>}
     </form>
   );
