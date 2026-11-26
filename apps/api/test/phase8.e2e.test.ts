@@ -47,6 +47,121 @@ try {
   assert.equal(trial.plan.code, "GROWTH");
   assert.ok(trial.trialEndsAt && trial.trialStartedAt);
 
+  await prisma.subscription.update({
+    where: { id: trial.id },
+    data: {
+      trialStartedAt: new Date(Date.now() - 45 * 86_400_000),
+      trialEndsAt: new Date(Date.now() - 30 * 86_400_000),
+      status: "EXPIRED",
+    },
+  });
+  const deniedCategory = await request(server)
+    .post(
+      base +
+        "/categories?redirect=/api/v1/organizations/" +
+        organizationId +
+        "/support/issues",
+    )
+    .set(bearer(token))
+    .send({ name: "Category during expired trial" });
+  assert.equal(deniedCategory.body.code, "SUBSCRIPTION_INACTIVE");
+  const ticket = await request(server)
+    .post(base + "/support/issues")
+    .set(bearer(token))
+    .send({
+      title: "Cannot create category",
+      description: "The workspace trial expired.",
+      category: "SUBSCRIPTION",
+    });
+  assert.equal(ticket.status, 201);
+  const queue = "/api/v1/platform/support/issues";
+  const ticketUrl = queue + "/" + String(ticket.body.id);
+  const update = {
+    status: "RESOLVED",
+    resolutionNote: "The trial has been extended.",
+    updatedAt: ticket.body.updatedAt,
+  };
+  assert.equal(
+    (await request(server).get("/api/v1/platform/overview").set(bearer(token)))
+      .status,
+    403,
+  );
+  assert.equal(
+    (await request(server).get(ticketUrl).set(bearer(token))).status,
+    403,
+  );
+  assert.equal(
+    (await request(server).patch(ticketUrl).set(bearer(token)).send(update))
+      .status,
+    403,
+  );
+  await prisma.user.update({
+    where: { id: userId },
+    data: { isPlatformAdmin: true },
+  });
+  assert.equal(
+    (await request(server).get("/api/v1/platform/overview").set(bearer(token)))
+      .status,
+    200,
+  );
+  const filteredTickets = await request(server)
+    .get(queue)
+    .query({ search: "Cannot create category", status: "OPEN" })
+    .set(bearer(token));
+  assert.equal(filteredTickets.status, 200);
+  assert.ok(
+    filteredTickets.body.some(
+      (item: { id: string }) => item.id === ticket.body.id,
+    ),
+  );
+  const extension = await request(server)
+    .post("/api/v1/platform/subscriptions/" + trial.id + "/extend-trial")
+    .set(bearer(token))
+    .send({ days: 7, reason: "Restore sandbox testing access" });
+  assert.equal(extension.status, 201);
+  assert.ok(
+    Date.parse(extension.body.trialEndsAt) > Date.now() + 6 * 86_400_000,
+  );
+  assert.equal(
+    (await request(server).patch(ticketUrl).set(bearer(token)).send(update))
+      .status,
+    200,
+  );
+  assert.equal(
+    (await request(server).patch(ticketUrl).set(bearer(token)).send(update))
+      .status,
+    409,
+  );
+  assert.equal(
+    await prisma.auditLog.count({
+      where: { entityId: ticket.body.id, action: "SUPPORT_ISSUE_UPDATED" },
+    }),
+    1,
+  );
+  await prisma.user.update({
+    where: { id: userId },
+    data: { isPlatformAdmin: false },
+  });
+  const clientTickets = await request(server)
+    .get(base + "/support/issues")
+    .set(bearer(token));
+  assert.equal(clientTickets.status, 200);
+  assert.equal(
+    clientTickets.body.find(
+      (item: { id: string }) => item.id === ticket.body.id,
+    ).resolutionNote,
+    update.resolutionNote,
+  );
+  assert.equal(
+    (
+      await request(server)
+        .post(base + "/categories")
+        .set(bearer(token))
+        .send({ name: "Category after extension" })
+    ).status,
+    201,
+  );
+
   const quotaPlan = await prisma.plan.create({
     data: {
       code: `TEST_${suffix}`,

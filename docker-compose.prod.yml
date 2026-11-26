@@ -7,7 +7,7 @@ x-app-environment: &app-environment
   REDIS_KEY_PREFIX: ${REDIS_KEY_PREFIX:-allshops:}
   APP_URL: ${APP_URL:-https://allshopspos.com}
   API_URL: ${API_URL:-https://api.allshopspos.com}
-  CORS_ORIGINS: ${CORS_ORIGINS:-https://allshopspos.com,https://www.allshopspos.com}
+  CORS_ORIGINS: ${CORS_ORIGINS:-https://allshopspos.com,https://www.allshopspos.com},https://admin.allshopspos.com
   JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?JWT_ACCESS_SECRET is required}
   JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?JWT_REFRESH_SECRET is required}
   JWT_ACCESS_TTL: ${JWT_ACCESS_TTL:-15m}

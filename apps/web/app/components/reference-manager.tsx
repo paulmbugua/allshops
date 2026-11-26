@@ -1,6 +1,7 @@
 "use client";
+import Link from "next/link";
 import { useEffect, useState, type FormEvent } from "react";
-import { api, selectedOrganization } from "../lib/api";
+import { ApiError, api, selectedOrganization } from "../lib/api";
 import type { Category, Paged } from "../lib/catalogue";
 import { Can } from "./permission-context";
 
@@ -12,10 +13,9 @@ export function ReferenceManager({
 }) {
   const [items, setItems] = useState<Resource[]>([]);
   const [message, setMessage] = useState("");
+  const [billingBlocked, setBillingBlocked] = useState(false);
   const organizationId = selectedOrganization();
-  const singular = kind.slice(0, -1);
-  const permissionPrefix =
-    kind === "categories" ? "category" : kind.slice(0, -1);
+  const singular = kind === "categories" ? "category" : kind.slice(0, -1);
   const title = kind[0]!.toUpperCase() + kind.slice(1);
   useEffect(() => {
     if (!organizationId) {
@@ -41,6 +41,7 @@ export function ReferenceManager({
     event.preventDefault();
     if (!organizationId) return;
     const form = event.currentTarget;
+    setBillingBlocked(false);
     const data = new FormData(form);
     const body =
       kind === "units"
@@ -65,6 +66,16 @@ export function ReferenceManager({
       setMessage(`${singular} created.`);
       await load();
     } catch (error) {
+      if (
+        error instanceof ApiError &&
+        [
+          "SUBSCRIPTION_REQUIRED",
+          "SUBSCRIPTION_INACTIVE",
+          "SUBSCRIPTION_SUSPENDED",
+        ].includes(error.code)
+      ) {
+        setBillingBlocked(true);
+      }
       setMessage(
         error instanceof Error
           ? error.message
@@ -88,7 +99,7 @@ export function ReferenceManager({
   }
   return (
     <section className="card">
-      <Can permissions={[`${permissionPrefix}.create`]}>
+      <Can permissions={[`${singular}.create`]}>
         <form className="form compact first" onSubmit={create}>
           <div className="form-grid">
             <label>
@@ -143,7 +154,7 @@ export function ReferenceManager({
             <span className={`pill ${item.isActive ? "active" : ""}`}>
               {item.isActive ? "Active" : "Inactive"}
             </span>
-            <Can permissions={[`${permissionPrefix}.update`]}>
+            <Can permissions={[`${singular}.update`]}>
               <button className="secondary" onClick={() => void toggle(item)}>
                 {item.isActive ? "Deactivate" : "Activate"}
               </button>
@@ -152,6 +163,13 @@ export function ReferenceManager({
         ))}
       </div>
       {message && <p className="notice">{message}</p>}
+      {billingBlocked && (
+        <p className="notice" role="alert">
+          This workspace needs an active subscription or trial.{" "}
+          <Link href="/settings/subscription">View subscription</Link> or{" "}
+          <Link href="/support/requests">contact support</Link>.
+        </p>
+      )}
     </section>
   );
 }

@@ -1,9 +1,50 @@
-import { Body, Controller, Get, Param, Post, Req } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  Req,
+} from "@nestjs/common";
 import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
-import { prisma } from "@allshops/database";
+import {
+  prisma,
+  SupportIssueCategory,
+  SupportIssueSeverity,
+  SupportIssueStatus,
+} from "@allshops/database";
+import { z } from "zod";
 import { RequirePermission } from "./permissions.decorator.js";
 import type { RequestContext } from "./security.types.js";
 import { PilotService } from "./pilot.service.js";
+import { assertUuid, parseInput } from "./validation.js";
+
+const supportInput = z
+  .object({
+    title: z.string().trim().min(1).max(200),
+    description: z.string().trim().min(1).max(10_000),
+    category: z.nativeEnum(SupportIssueCategory).default("OTHER"),
+    severity: z.nativeEnum(SupportIssueSeverity).default("MEDIUM"),
+    invoiceNumber: z.string().trim().max(160).optional(),
+    localReference: z.string().trim().max(160).optional(),
+  })
+  .strict();
+
+const supportFilters = z.object({
+  status: z.nativeEnum(SupportIssueStatus).optional(),
+  search: z.string().trim().max(120).optional(),
+  page: z.coerce.number().int().min(1).max(10_000).default(1),
+});
+
+const supportUpdate = z
+  .object({
+    status: z.nativeEnum(SupportIssueStatus),
+    resolutionNote: z.string().trim().min(3).max(5000),
+    updatedAt: z.string().datetime(),
+  })
+  .strict();
 
 @ApiTags("Pilot")
 @ApiBearerAuth()
@@ -101,9 +142,39 @@ export class PilotController {
     );
   }
 
+  @Get("platform/overview")
+  platformOverview(@Req() request: RequestContext) {
+    return this.pilot.platformOverview(request.user!.isPlatformAdmin);
+  }
+
   @Get("platform/support/issues")
-  platformIssues(@Req() request: RequestContext) {
-    return this.pilot.platformIssues(Boolean(request.user?.isPlatformAdmin));
+  platformIssues(@Query() query: unknown, @Req() request: RequestContext) {
+    return this.pilot.platformIssues(
+      request.user!.isPlatformAdmin,
+      parseInput(supportFilters, query),
+    );
+  }
+
+  @Get("platform/support/issues/:issueId")
+  platformIssue(@Param("issueId") id: string, @Req() request: RequestContext) {
+    return this.pilot.platformIssue(
+      request.user!.isPlatformAdmin,
+      assertUuid(id, "issueId"),
+    );
+  }
+
+  @Patch("platform/support/issues/:issueId")
+  updatePlatformIssue(
+    @Param("issueId") id: string,
+    @Body() body: unknown,
+    @Req() request: RequestContext,
+  ) {
+    return this.pilot.updatePlatformIssue(
+      request.user!.isPlatformAdmin,
+      request.user!.id,
+      assertUuid(id, "issueId"),
+      parseInput(supportUpdate, body),
+    );
   }
 
   @Get("platform/feedback")
@@ -128,47 +199,34 @@ export class PilotController {
 export class SupportController {
   @RequirePermission("organization.read")
   @Get()
-  list(@Param("organizationId") organizationId: string) {
+  list(@Req() request: RequestContext) {
     return prisma.supportIssue.findMany({
-      where: { organizationId },
+      where: {
+        organizationId: request.tenant!.organizationId,
+        ...(request.tenant!.permissions.includes("organization.update")
+          ? {}
+          : { reportedBy: request.user!.id }),
+      },
       orderBy: { createdAt: "desc" },
       take: 100,
     });
   }
 
-  @RequirePermission("organization.update")
+  @RequirePermission("organization.read")
   @Post()
   async create(
     @Param("organizationId") organizationId: string,
-    @Body() body: Record<string, unknown>,
+    @Body() body: unknown,
     @Req() request: RequestContext,
   ) {
-    const title = String(body.title ?? "").trim();
-    const description = String(body.description ?? "").trim();
-    if (
-      !title ||
-      !description ||
-      title.length > 200 ||
-      description.length > 10_000
-    )
-      throw new Error("A valid support title and description are required.");
+    const input = parseInput(supportInput, body);
     return prisma.supportIssue.create({
       data: {
         organizationId,
         reportedBy: request.user!.id,
-        category: (body.category as never) ?? "OTHER",
-        severity: (body.severity as never) ?? "MEDIUM",
-        title,
-        description,
+        ...input,
+        branchId: request.tenant!.branchId,
         requestId: request.requestId,
-        invoiceNumber:
-          typeof body.invoiceNumber === "string"
-            ? body.invoiceNumber
-            : undefined,
-        localReference:
-          typeof body.localReference === "string"
-            ? body.localReference
-            : undefined,
         appVersion: process.env.APP_VERSION,
       },
     });

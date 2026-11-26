@@ -3,6 +3,11 @@ import { useEffect } from "react";
 
 export function PwaRegistration() {
   useEffect(() => {
+    if (
+      location.hostname === "admin.allshopspos.com" ||
+      location.pathname.startsWith("/platform")
+    )
+      return;
     const isSecure =
       window.isSecureContext ||
       ["localhost", "127.0.0.1"].includes(location.hostname);

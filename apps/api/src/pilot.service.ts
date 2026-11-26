@@ -1,10 +1,11 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
-import { prisma } from "@allshops/database";
+import { prisma, type SupportIssueStatus } from "@allshops/database";
 import type { TenantContext } from "./security.types.js";
 import { supportFaqsFor } from "./support-faqs.js";
 
@@ -300,11 +301,50 @@ export class PilotService {
     };
   }
 
-  async platformIssues(isPlatformAdmin: boolean) {
+  async platformOverview(isPlatformAdmin: boolean) {
+    this.assertPlatform(isPlatformAdmin);
+    const [workspaces, activeSubscriptions, openIssues, expiredSubscriptions] =
+      await Promise.all([
+        prisma.organization.count(),
+        prisma.subscription.count({ where: { status: "ACTIVE" } }),
+        prisma.supportIssue.count({
+          where: { status: { in: ["OPEN", "TRIAGED", "IN_PROGRESS"] } },
+        }),
+        prisma.subscription.count({ where: { status: "EXPIRED" } }),
+      ]);
+    return {
+      workspaces,
+      activeSubscriptions,
+      openIssues,
+      expiredSubscriptions,
+    };
+  }
+
+  async platformIssues(
+    isPlatformAdmin: boolean,
+    filters: { status?: SupportIssueStatus; search?: string; page: number },
+  ) {
     this.assertPlatform(isPlatformAdmin);
     return prisma.supportIssue.findMany({
-      orderBy: { createdAt: "desc" },
-      take: 200,
+      where: {
+        status: filters.status,
+        ...(filters.search
+          ? {
+              OR: [
+                { title: { contains: filters.search, mode: "insensitive" } },
+                { requestId: { equals: filters.search } },
+                {
+                  organization: {
+                    name: { contains: filters.search, mode: "insensitive" },
+                  },
+                },
+              ],
+            }
+          : {}),
+      },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      skip: (filters.page - 1) * 40,
+      take: 40,
       select: {
         id: true,
         organizationId: true,
@@ -315,7 +355,75 @@ export class PilotService {
         requestId: true,
         createdAt: true,
         updatedAt: true,
+        organization: { select: { name: true } },
       },
+    });
+  }
+
+  async platformIssue(isPlatformAdmin: boolean, id: string) {
+    this.assertPlatform(isPlatformAdmin);
+    const issue = await prisma.supportIssue.findUnique({
+      where: { id },
+      include: {
+        reporter: { select: { name: true, email: true } },
+        organization: {
+          select: {
+            name: true,
+            subscription: { select: { id: true, status: true } },
+          },
+        },
+      },
+    });
+    if (!issue) throw new NotFoundException("Support request not found.");
+    return issue;
+  }
+
+  async updatePlatformIssue(
+    isPlatformAdmin: boolean,
+    actorId: string,
+    id: string,
+    input: {
+      status: SupportIssueStatus;
+      resolutionNote: string;
+      updatedAt: string;
+    },
+  ) {
+    this.assertPlatform(isPlatformAdmin);
+    return prisma.$transaction(async (tx) => {
+      const current = await tx.supportIssue.findUnique({ where: { id } });
+      if (!current) throw new NotFoundException("Support request not found.");
+      const complete = input.status === "RESOLVED" || input.status === "CLOSED";
+      const changed = await tx.supportIssue.updateMany({
+        where: { id, updatedAt: new Date(input.updatedAt) },
+        data: {
+          status: input.status,
+          resolutionNote: input.resolutionNote,
+          resolvedAt: complete ? (current.resolvedAt ?? new Date()) : null,
+        },
+      });
+      if (changed.count !== 1) {
+        throw new ConflictException(
+          "This request was updated. Reload it before saving.",
+        );
+      }
+      await tx.auditLog.create({
+        data: {
+          organizationId: current.organizationId,
+          userId: actorId,
+          action: "SUPPORT_ISSUE_UPDATED",
+          entityType: "SupportIssue",
+          entityId: id,
+          beforeJson: {
+            status: current.status,
+            resolutionNote: current.resolutionNote,
+          },
+          afterJson: {
+            status: input.status,
+            resolutionNote: input.resolutionNote,
+          },
+        },
+      });
+      return tx.supportIssue.findUniqueOrThrow({ where: { id } });
     });
   }
 

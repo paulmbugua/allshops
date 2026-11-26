@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { AppShell } from "../../components/app-shell";
 import { api, selectedOrganization } from "../../lib/api";
 
@@ -78,6 +79,9 @@ export default function SupportDiagnosticsPage() {
         <div>
           <span>ALLSHOPS SUPPORT CENTRE</span>
           <h2>Answers for your workspace</h2>
+          <Link href="/support/requests">
+            Contact support or view your requests
+          </Link>
           <p>
             Guidance is tailored to your{" "}
             {data?.supportProfile.roleCode.replaceAll("_", " ").toLowerCase() ??

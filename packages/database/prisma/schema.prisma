@@ -599,6 +599,7 @@ model SupportIssue {
   createdAt      DateTime             @default(now())
   updatedAt      DateTime             @updatedAt
   resolvedAt     DateTime?
+  resolutionNote String?
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   reporter     User         @relation("SupportIssueReporter", fields: [reportedBy], references: [id], onDelete: Restrict)

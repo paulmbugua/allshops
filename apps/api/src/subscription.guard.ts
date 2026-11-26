@@ -10,10 +10,15 @@ export class SubscriptionGuard implements CanActivate {
     const request = context.switchToHttp().getRequest<RequestContext>();
     const organizationId = request.params?.organizationId;
     if (!organizationId || !request.tenant) return true;
-    const url = request.originalUrl ?? "";
+    const url = request.originalUrl?.split("?")[0] ?? "";
     if (/\/organizations\/[^/]+\/(subscription|billing)(?:\/|\?|$)/.test(url))
       return true;
     if (/\/sync\/sales(?:\?|$)/.test(url)) return true;
+    if (
+      request.method === "POST" &&
+      /^\/api\/v1\/organizations\/[^/]+\/support\/issues\/?$/.test(url)
+    )
+      return true;
     const feature = this.feature(url);
     if (feature) await this.entitlements.assertFeature(organizationId, feature);
     if (request.method !== "GET" && request.method !== "HEAD") {

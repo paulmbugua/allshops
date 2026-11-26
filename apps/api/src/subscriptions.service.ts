@@ -416,36 +416,44 @@ export class SubscriptionsService {
     input: ExtendTrialInput,
   ) {
     this.platform(isAdmin);
-    const current = await prisma.subscription.findUniqueOrThrow({
-      where: { id },
-    });
-    if (!current.trialEndsAt)
-      throw new ConflictException({
-        code: "NO_TRIAL",
-        message: "Subscription has no trial.",
+    return prisma.$transaction(async (tx) => {
+      const current = await tx.subscription.findUniqueOrThrow({
+        where: { id },
       });
-    const updated = await prisma.subscription.update({
-      where: { id },
-      data: {
-        trialEndsAt: new Date(
-          current.trialEndsAt.getTime() + input.days * 86_400_000,
-        ),
-        status: "TRIALING",
-        version: { increment: 1 },
-      },
+      if (
+        !current.trialEndsAt ||
+        current.currentPeriodEnd ||
+        !["TRIALING", "EXPIRED"].includes(current.status)
+      )
+        throw new ConflictException({
+          code: "NO_EXTENDABLE_TRIAL",
+          message: "Only an active or expired trial can be extended.",
+        });
+      const trialEndsAt = new Date(
+        Math.max(Date.now(), current.trialEndsAt.getTime()) +
+          input.days * 86_400_000,
+      );
+      const updated = await tx.subscription.update({
+        where: { id, version: current.version },
+        data: { trialEndsAt, status: "TRIALING", version: { increment: 1 } },
+      });
+      await tx.subscriptionEvent.create({
+        data: {
+          organizationId: current.organizationId,
+          subscriptionId: id,
+          eventType: "TRIAL_EXTENDED",
+          fromStatus: current.status,
+          toStatus: "TRIALING",
+          createdBy: actorId,
+          metadata: {
+            days: input.days,
+            reason: input.reason,
+            trialEndsAt: trialEndsAt.toISOString(),
+          },
+        },
+      });
+      return updated;
     });
-    await prisma.subscriptionEvent.create({
-      data: {
-        organizationId: current.organizationId,
-        subscriptionId: id,
-        eventType: "TRIAL_EXTENDED",
-        fromStatus: current.status,
-        toStatus: "TRIALING",
-        createdBy: actorId,
-        metadata: { days: input.days, reason: input.reason },
-      },
-    });
-    return updated;
   }
 
   async suspend(
@@ -523,29 +531,45 @@ export class SubscriptionsService {
     reason: string,
   ) {
     this.platform(isAdmin);
-    const current = await prisma.subscription.findUniqueOrThrow({
-      where: { id },
+    return prisma.$transaction(async (tx) => {
+      const current = await tx.subscription.findUniqueOrThrow({
+        where: { id },
+      });
+      if (current.status === status) return current;
+      const now = new Date();
+      if (
+        status === "ACTIVE" &&
+        (current.status !== "SUSPENDED" ||
+          !current.currentPeriodEnd ||
+          current.currentPeriodEnd <= now)
+      ) {
+        throw new ConflictException({
+          code: "PAID_PERIOD_REQUIRED",
+          message:
+            "Reactivation requires a suspended subscription with a current paid period. Confirm a payment to activate an expired paid plan.",
+        });
+      }
+      const updated = await tx.subscription.update({
+        where: { id, version: current.version },
+        data: {
+          status,
+          suspendedAt: status === "SUSPENDED" ? now : null,
+          version: { increment: 1 },
+        },
+      });
+      await tx.subscriptionEvent.create({
+        data: {
+          organizationId: current.organizationId,
+          subscriptionId: id,
+          eventType,
+          fromStatus: current.status,
+          toStatus: status,
+          createdBy: actorId,
+          metadata: { reason },
+        },
+      });
+      return updated;
     });
-    const updated = await prisma.subscription.update({
-      where: { id },
-      data: {
-        status,
-        suspendedAt: status === "SUSPENDED" ? new Date() : null,
-        version: { increment: 1 },
-      },
-    });
-    await prisma.subscriptionEvent.create({
-      data: {
-        organizationId: current.organizationId,
-        subscriptionId: id,
-        eventType,
-        fromStatus: current.status,
-        toStatus: status,
-        createdBy: actorId,
-        metadata: { reason },
-      },
-    });
-    return updated;
   }
 
   private platform(value: boolean) {
