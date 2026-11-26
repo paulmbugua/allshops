@@ -6,6 +6,23 @@ import type { Category, Paged } from "../lib/catalogue";
 import { Can } from "./permission-context";
 
 type Resource = Category & { symbol?: string; description?: string | null };
+const descriptionPresets = {
+  categories: [
+    "Food and groceries",
+    "Drinks and beverages",
+    "Household and cleaning supplies",
+    "Personal care and hygiene",
+    "General merchandise",
+  ],
+  brands: [
+    "Food and beverage brand",
+    "Household and cleaning brand",
+    "Personal care brand",
+    "Store brand",
+    "General merchandise brand",
+  ],
+};
+
 export function ReferenceManager({
   kind,
 }: {
@@ -14,6 +31,7 @@ export function ReferenceManager({
   const [items, setItems] = useState<Resource[]>([]);
   const [message, setMessage] = useState("");
   const [billingBlocked, setBillingBlocked] = useState(false);
+  const [description, setDescription] = useState("");
   const organizationId = selectedOrganization();
   const singular = kind === "categories" ? "category" : kind.slice(0, -1);
   const title = kind[0]!.toUpperCase() + kind.slice(1);
@@ -43,6 +61,14 @@ export function ReferenceManager({
     const form = event.currentTarget;
     setBillingBlocked(false);
     const data = new FormData(form);
+    const descriptionText =
+      description === "other"
+        ? String(data.get("customDescription") ?? "").trim()
+        : description;
+    if (kind !== "units" && description === "other" && !descriptionText) {
+      setMessage("Enter a custom description.");
+      return;
+    }
     const body =
       kind === "units"
         ? { name: data.get("name"), symbol: data.get("symbol") }
@@ -51,11 +77,11 @@ export function ReferenceManager({
               name: data.get("name"),
               parentId: data.get("parentId") || null,
               arabicName: data.get("arabicName") || null,
-              description: data.get("description") || null,
+              description: descriptionText || null,
             }
           : {
               name: data.get("name"),
-              description: data.get("description") || null,
+              description: descriptionText || null,
             };
     try {
       await api(`/organizations/${organizationId}/${kind}`, {
@@ -63,6 +89,7 @@ export function ReferenceManager({
         body: JSON.stringify(body),
       });
       form.reset();
+      setDescription("");
       setMessage(`${singular} created.`);
       await load();
     } catch (error) {
@@ -134,10 +161,27 @@ export function ReferenceManager({
               </>
             )}
             {kind !== "units" && (
-              <label>
-                Description
-                <input name="description" />
-              </label>
+              <>
+                <label>
+                  Description
+                  <select
+                    value={description}
+                    onChange={(event) => setDescription(event.target.value)}
+                  >
+                    <option value="">No description</option>
+                    {descriptionPresets[kind].map((preset) => (
+                      <option key={preset}>{preset}</option>
+                    ))}
+                    <option value="other">Other (custom description)</option>
+                  </select>
+                </label>
+                {description === "other" && (
+                  <label>
+                    Custom description
+                    <input name="customDescription" required maxLength={500} />
+                  </label>
+                )}
+              </>
             )}
           </div>
           <button>Create {singular}</button>

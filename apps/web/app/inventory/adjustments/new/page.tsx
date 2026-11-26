@@ -10,6 +10,17 @@ import {
   type Paged,
   type Product,
 } from "../../../lib/catalogue";
+
+const adjustmentReasons = {
+  IN: ["Stock count correction", "Found stock", "Other"],
+  OUT: [
+    "Stock count correction",
+    "Damaged or expired",
+    "Lost or missing",
+    "Other",
+  ],
+} as const;
+
 export default function AdjustmentPage() {
   const [branches, setBranches] = useState<Branch[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
@@ -19,8 +30,11 @@ export default function AdjustmentPage() {
   const [locationId, setLocationId] = useState("");
   const [productId, setProductId] = useState("");
   const [variantId, setVariantId] = useState("");
-  const [operation, setOperation] = useState("OUT");
+  const [operation, setOperation] = useState<"OPENING" | "IN" | "OUT">("OUT");
   const [quantity, setQuantity] = useState("");
+  const [reason, setReason] = useState("");
+  const [reasonNote, setReasonNote] = useState("");
+  const [posting, setPosting] = useState(false);
   const [message, setMessage] = useState("");
   const organizationId = selectedOrganization();
   useEffect(() => {
@@ -67,21 +81,33 @@ export default function AdjustmentPage() {
           .toFixed(4)
           .replace(/\.0+$/, "")
       : current;
+  const opening = operation === "OPENING";
+  const selectedReason = opening ? "Opening stock" : reason;
+  const customReason = selectedReason === "Other";
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!organizationId) return;
-    const data = new FormData(event.currentTarget);
-    const opening = operation === "OPENING";
+    if (!organizationId || posting) return;
+    const note = reasonNote.trim();
+    if (!selectedReason || (customReason && note.length < 2)) {
+      setMessage("Choose a reason or enter a short explanation for Other.");
+      return;
+    }
+    const movementReason = customReason
+      ? note
+      : note
+        ? `${selectedReason}: ${note}`
+        : selectedReason;
     const body = {
       branchId,
       locationId,
       productId,
       variantId: variantId || null,
       quantity,
-      ...(opening
-        ? { unitCostMinor: null, reason: data.get("reason") || undefined }
-        : { direction: operation, reason: data.get("reason") }),
+      reason: movementReason,
+      ...(opening ? { unitCostMinor: null } : { direction: operation }),
     };
+    setPosting(true);
+    setMessage("");
     try {
       await api(
         `/organizations/${organizationId}/inventory/${opening ? "opening-stock" : "adjustments"}`,
@@ -91,16 +117,24 @@ export default function AdjustmentPage() {
           body: JSON.stringify(body),
         },
       );
+      setQuantity("");
+      setReason("");
+      setReasonNote("");
       setMessage("Stock movement posted.");
       const refreshed = await api<Paged<InventoryRow>>(
         `/organizations/${organizationId}/inventory?pageSize=100`,
-      );
-      setBalances(refreshed.items);
-      setQuantity("");
+      ).catch(() => null);
+      if (refreshed) setBalances(refreshed.items);
+      else
+        setMessage(
+          "Stock movement posted. Refresh the page for the updated balance.",
+        );
     } catch (error) {
       setMessage(
         error instanceof Error ? error.message : "Unable to post stock.",
       );
+    } finally {
+      setPosting(false);
     }
   }
   const chosen = products.find((product) => product.id === productId);
@@ -184,7 +218,11 @@ export default function AdjustmentPage() {
               Movement
               <select
                 value={operation}
-                onChange={(event) => setOperation(event.target.value)}
+                onChange={(event) => {
+                  setOperation(event.target.value as typeof operation);
+                  setReason("");
+                  setReasonNote("");
+                }}
               >
                 <option value="OPENING">Opening stock</option>
                 <option value="IN">Adjustment in</option>
@@ -203,8 +241,38 @@ export default function AdjustmentPage() {
             </label>
             <label>
               Reason
-              <input name="reason" required={operation !== "OPENING"} />
+              <select
+                value={selectedReason}
+                onChange={(event) => {
+                  setReason(event.target.value);
+                  setReasonNote("");
+                }}
+                required
+              >
+                {operation === "OPENING" ? (
+                  <option>Opening stock</option>
+                ) : (
+                  <>
+                    <option value="">Choose reason</option>
+                    {adjustmentReasons[operation].map((option) => (
+                      <option key={option}>{option}</option>
+                    ))}
+                  </>
+                )}
+              </select>
             </label>
+            {selectedReason && (
+              <label>
+                {customReason ? "Explain the adjustment" : "Note (optional)"}
+                <input
+                  value={reasonNote}
+                  onChange={(event) => setReasonNote(event.target.value)}
+                  required={customReason}
+                  minLength={customReason ? 2 : undefined}
+                  maxLength={customReason ? 500 : 498 - selectedReason.length}
+                />
+              </label>
+            )}
           </div>
           <div className="calculation">
             <span>
@@ -214,7 +282,9 @@ export default function AdjustmentPage() {
               Resulting stock <strong>{resulting}</strong>
             </span>
           </div>
-          <button>Confirm movement</button>
+          <button disabled={posting}>
+            {posting ? "Posting…" : "Confirm movement"}
+          </button>
         </form>
         {message && <p className="notice">{message}</p>}
       </section>
