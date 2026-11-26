@@ -337,7 +337,13 @@ try {
     .set(bearer(token))
     .send({ planCode: "BUSINESS", billingInterval: "MONTHLY" });
   assert.equal(selection.status, 201);
-  assert.equal(selection.body.billingRecord.amountMinor, 19900);
+  const businessPlan = await prisma.plan.findUniqueOrThrow({
+    where: { code: "BUSINESS" },
+  });
+  assert.equal(
+    selection.body.billingRecord.amountMinor,
+    businessPlan.monthlyPriceMinor,
+  );
   const billId = selection.body.billingRecord.id as string;
   const subscriptionId = trial.id;
   const paymentCountBefore = await prisma.payment.count({
