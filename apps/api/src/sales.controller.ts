@@ -1,7 +1,9 @@
 import {
   Body,
   Controller,
+  ForbiddenException,
   Get,
+  Header,
   Headers,
   HttpCode,
   Param,
@@ -26,6 +28,7 @@ import { RequirePermission } from "./permissions.decorator.js";
 import { Public } from "./public.decorator.js";
 import { darajaConfig } from "./daraja.js";
 import { SalesService } from "./sales.service.js";
+import { printDate, printMoney, printPdfFile, type PrintTable } from "./print-pdf.js";
 import type { RequestContext } from "./security.types.js";
 import { assertUuid, parseInput } from "./validation.js";
 
@@ -175,6 +178,45 @@ export class SalesController {
       assertUuid(saleId, "saleId"),
       mode === "initial",
     );
+  }
+
+  @RequirePermission("receipt.print")
+  @Get("sales/:saleId/receipt/pdf")
+  @Header("Cache-Control", "private, no-store")
+  async receiptPdf(@Param("saleId") id: string, @Req() request: RequestContext) {
+    const tenant = request.tenant!;
+    const saleId = assertUuid(id, "saleId");
+    const userId = request.user!.id;
+    if (tenant.roleCode === "CASHIER" && (await this.sales.detail(tenant, saleId)).createdBy !== userId) {
+      throw new ForbiddenException("You can only download receipts for your own sales.");
+    }
+    const sale = await this.sales.receipt(tenant, userId, saleId);
+    const money = (minor: number) => printMoney(minor, sale.currency);
+    const summary: NonNullable<PrintTable["summary"]> = [
+      ["Branch address", sale.branch.address], ["KRA PIN", sale.kraPin], ["Cashier", sale.creator.name],
+      ["Subtotal", money(sale.subtotalMinor)], ["Discount", money(sale.discountMinor)], ["Tax", money(sale.taxMinor)],
+      ["Sale total", money(sale.totalMinor)], ["Paid", money(sale.paidMinor)], ["Balance due", money(sale.balanceMinor)],
+    ];
+    for (const payment of sale.payments) {
+      const method = payment.method === "OTHER" && payment.reference?.startsWith("M-PESA") ? payment.reference.split(":", 1)[0]! : payment.method.replaceAll("_", " ");
+      summary.push([method, money(payment.amountMinor)]);
+    }
+    if (summary.length > 15) summary.splice(15, summary.length - 15, ["Additional payments", "See the sale detail for the full breakdown"]);
+    if (sale.changeMinor) summary.push(["Change", money(sale.changeMinor)]);
+    if (sale.fiscalDocument?.status === "ACCEPTED") {
+      if (sale.fiscalDocument.environment === "SANDBOX") summary.push(["eTIMS", "SANDBOX - NOT A PRODUCTION TAX INVOICE"]);
+      summary.push(["KRA receipt", sale.fiscalDocument.currentReceiptNumber], ["Internal data", sale.fiscalDocument.internalData], ["Signature", sale.fiscalDocument.receiptSignature]);
+    } else if (sale.fiscalStatus !== "NOT_REQUIRED") {
+      summary.push(["eTIMS", sale.fiscalStatus.replaceAll("_", " ")]);
+    }
+    return printPdfFile(sale.invoiceNumber ?? "receipt", {
+      organization: sale.organization.name,
+      title: `Sales receipt ${sale.invoiceNumber ?? ""}`.trim(),
+      context: `${sale.branch.name} | ${printDate(sale.completedAt ?? sale.createdAt)}`,
+      closingNote: sale.loyaltyAward ? `Loyalty member: ${sale.loyaltyAward.memberName} | Points earned: ${sale.loyaltyAward.points}` : undefined,
+      summary, headers: ["Item", "Quantity", "Unit price", "Line total"],
+      rows: sale.items.map((item) => [item.variantNameSnapshot ? `${item.productNameSnapshot} / ${item.variantNameSnapshot}` : item.productNameSnapshot, item.quantity.toString(), money(item.unitPriceMinor), money(item.totalMinor)]),
+    });
   }
 
   @RequirePermission("sale.read")

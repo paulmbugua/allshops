@@ -9,6 +9,7 @@ import {
 } from "react";
 import Link from "next/link";
 import { AppShell } from "../components/app-shell";
+import { Can } from "../components/permission-context";
 import {
   api,
   clearSession,
@@ -1107,11 +1108,13 @@ export default function PosPage() {
                 <strong>Cash drawer</strong>
                 <small>Open or close shift</small>
               </Link>
-              <Link href="/reports">
-                <span aria-hidden="true">▥</span>
-                <strong>Sales report</strong>
-                <small>Today&apos;s performance</small>
-              </Link>
+              <Can permissions={["sale.read", "shift.read", "report.export"]} any>
+                <Link href="/print-centre">
+                  <span aria-hidden="true">▥</span>
+                  <strong>Print Centre</strong>
+                  <small>Sales and register reports</small>
+                </Link>
+              </Can>
               <Link href="/inventory">
                 <span aria-hidden="true">▦</span>
                 <strong>Stock control</strong>

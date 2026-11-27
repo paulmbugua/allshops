@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { useEffect, useState, type FormEvent } from "react";
 import { AppShell } from "../components/app-shell";
 import { api, selectedOrganization } from "../lib/api";
@@ -61,6 +62,7 @@ export default function ReportsPage() {
   return (
     <AppShell title="Reports">
       <section className="card print-hidden">
+        <Link className="button-link secondary" href="/print-centre?report=sales">Open Print Centre</Link>
         <form className="toolbar" onSubmit={apply}>
           <label>
             From

@@ -28,6 +28,7 @@ export class SubscriptionGuard implements CanActivate {
   }
 
   private feature(url: string) {
+    if (/\/reports\/print\/[^/]+\/?$/.test(url)) return null;
     if (/\/appointments(?:\/|\?|$)/.test(url)) return "appointments";
     if (/\/(commissions|commission-rules)(?:\/|\?|$)/.test(url))
       return "commissions";

@@ -3,6 +3,7 @@ import { useParams } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
 import { AppShell } from "../../components/app-shell";
 import { Can } from "../../components/permission-context";
+import { PdfActions } from "../../components/pdf-actions";
 import { api, selectedOrganization } from "../../lib/api";
 import { formatMinorCurrency } from "../../lib/catalogue";
 import {
@@ -113,6 +114,9 @@ export default function PurchaseDetailPage() {
           </div>
           <span className="pill">{purchase.status}</span>
         </div>
+        {organizationId && <Can permissions={["purchase.read"]}>
+          <PdfActions path={`/organizations/${organizationId}/purchases/${purchase.id}/pdf`} filename={purchase.purchaseNumber} />
+        </Can>}
         <div className="context-grid">
           <div>
             <small>Total</small>

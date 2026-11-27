@@ -297,6 +297,16 @@ try {
   });
   assert.equal(received.status, "RECEIVED");
   assert.equal(received.items[0]!.receivedQuantity.toString(), "100");
+  const purchasePdf = await request(server).get(`${purchaseEndpoint}/${purchaseId}/pdf`).set(bearer(owner));
+  assert.equal(purchasePdf.status, 200);
+  assert.equal(purchasePdf.headers["content-type"], "application/pdf");
+  assert.equal(purchasePdf.body.subarray(0, 4).toString(), "%PDF");
+  const purchasesReport = await request(server)
+    .get(`/api/v1/organizations/${org.id}/reports/print/purchases?branchId=${org.branchId}`)
+    .set(bearer(owner));
+  assert.equal(purchasesReport.status, 200);
+  assert.equal(purchasesReport.body.subarray(0, 4).toString(), "%PDF");
+  assert.equal((await request(server).get(`/api/v1/organizations/${foreign.id}/purchases/${purchaseId}/pdf`).set(bearer(foreignOwner))).status, 404);
   const balance = await prisma.inventoryBalance.findFirstOrThrow({
     where: {
       organizationId: org.id,

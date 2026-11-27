@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Header,
   Headers,
   Param,
   Patch,
@@ -34,6 +35,8 @@ import {
 } from "@allshops/contracts";
 
 import { Phase4Service } from "./phase4.service.js";
+import { printDate, printMoney, printPdfFile } from "./print-pdf.js";
+import { prisma } from "@allshops/database";
 import { RequirePermission } from "./permissions.decorator.js";
 import type { RequestContext } from "./security.types.js";
 import { assertUuid, parseInput } from "./validation.js";
@@ -127,6 +130,23 @@ export class Phase4Controller {
       request.tenant!,
       assertUuid(purchaseId, "purchaseId"),
     );
+  }
+
+  @RequirePermission("purchase.read")
+  @Get("purchases/:purchaseId/pdf")
+  @Header("Cache-Control", "private, no-store")
+  async purchasePdf(@Param("purchaseId") id: string, @Req() request: RequestContext) {
+    const tenant = request.tenant!;
+    const purchase = await this.phase4.purchase(tenant, assertUuid(id, "purchaseId"));
+    const organization = await prisma.organization.findUniqueOrThrow({ where: { id: tenant.organizationId }, select: { name: true } });
+    const money = (minor: number) => printMoney(minor, purchase.currency);
+    return printPdfFile(purchase.purchaseNumber, {
+      organization: organization.name, title: `Purchase ${purchase.purchaseNumber}`,
+      context: `${purchase.branch.name} | ${printDate(purchase.purchaseDate)} | ${purchase.status.replaceAll("_", " ")}`,
+      summary: [["Supplier", purchase.supplier.name], ["Supplier invoice", purchase.supplierInvoiceNumber], ["Subtotal", money(purchase.subtotalMinor)], ["Discount", money(purchase.discountMinor)], ["Tax", money(purchase.taxMinor)], ["Total", money(purchase.totalMinor)], ["Paid", money(purchase.paidMinor)], ["Outstanding", money(purchase.balanceMinor)]],
+      headers: ["Product", "Ordered", "Received", "Unit cost", "Line total"],
+      rows: purchase.items.map((item) => [item.variantNameSnapshot ? `${item.productNameSnapshot} / ${item.variantNameSnapshot}` : item.productNameSnapshot, item.orderedQuantity.toString(), item.receivedQuantity.toString(), money(item.unitCostMinor), money(item.totalMinor)]),
+    });
   }
 
   @RequirePermission("purchase.update_draft")

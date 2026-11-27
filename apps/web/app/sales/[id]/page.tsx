@@ -4,6 +4,7 @@ import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { AppShell } from "../../components/app-shell";
 import { Can } from "../../components/permission-context";
+import { PdfActions } from "../../components/pdf-actions";
 import { api, selectedOrganization } from "../../lib/api";
 import { formatMinorCurrency } from "../../lib/catalogue";
 import type { Sale } from "../../lib/sales";
@@ -158,12 +159,10 @@ export default function SalePage() {
               </div>
               {sale.status === "COMPLETED" && (
                 <Can permissions={["receipt.print"]}>
-                  <Link
-                    className="button-link"
-                    href={`/sales/${sale.id}/receipt`}
-                  >
-                    Print receipt
-                  </Link>
+                  <div className="actions print-hidden">
+                    <Link className="button-link secondary" href={`/sales/${sale.id}/receipt`}>Print receipt (80 mm)</Link>
+                    {organizationId && <PdfActions path={`/organizations/${organizationId}/sales/${sale.id}/receipt/pdf`} filename={sale.invoiceNumber ?? "receipt"} preview={false} />}
+                  </div>
                 </Can>
               )}
             </div>

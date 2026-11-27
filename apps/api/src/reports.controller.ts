@@ -1,6 +1,7 @@
 import {
   Controller,
   Get,
+  Header,
   Param,
   Query,
   Req,
@@ -25,6 +26,20 @@ import { parseInput } from "./validation.js";
 @Controller("organizations/:organizationId/reports")
 export class ReportsController {
   constructor(private readonly reports: ReportsService) {}
+
+  @RequirePermission("organization.read")
+  @Get("print-catalogue")
+  @Header("Cache-Control", "private, no-store")
+  printCatalogue(@Req() request: RequestContext) {
+    return this.reports.printOptions(request.tenant!);
+  }
+
+  @RequirePermission("organization.read")
+  @Get("print/:reportType")
+  @Header("Cache-Control", "private, no-store")
+  printReport(@Param("reportType") reportType: string, @Query() query: unknown, @Req() request: RequestContext) {
+    return this.reports.printReport(reportType, request.tenant!, request.user!.id, parseInput(reportDateRangeSchema, query));
+  }
 
   @RequirePermission("report.dashboard")
   @Get("dashboard")

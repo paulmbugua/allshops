@@ -87,11 +87,11 @@ export function selectOrganization(id: string): void {
   sessionStorage.setItem("allshops_organization", id);
   localStorage.setItem("allshops_last_organization", id);
 }
-export async function api<T>(
+async function apiResponse(
   path: string,
   init: RequestInit = {},
   retry = true,
-): Promise<T> {
+): Promise<Response> {
   const headers = new Headers(init.headers);
   if (init.body && !(init.body instanceof FormData))
     headers.set("Content-Type", "application/json");
@@ -110,21 +110,35 @@ export async function api<T>(
     if (refreshed.ok) {
       const session = (await refreshed.json()) as AuthResult;
       setAccessToken(session.accessToken);
-      return api<T>(path, init, false);
+      return apiResponse(path, init, false);
     }
   }
+  if (!response.ok) {
+    const error = (await response.json().catch(() => ({}))) as Record<string, unknown>;
+    throw new ApiError(
+      typeof error.message === "string" ? error.message : "Request failed.",
+      response.status,
+      typeof error.code === "string" ? error.code : "ERROR",
+    );
+  }
+  return response;
+}
+
+export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const response = await apiResponse(path, init);
   const payload = (await response.json().catch(() => ({}))) as Record<
     string,
     unknown
   >;
-  if (!response.ok) {
-    throw new ApiError(
-      typeof payload.message === "string" ? payload.message : "Request failed.",
-      response.status,
-      typeof payload.code === "string" ? payload.code : "ERROR",
-    );
-  }
   return payload as T;
+}
+
+export async function apiPdf(path: string): Promise<Blob> {
+  const response = await apiResponse(path, { cache: "no-store" });
+  if (!response.headers.get("content-type")?.startsWith("application/pdf")) {
+    throw new Error("The report could not be opened as a PDF.");
+  }
+  return response.blob();
 }
 
 export async function apiText(

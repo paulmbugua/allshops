@@ -619,6 +619,29 @@ try {
   assert.equal(receipt.body.items[0].productNameSnapshot, "Receipt Cola");
   assert.equal(receipt.body.items[0].unitPriceMinor, 300);
   assert.equal("unitCostMinor" in receipt.body.items[0], false);
+  const reportsPath = `/api/v1/organizations/${orgId}/reports`;
+  const cashierReports = await request(server).get(`${reportsPath}/print-catalogue`).set(bearer(cashier));
+  assert.equal(cashierReports.status, 200);
+  assert.deepEqual(cashierReports.body.map((report: { id: string }) => report.id), ["my-sales", "my-shifts"]);
+  const ownerReports = await request(server).get(`${reportsPath}/print-catalogue`).set(bearer(owner));
+  assert.equal(ownerReports.status, 200);
+  assert.ok(ownerReports.body.some((report: { id: string }) => report.id === "purchases"));
+  const salesPdf = await request(server).get(`${reportsPath}/print/my-sales`).set(bearer(cashier));
+  assert.equal(salesPdf.status, 200);
+  assert.equal(salesPdf.headers["content-type"], "application/pdf");
+  assert.match(salesPdf.headers["cache-control"] ?? "", /no-store/);
+  assert.equal(salesPdf.body.subarray(0, 4).toString(), "%PDF");
+  const cashierUser = await prisma.user.findUniqueOrThrow({ where: { email: emails.cashier } });
+  const exportAudit = await prisma.auditLog.findFirstOrThrow({ where: { organizationId: orgId, userId: cashierUser.id, action: "REPORT_EXPORTED", entityId: "my-sales" } });
+  assert.equal((exportAudit.afterJson as { rows: number }).rows, await prisma.sale.count({ where: { organizationId: orgId, createdBy: cashierUser.id, status: "COMPLETED" } }));
+  assert.equal((await request(server).get(`${reportsPath}/print/purchases`).set(bearer(cashier))).status, 403);
+  const pdfReceiptPath = (saleId: string) => `/api/v1/organizations/${orgId}/sales/${saleId}/receipt/pdf`;
+  const receiptPdf = await request(server).get(pdfReceiptPath(first.body.id)).set(bearer(cashier));
+  assert.equal(receiptPdf.status, 200);
+  assert.match(receiptPdf.headers["content-disposition"] ?? "", /attachment; filename="INV-\d{4}-\d{6}\.pdf"/);
+  assert.equal(receiptPdf.body.subarray(0, 4).toString(), "%PDF");
+  assert.equal((await request(server).get(pdfReceiptPath(negative.body.id)).set(bearer(cashier))).status, 403);
+  console.log("Print Centre checks passed for role visibility, cashier scope, audit history and receipt PDFs.");
   assert.equal(
     (
       await request(server)

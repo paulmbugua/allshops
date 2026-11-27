@@ -126,6 +126,9 @@ export function AppShell({
             <Link href="/pos/sync">{t("Offline sync")}</Link>
           )}
           {can("sale.read") && <Link href="/sales">{t("Sales history")}</Link>}
+          {can("organization.read") && any("sale.read", "shift.read", "report.export", "purchase.read") && (
+            <Link href="/print-centre">Print Centre</Link>
+          )}
           {can("report.dashboard") && (
             <Link href="/reports">{t("Reports")}</Link>
           )}

@@ -13,6 +13,9 @@ import type {
   SalesReportFilterInput,
 } from "@allshops/contracts";
 import type { TenantContext } from "./security.types.js";
+import { EntitlementService } from "./entitlement.service.js";
+import { canPrintReport, printCatalogue } from "./print-catalogue.js";
+import { printDate, printMoney, printPdfFile, type PrintTable } from "./print-pdf.js";
 
 const DAY = 86_400_000;
 const quantity = (value: { toString(): string }) => Number(value.toString());
@@ -38,6 +41,8 @@ export function csv(rows: Array<Record<string, unknown>>): string {
 
 @Injectable()
 export class ReportsService {
+  constructor(private readonly entitlements: EntitlementService) {}
+
   private readonly exportLimit = Math.max(
     1,
     Number.parseInt(process.env.REPORT_EXPORT_MAX_ROWS ?? "50000", 10) ||
@@ -1055,6 +1060,137 @@ export class ReportsService {
         : {}),
       ...(appointments ? { appointments } : {}),
     };
+  }
+
+  async printOptions(tenant: TenantContext) {
+    const permitted = printCatalogue.filter((report) => canPrintReport(report, tenant));
+    const features = permitted.some((report) => !("personal" in report))
+      ? (await this.entitlements.resolve(tenant.organizationId)).features : {};
+    return permitted.filter((report) => "personal" in report ||
+      (features.exports && (!("feature" in report) || features[report.feature]))).map((report) => ({
+      id: report.id, title: report.title, group: report.group, description: report.description, snapshot: "snapshot" in report,
+    }));
+  }
+
+  async printReport(reportId: string, tenant: TenantContext, userId: string, input: ReportDateRangeInput) {
+    const report = printCatalogue.find(({ id }) => id === reportId);
+    if (!report || !canPrintReport(report, tenant)) throw new ForbiddenException("You cannot print this report.");
+    if (!("personal" in report)) {
+      await this.entitlements.assertFeature(tenant.organizationId, "exports");
+      if ("feature" in report) await this.entitlements.assertFeature(tenant.organizationId, report.feature);
+    }
+    const snapshot = "snapshot" in report;
+    const filter = snapshot ? { branchId: input.branchId } : input;
+    const branchId = await this.branchScope(tenant, filter.branchId);
+    const period = snapshot ? null : this.range(filter);
+    const [organization, branch] = await Promise.all([
+      prisma.organization.findUniqueOrThrow({ where: { id: tenant.organizationId }, select: { name: true, currency: true } }),
+      branchId ? prisma.branch.findFirst({ where: { id: branchId, organizationId: tenant.organizationId }, select: { name: true } }) : null,
+    ]);
+    const money = (value: number | null | undefined) => printMoney(value, organization.currency);
+    const table = await this.printTable(report.id, tenant, userId, { ...filter, branchId }, money);
+    if (table.rows.length > 2_000) throw new BadRequestException("This PDF exceeds 2,000 rows. Narrow the date range or select a branch.");
+    const periodText = period
+      ? `${printDate(period.from)} to ${printDate(new Date(period.to.getTime() - 1))} (Nairobi time)`
+      : `Current balances as at ${printDate(new Date())}`;
+    const file = await printPdfFile(`allshops-${report.id}-${new Date().toISOString().slice(0, 10)}`, {
+      ...table, title: report.title, organization: organization.name,
+      context: `${branch?.name ?? "All accessible branches"} | ${periodText}`,
+    });
+    await prisma.auditLog.create({ data: {
+      organizationId: tenant.organizationId, userId, action: "REPORT_EXPORTED", entityType: "REPORT", entityId: report.id,
+      afterJson: { format: "pdf", branchId: branchId ?? null, dateFrom: period?.from.toISOString() ?? null, dateToExclusive: period?.to.toISOString() ?? null, rows: table.rows.length },
+    } });
+    return file;
+  }
+
+  private async printTable(id: (typeof printCatalogue)[number]["id"], tenant: TenantContext, userId: string, input: ReportDateRangeInput, money: (value: number | null | undefined) => string | null): Promise<PrintTable> {
+    switch (id) {
+      case "my-sales":
+      case "sales": {
+        const { from, to } = this.range(input);
+        const sales = await prisma.sale.findMany({
+          where: { organizationId: tenant.organizationId, status: "COMPLETED", completedAt: { gte: from, lt: to }, branchId: input.branchId, ...(id === "my-sales" ? { createdBy: userId } : {}) },
+          select: { invoiceNumber: true, completedAt: true, totalMinor: true, paidMinor: true, balanceMinor: true, branch: { select: { name: true } }, creator: { select: { name: true } } },
+          orderBy: [{ completedAt: "desc" }, { id: "desc" }], take: 2_001,
+        });
+        return { headers: ["Date", "Invoice", "Branch", "Cashier", "Total", "Paid", "Outstanding"],
+          rows: sales.map((row) => [printDate(row.completedAt), row.invoiceNumber, row.branch.name, row.creator.name, money(row.totalMinor), money(row.paidMinor), money(row.balanceMinor)]),
+          summary: [["Completed transactions", sales.length], ["Invoiced total", money(sales.reduce((sum, row) => sum + row.totalMinor, 0))]],
+        };
+      }
+      case "my-shifts":
+      case "register-shifts": {
+        const { from, to } = this.range(input);
+        const shifts = await prisma.registerShift.findMany({
+          where: { organizationId: tenant.organizationId, cashierId: id === "my-shifts" ? userId : undefined, branchId: input.branchId, openedAt: { gte: from, lt: to } },
+          include: { branch: { select: { name: true } }, cashier: { select: { name: true } } },
+          orderBy: [{ openedAt: "desc" }, { id: "desc" }], take: 2_001,
+        });
+        return { headers: ["Opened", "Branch", "Cashier", "Status", "Opening float", "Expected cash", "Counted cash", "Variance"],
+          rows: shifts.map((row) => [printDate(row.openedAt), row.branch.name, row.cashier.name, row.status, money(row.openingCashMinor), money(row.expectedCashMinor), money(row.countedCashMinor), money(row.varianceMinor)]) };
+      }
+      case "sales-products": {
+        const rows = await this.salesGroups(tenant, input, "products", false);
+        return { headers: ["Product", "Quantity", "Transactions", "Net sales"], rows: rows.map((row) => [row.name, row.quantity, row.transactions, money(Number(row.netSalesMinor))]) };
+      }
+      case "payments": {
+        const result = await this.payments(tenant, input);
+        return { headers: ["Method", "Net transactions", "Net collected"], rows: result.methods.map((row) => [row.method, row.transactionCount, money(row.amountMinor)]), summary: [["Total collected", money(result.collectedMinor)]] };
+      }
+      case "refunds": {
+        const { from, to } = this.range(input);
+        const refunds = await prisma.saleRefund.findMany({
+          where: { organizationId: tenant.organizationId, branchId: input.branchId, status: "COMPLETED", createdAt: { gte: from, lt: to } },
+          select: { createdAt: true, kind: true, method: true, amountMinor: true, reason: true, sale: { select: { invoiceNumber: true } }, branch: { select: { name: true } } },
+          orderBy: [{ createdAt: "desc" }, { id: "desc" }], take: 2_001,
+        });
+        return { headers: ["Date", "Invoice", "Branch", "Type", "Method", "Reason", "Amount"],
+          rows: refunds.map((row) => [printDate(row.createdAt), row.sale.invoiceNumber, row.branch.name, row.kind, row.method.replaceAll("_", " "), row.reason, money(row.amountMinor)]),
+          summary: [["Completed reversals", refunds.length], ["Total refunded", money(refunds.reduce((sum, row) => sum + row.amountMinor, 0))]],
+        };
+      }
+      case "purchases": {
+        const result = await this.purchases(tenant, input);
+        return { headers: ["Date", "Purchase", "Supplier", "Branch", "Status", "Total", "Paid", "Outstanding"], rows: result.purchases.map((row) => [printDate(row.purchaseDate), row.purchaseNumber, row.supplier.name, row.branch.name, row.status.replaceAll("_", " "), money(row.totalMinor), money(row.paidMinor), money(row.balanceMinor)]),
+          summary: [["Purchase total", money(result.totalMinor)], ["Paid", money(result.paidMinor)], ["Outstanding", money(result.outstandingMinor)]] };
+      }
+      case "supplier-balances": {
+        const rows = await this.suppliers(tenant, input);
+        return { headers: ["Supplier", "Outstanding"], rows: rows.map((row) => [row.name, money(row.balanceMinor)]) };
+      }
+      case "inventory":
+      case "inventory-valuation": {
+        const valuation = id === "inventory-valuation";
+        const rows = await this.inventory(tenant, { branchId: input.branchId, slowMovingDays: 30 }, valuation);
+        return { headers: ["Product", "Branch", "Location", "On hand", ...(valuation ? ["Unit cost", "Stock value"] : ["Reorder level"])],
+          rows: rows.map((row) => [row.variant ? `${row.product} / ${row.variant}` : row.product, row.branch, row.location, row.quantity, ...(valuation ? [money(row.unitCostMinor), money(row.valueMinor)] : [row.minimumStock])]) };
+      }
+      case "inventory-movements": {
+        const rows = await this.movements(tenant, input);
+        return { headers: ["Date", "Product", "Branch", "Location", "Movement", "Quantity"], rows: rows.map((row) => [printDate(row.occurredAt), row.variant ? `${row.product.name} / ${row.variant.name}` : row.product.name, row.branch.name, row.location.name, row.movementType.replaceAll("_", " "), row.quantity.toString()]) };
+      }
+      case "expenses": {
+        const result = await this.expenses(tenant, input);
+        return { headers: ["Date", "Branch", "Category", "Description", "Amount"], rows: result.rows.map((row) => [printDate(row.expenseDate), row.branch.name, row.category.name, row.description, money(row.amountMinor)]), summary: [["Recorded expenses", money(result.totalMinor)]] };
+      }
+      case "profit": {
+        const result = await this.profit(tenant, input);
+        return { headers: ["Metric", "Value"], rows: [["Net revenue", money(result.netRevenueMinor)], ["Historical cost", money(result.historicalCostMinor)], ["Gross profit", money(result.grossProfitMinor)], ["Gross margin", `${result.grossMarginPercent}%`]] };
+      }
+      case "customer-balances": {
+        const rows = await this.customers(tenant, input);
+        return { headers: ["Customer", "Outstanding", "Credit limit", "Last payment"], rows: rows.map((row) => [row.name, money(row.outstandingMinor), money(row.creditLimitMinor), printDate(row.lastPaymentAt)]) };
+      }
+      case "appointments": {
+        const result = await this.appointments(tenant, userId, input);
+        return { headers: ["Status", "Appointments"], rows: result.statuses.map((row) => [row.status, row.count]) };
+      }
+      case "commissions": {
+        const result = await this.commissions(tenant, userId, input);
+        return { headers: ["Date", "Staff", "Branch", "Earned"], rows: result.rows.map((row) => [printDate(row.earnedAt), row.staffProfile.displayName, row.branch.name, money(row.commissionAmountMinor)]), summary: [["Total commissions", money(result.totalMinor)]] };
+      }
+    }
   }
 
   async exportRows(
