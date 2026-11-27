@@ -48,6 +48,11 @@ export interface SaleItem {
 }
 export interface Sale {
   id: string;
+  orderStage?: "PLACED" | "IN_PROGRESS" | "READY" | "FULFILLED" | null;
+  orderCategory?: string | null;
+  orderChannel?: string | null;
+  orderReference?: string | null;
+  orderUpdatedAt?: string | null;
   invoiceNumber: string | null;
   status: string;
   paymentStatus: string;

@@ -7,7 +7,9 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:uuid/uuid.dart';
 import '../../app.dart';
 import '../../core/app_logger.dart';
+import '../../core/api_client.dart';
 import '../../core/models.dart';
+import 'pos_orders_screen.dart';
 
 class PosScreen extends ConsumerStatefulWidget {
   const PosScreen({super.key, required this.membership});
@@ -35,6 +37,11 @@ class _PosScreenState extends ConsumerState<PosScreen> {
   String? message;
   String? deviceId;
   String? catalogueSnapshotAt;
+  Map<String, dynamic> profiles = const {};
+  Map<String, dynamic> profile = const {};
+  Map<String, dynamic>? get orderWorkflow =>
+      profile['workflow'] as Map<String, dynamic>?;
+  String? orderAttemptBody, orderAttemptKey;
   List<PosBranch> branches = const [];
   String? selectedBranchId;
   int sequence = 1;
@@ -60,6 +67,8 @@ class _PosScreenState extends ConsumerState<PosScreen> {
   }
 
   Future<void> initialize() async {
+    // Category settings are optional for existing offline registers.
+    _loadPosProfile();
     await _resolveBranch();
     AppLogger.info(
       'pos',
@@ -78,6 +87,101 @@ class _PosScreenState extends ConsumerState<PosScreen> {
       return;
     }
     await _initializeBranch();
+  }
+
+  Future<void> _loadPosProfile() async {
+    try {
+      final data = await ref
+          .read(apiProvider)
+          .get<Map<String, dynamic>>(
+            '/organizations/$organizationId/pos/configuration',
+          );
+      final configured = data['profiles'] as Map<String, dynamic>;
+      if (!mounted) return;
+      setState(() {
+        profiles = configured;
+        profile =
+            configured[data['businessType']] as Map<String, dynamic>? ??
+            const {};
+      });
+    } catch (_) {
+      // Cached catalogue and normal checkout remain available offline.
+    }
+  }
+
+  Future<void> _placeOrder() async {
+    final workflow = orderWorkflow;
+    final branch = branchId;
+    if (workflow == null || branch == null || cart.isEmpty || busy) return;
+    final details = await captureOrderDetails(context, workflow);
+    if (details == null || !mounted) return;
+    final data = {
+      'branchId': branch,
+      ...details,
+      'items': cart.values
+          .map(
+            (line) => {
+              'productId': line.product.productId,
+              'variantId': line.product.variantId,
+              'quantity': _quantity(line.quantity),
+            },
+          )
+          .toList(),
+    };
+    final body = jsonEncode(data);
+    if (orderAttemptBody != body) {
+      orderAttemptBody = body;
+      orderAttemptKey = const Uuid().v4();
+    }
+    setState(() {
+      busy = true;
+      message = null;
+    });
+    try {
+      final saved = await ref
+          .read(apiProvider)
+          .post<Map<String, dynamic>>(
+            '/organizations/$organizationId/pos/orders',
+            data: data,
+            headers: {'Idempotency-Key': orderAttemptKey},
+          );
+      if (!mounted) return;
+      cart.clear();
+      cash.clear();
+      terminalReference.clear();
+      orderAttemptBody = null;
+      orderAttemptKey = null;
+      message = 'Order ${saved['orderReference']} sent to the queue.';
+    } catch (error) {
+      message = apiErrorMessage(error);
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
+  }
+
+  Future<void> _openOrders() async {
+    final branch = branchId;
+    if (branch == null) return;
+    final member = widget.membership;
+    await Navigator.push<void>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => PosOrdersScreen(
+          api: ref.read(apiProvider),
+          organizationId: organizationId,
+          branchId: branch,
+          profiles: profiles,
+          title: orderWorkflow?['board']?.toString() ?? 'Open orders',
+          canAdvance: member.hasPermission('sale.hold'),
+          canCancel: member.hasPermission('sale.cancel_draft'),
+          canPay:
+              member.hasPermission('sale.create') &&
+              member.hasPermission('payment.record'),
+          canReceipt: member.hasPermission('receipt.print'),
+        ),
+      ),
+    );
+    if (mounted) await search();
   }
 
   Future<void> _resolveBranch() async {
@@ -656,10 +760,10 @@ class _PosScreenState extends ConsumerState<PosScreen> {
           padding: const EdgeInsets.fromLTRB(18, 14, 18, 10),
           child: Row(
             children: [
-              const Expanded(
+              Expanded(
                 child: Text(
-                  'Point of Sale',
-                  style: TextStyle(
+                  profile['label']?.toString() ?? 'Point of Sale',
+                  style: const TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.w900,
                     letterSpacing: -1,
@@ -683,6 +787,31 @@ class _PosScreenState extends ConsumerState<PosScreen> {
             ],
           ),
         ),
+        if (orderWorkflow != null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(18, 0, 18, 8),
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 6,
+              children: [
+                if (widget.membership.hasPermission('sale.read'))
+                  OutlinedButton.icon(
+                    onPressed: branchId == null || busy ? null : _openOrders,
+                    icon: const Icon(Icons.view_list_outlined),
+                    label: Text(orderWorkflow!['board'].toString()),
+                  ),
+                if (widget.membership.hasPermission('sale.hold') &&
+                    widget.membership.hasPermission('sale.create'))
+                  FilledButton.icon(
+                    onPressed: branchId == null || cart.isEmpty || busy
+                        ? null
+                        : _placeOrder,
+                    icon: const Icon(Icons.post_add_rounded),
+                    label: const Text('Place order'),
+                  ),
+              ],
+            ),
+          ),
         if (widget.membership.branchId == null)
           Padding(
             padding: const EdgeInsets.fromLTRB(18, 0, 18, 10),
@@ -750,9 +879,10 @@ class _PosScreenState extends ConsumerState<PosScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 18),
           child: TextField(
             controller: query,
-            decoration: const InputDecoration(
-              hintText: 'Search or scan barcode',
-              prefixIcon: Icon(Icons.search_rounded),
+            decoration: InputDecoration(
+              hintText:
+                  profile['search']?.toString() ?? 'Search or scan barcode',
+              prefixIcon: const Icon(Icons.search_rounded),
             ),
           ),
         ),

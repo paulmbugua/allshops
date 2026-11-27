@@ -26,8 +26,24 @@ enum BusinessType {
   HARDWARE
   ELECTRONICS
   PRINTING
+  WATER_VENDING
+  ANIMAL_FEEDS
+  BAKERY
+  FACTORY
+  PHARMACY
+  BUTCHERY
+  AGROVET
+  WHOLESALE
+  LPG_RETAIL
   GENERAL_SERVICES
   OTHER
+}
+
+enum PosOrderStage {
+  PLACED
+  IN_PROGRESS
+  READY
+  FULFILLED
 }
 
 enum UserStatus {
@@ -1228,6 +1244,11 @@ model StockTransferItem {
 }
 
 model Sale {
+  orderStage      PosOrderStage?
+  orderCategory   BusinessType?
+  orderChannel    String?
+  orderReference  String?
+  orderUpdatedAt  DateTime?
   id              String               @id @default(uuid()) @db.Uuid
   organizationId  String               @db.Uuid
   branchId        String               @db.Uuid
@@ -1289,6 +1310,7 @@ model Sale {
   @@index([organizationId, customerId, completedAt])
   @@index([organizationId, branchId, status, completedAt])
   @@index([organizationId, createdBy, status, completedAt])
+  @@index([organizationId, branchId, status, orderStage, createdAt], map: "sales_order_queue_idx")
   @@map("sales")
 }
 

@@ -829,6 +829,68 @@ try {
     beforeCounts,
   );
 
+  const setup = await request(server).patch(`/api/v1/organizations/${org.id}`).set(bearer(owner)).send({ businessType: "RESTAURANT_CAFE" });
+  assert.equal(setup.status, 200);
+  const profile = await request(server).get(`/api/v1/organizations/${org.id}/pos/configuration`).set(bearer(cashier));
+  assert.equal(profile.status, 200);
+  assert.equal(profile.body.businessType, "RESTAURANT_CAFE");
+  assert.ok(profile.body.profiles.WATER_VENDING.workflow.channels.includes("Bring own container"));
+  const orders = `/api/v1/organizations/${org.id}/pos/orders`;
+  const orderProduct = await product("Kitchen test meal", 1_000, "NON_STOCK_ITEM");
+  const orderBody = { branchId: org.branchId, channel: "Dine-in", reference: "Table 4", notes: "Serve together", items: [{ productId: orderProduct, quantity: "2" }] };
+  const place = (body: typeof orderBody, token = cashier, attempt = key()) => request(server).post(orders).set(bearer(token)).set("Idempotency-Key", attempt).send(body);
+  assert.equal((await place({ ...orderBody, channel: "Invalid type" })).status, 400);
+  const attempt = key();
+  const placed = await place(orderBody, cashier, attempt);
+  assert.equal(placed.status, 201, JSON.stringify(placed.body));
+  assert.equal(placed.body.orderStage, "PLACED");
+  assert.equal(placed.body.invoiceNumber, null);
+  assert.equal((await place(orderBody, cashier, attempt)).body.id, placed.body.id);
+  const orderId = placed.body.id as string;
+  const salesPath = `/api/v1/organizations/${org.id}/sales`;
+  const settle = (id: string, amountMinor: number, attempt = key()) => request(server).post(`${salesPath}/${id}/complete`).set(bearer(owner)).set("Idempotency-Key", attempt).send({ payments: [{ method: "OTHER", amountMinor, reference: "M-PESA MANUAL:QA12M6R90X" }] });
+  const advance = (id: string, from: string) => request(server).post(`${orders}/${id}/advance`).set(bearer(cashier)).send({ from });
+  assert.equal((await settle(orderId, 2_000)).status, 409);
+  assert.equal((await request(server).get(`${salesPath}/${orderId}/receipt`).set(bearer(cashier))).status, 409);
+  assert.equal((await advance(orderId, "READY")).status, 409);
+  const open = await request(server).get(`${orders}?branchId=${org.branchId}`).set(bearer(cashier));
+  assert.equal(open.status, 200);
+  assert.equal(open.body.items.some((row: { id: string }) => row.id === orderId), true);
+  assert.equal((await request(server).get(`${orders}?branchId=${foreign.branchId}`).set(bearer(cashier))).status, 403);
+  const held = await request(server).get(`${salesPath}/held`).set(bearer(cashier));
+  assert.equal(held.body.items.some((row: { id: string }) => row.id === orderId), false);
+  for (const from of ["PLACED", "IN_PROGRESS", "READY"]) assert.equal((await advance(orderId, from)).status, 201);
+  await prisma.product.update({ where: { id: orderProduct }, data: { priceMinor: 1_500 } });
+  assert.equal((await settle(orderId, 1_000)).status, 409);
+  const orderPaymentKey = key();
+  const paid = await settle(orderId, 2_000, orderPaymentKey);
+  assert.equal(paid.status, 201, JSON.stringify(paid.body));
+  assert.equal(paid.body.id, orderId);
+  assert.equal(paid.body.totalMinor, 2_000);
+  assert.equal(paid.body.paymentStatus, "PAID");
+  assert.equal(paid.body.creator.id, ownerUser.id);
+  assert.equal((await settle(orderId, 2_000, orderPaymentKey)).body.invoiceNumber, paid.body.invoiceNumber);
+  assert.equal((await request(server).get(`${salesPath}/${orderId}/receipt`).set(bearer(owner))).status, 200);
+  const otherOrder = await place({ ...orderBody, reference: "Table 5" });
+  assert.equal(otherOrder.status, 201);
+  for (const from of ["PLACED", "IN_PROGRESS", "READY"]) assert.equal((await advance(otherOrder.body.id, from)).status, 201);
+  assert.equal((await settle(otherOrder.body.id, 3_000)).status, 409);
+  assert.equal((await prisma.sale.findUniqueOrThrow({ where: { id: otherOrder.body.id } })).status, "HELD");
+  const stockOrder = await place({ ...orderBody, reference: "Pickup", items: [{ productId: stockId, quantity: "99999" }] });
+  assert.equal(stockOrder.status, 409);
+  const reservationProduct = await product("Reserved pastries", 800);
+  assert.equal((await request(server).post(`/api/v1/organizations/${org.id}/inventory/opening-stock`)
+    .set(bearer(owner)).set("Idempotency-Key", key()).send({ branchId: org.branchId, locationId: org.locationId, productId: reservationProduct, quantity: "3" })).status, 201);
+  const reserve = await place({ ...orderBody, reference: "Pickup", items: [{ productId: reservationProduct, quantity: "2" }] });
+  assert.equal(reserve.status, 201);
+  const counterSale = () => request(server).post(`${salesPath}/checkout`).set(bearer(cashier)).set("Idempotency-Key", key()).send({
+    branchId: org.branchId, items: [{ productId: reservationProduct, quantity: "2" }], payments: [{ method: "CASH", amountMinor: 1_600 }],
+  });
+  assert.equal((await counterSale()).status, 409);
+  assert.equal((await request(server).post(`${salesPath}/${reserve.body.id}/cancel`).set(bearer(owner))).status, 201);
+  assert.equal((await counterSale()).status, 201);
+  console.log("POS order checks passed for scoped queues, tracked handover, held prices, stock and duplicate payment prevention.");
+
   console.log(
     "Phase 4 e2e passed: procurement, receiving, supplier payments, expenses, credit, repayments, concurrency, idempotency, tenancy, and regressions.",
   );

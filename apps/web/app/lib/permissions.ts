@@ -54,6 +54,7 @@ const routePermissions: Array<[string, string[]]> = [
   ["/staff", ["staff.read"]],
   ["/sales", ["sale.read"]],
   ["/pos/sync", ["sync.read"]],
+  ["/pos/orders", ["sale.read"]],
   ["/pos", ["catalogue.read", "sale.create", "payment.record"]],
   ["/dashboard", ["organization.read"]],
 ];

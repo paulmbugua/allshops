@@ -797,6 +797,107 @@ nav a:hover {
   background: #153d62;
   color: white;
 }
+.pos-workflow-strip, .pos-search-shortcuts, .pos-order-sent {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+  flex-shrink: 0;
+}
+.pos-workflow-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+  margin-block: 0.35rem;
+}
+.pos-workflow-strip button {
+  min-height: 2.5rem;
+}
+.pos-search-shortcuts {
+  margin-block-end: 0.35rem;
+}
+.pos-search-shortcuts :is(button, a) {
+  font-size: 0.78rem;
+  padding: 0.35rem 0.65rem;
+}
+.pos-search-shortcuts [aria-pressed="true"] {
+  background: #174e7b;
+  color: white;
+}
+.pos-order-sent {
+  background: #e7f2fc;
+  color: #17456b;
+  border: 1px solid #b7d5ed;
+  border-radius: 0.55rem;
+  padding: 0.35rem 0.65rem;
+  font-size: 0.85rem;
+  overflow-wrap: anywhere;
+}
+.pos-order-sent button {
+  margin-inline-start: auto;
+  padding: 0.15rem 0.5rem;
+}
+.pos-order-dialog {
+  width: min(47rem, calc(100% - 1.5rem));
+  max-height: calc(100dvh - 1.5rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: clamp(0.85rem, 3vw, 1.5rem);
+  border: 1px solid #c8d9e9;
+  border-radius: 1rem;
+  background: #f7fbff;
+  color: #142e46;
+}
+.pos-order-dialog::backdrop { background: rgb(13 34 55 / 70%); }
+.pos-order-dialog-heading, .pos-order-queue-toolbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.7rem;
+  align-items: flex-start;
+  margin-bottom: 0.85rem;
+}
+.pos-order-dialog h2, .pos-order-detail h3 { margin: 0; }
+.pos-order-queue {
+  display: grid;
+  gap: 0.6rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
+  margin-bottom: 0.85rem;
+}
+.pos-order-dialog .pos-order-card {
+  display: grid;
+  justify-items: start;
+  align-content: start;
+  gap: 0.35rem;
+  min-height: 7rem;
+  padding: 0.75rem;
+  border: 1px solid #acd0eb;
+  border-radius: 0.7rem;
+  text-align: start;
+  color: #18466b;
+  background: #edf6ff;
+  overflow-wrap: anywhere;
+}
+.pos-order-card > strong { font-size: 1rem; }
+.pos-order-card > span { font-size: 0.77rem; }
+.pos-order-stage {
+  border-radius: 1rem;
+  padding: 0.15rem 0.55rem;
+  color: white;
+  background: #365771;
+}
+.pos-order-stage[data-stage="IN_PROGRESS"] { background: #785013; }
+.pos-order-stage[data-stage="READY"] { background: #125c50; }
+.pos-order-stage[data-stage="FULFILLED"] { background: #1f5094; }
+.pos-order-detail { display: grid; gap: 0.65rem; }
+.pos-order-detail p { margin: 0; overflow-wrap: anywhere; }
+.pos-order-money { color: #164975; font-size: 1.6rem; font-weight: 800; margin: 0; }
+.pos-order-lines { margin: 0; padding: 0; list-style: none; }
+.pos-order-lines li { display: flex; justify-content: space-between; gap: 0.5rem; border-bottom: 1px solid #d2dfec; padding: 0.45rem 0; }
+.pos-order-notes { padding: 0.65rem; background: #edf4fa; white-space: pre-wrap; overflow-wrap: anywhere; }
+.pos-order-ticket { max-width: 36rem; margin-inline: auto; overflow-wrap: anywhere; }
+@media print {
+  .workspace:has(.pos-order-ticket) > header { display: none; }
+  .pos-order-ticket { max-width: none; }
+}
 .print-centre-intro p {
   margin: 0;
   color: #e1efff;

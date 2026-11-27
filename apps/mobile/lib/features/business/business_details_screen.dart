@@ -23,6 +23,8 @@ class _BusinessDetailsScreenState extends ConsumerState<BusinessDetailsScreen> {
   final email = TextEditingController();
   final tagline = TextEditingController();
   Map<String, dynamic>? business;
+  Map<String, dynamic> businessProfiles = const {};
+  String? businessType;
   bool loading = true;
   bool saving = false;
   String? message;
@@ -54,11 +56,24 @@ class _BusinessDetailsScreenState extends ConsumerState<BusinessDetailsScreen> {
           );
       if (!mounted) return;
       business = result;
+      businessType = result['businessType']?.toString();
       name.text = result['name']?.toString() ?? '';
       arabicName.text = result['arabicName']?.toString() ?? '';
       phone.text = result['phone']?.toString() ?? '';
       email.text = result['email']?.toString() ?? '';
       tagline.text = result['tagline']?.toString() ?? '';
+      try {
+        final config = await ref
+            .read(apiProvider)
+            .get<Map<String, dynamic>>(
+              '/organizations/${widget.membership.organizationId}/pos/configuration',
+            );
+        if (mounted) {
+          businessProfiles = config['profiles'] as Map<String, dynamic>;
+        }
+      } catch (_) {
+        // Earlier API versions still support editing the rest of this form.
+      }
     } catch (error) {
       message = apiErrorMessage(error);
     } finally {
@@ -79,11 +94,11 @@ class _BusinessDetailsScreenState extends ConsumerState<BusinessDetailsScreen> {
             '/organizations/${widget.membership.organizationId}',
             data: {
               'name': name.text.trim(),
-              'arabicName': arabicName.text.trim().isEmpty
-                  ? null
-                  : arabicName.text.trim(),
-              'phone': phone.text.trim().isEmpty ? null : phone.text.trim(),
-              'email': email.text.trim().isEmpty ? null : email.text.trim(),
+              if (businessType != null) 'businessType': businessType,
+              if (arabicName.text.trim().isNotEmpty)
+                'arabicName': arabicName.text.trim(),
+              if (phone.text.trim().isNotEmpty) 'phone': phone.text.trim(),
+              if (email.text.trim().isNotEmpty) 'email': email.text.trim(),
               'tagline': tagline.text.trim().isEmpty
                   ? null
                   : tagline.text.trim(),
@@ -217,6 +232,37 @@ class _BusinessDetailsScreenState extends ConsumerState<BusinessDetailsScreen> {
                               tr(context, 'Business name', 'Jina la biashara'),
                               required: true,
                             ),
+                            if (businessProfiles.containsKey(businessType))
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 12),
+                                child: DropdownButtonFormField<String>(
+                                  key: ValueKey(businessType),
+                                  initialValue: businessType,
+                                  isExpanded: true,
+                                  decoration: InputDecoration(
+                                    labelText: tr(
+                                      context,
+                                      'Business category',
+                                      'Aina ya biashara',
+                                    ),
+                                  ),
+                                  items: businessProfiles.entries
+                                      .map(
+                                        (entry) => DropdownMenuItem(
+                                          value: entry.key,
+                                          child: Text(
+                                            entry.value['label'].toString(),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      )
+                                      .toList(),
+                                  onChanged: canUpdate && !saving
+                                      ? (value) =>
+                                            setState(() => businessType = value)
+                                      : null,
+                                ),
+                              ),
                             _field(
                               arabicName,
                               tr(

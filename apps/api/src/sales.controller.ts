@@ -15,12 +15,14 @@ import { ApiBearerAuth, ApiHeader, ApiTags } from "@nestjs/swagger";
 import { z } from "zod";
 import {
   checkoutSchema,
+  advancePosOrderSchema,
   completeHeldSaleSchema,
   holdSaleSchema,
   idempotencyKeySchema,
   initializeCardPaymentSchema,
   posBarcodeLookupSchema,
   posProductListSchema,
+  placePosOrderSchema,
   refundSchema,
   salesListSchema,
 } from "@allshops/contracts";
@@ -105,6 +107,13 @@ export class SalesController {
     return this.sales.posBranches(request.tenant!);
   }
 
+  @RequirePermission("organization.read")
+  @Get("pos/configuration")
+  @Header("Cache-Control", "private, no-store")
+  posConfiguration(@Req() request: RequestContext) {
+    return this.sales.posConfiguration(request.tenant!);
+  }
+
   @RequirePermission("catalogue.read")
   @Get("pos/products")
   products(@Query() query: unknown, @Req() request: RequestContext) {
@@ -151,6 +160,26 @@ export class SalesController {
       request.user!.id,
       parseInput(holdSaleSchema, body),
     );
+  }
+
+  @RequirePermission("sale.hold", "sale.create")
+  @Post("pos/orders")
+  placeOrder(@Body() body: unknown, @Headers("idempotency-key") key: string | undefined, @Req() request: RequestContext) {
+    return this.sales.placeOrder(request.tenant!, request.user!.id, parseInput(placePosOrderSchema, body), requiredIdempotencyKey(key));
+  }
+
+  @RequirePermission("sale.read")
+  @Get("pos/orders")
+  orders(@Query() query: unknown, @Req() request: RequestContext) {
+    const filter = parseInput(salesListSchema.pick({ branchId: true, page: true, pageSize: true }), query);
+    return this.sales.list(request.tenant!, { ...filter, status: "HELD" }, true);
+  }
+
+  @RequirePermission("sale.hold")
+  @Post("pos/orders/:saleId/advance")
+  advanceOrder(@Param("saleId") id: string, @Body() body: unknown, @Req() request: RequestContext) {
+    const { from } = parseInput(advancePosOrderSchema, body);
+    return this.sales.advanceOrder(request.tenant!, request.user!.id, assertUuid(id, "saleId"), from);
   }
 
   @RequirePermission("sale.read")

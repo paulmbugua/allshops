@@ -1,4 +1,5 @@
 "use client";
+import { businessProfiles } from "@allshops/contracts";
 /* Uploaded logos are normalized to bounded WebP files by the API. */
 /* eslint-disable @next/next/no-img-element */
 import { useEffect, useState, type FormEvent } from "react";
@@ -77,6 +78,7 @@ export default function BusinessSettingsPage() {
           method: "PATCH",
           body: JSON.stringify({
             name: data.get("name"),
+            businessType: data.get("businessType") || undefined,
             legalName: data.get("legalName") || undefined,
             arabicName: data.get("arabicName") || undefined,
             phone: data.get("phone") || undefined,
@@ -128,6 +130,13 @@ export default function BusinessSettingsPage() {
           <p>{message || "Loading…"}</p>
         ) : (
           <form className="form" onSubmit={submit}>
+            <label>
+              Business category
+              <select key={organization.businessType} name="businessType" defaultValue={organization.businessType} disabled={!canUpdate}>
+                {Object.entries(businessProfiles).map(([code, profile]) => <option key={code} value={code}>{profile.label}</option>)}
+              </select>
+              <small>Sets the catalogue shortcuts and order workflow at every register.</small>
+            </label>
             <div className="branding-settings-heading">
               <div>
                 <span className="eyebrow">Shop identity</span>
@@ -280,7 +289,7 @@ export default function BusinessSettingsPage() {
               />
             </label>
             <p className="muted">
-              {organization.businessType} · {organization.currency} ·{" "}
+              {businessProfiles[organization.businessType]?.label ?? organization.businessType} · {organization.currency} ·{" "}
               {organization.timezone} · {organization.status}
             </p>
             {message && <p>{message}</p>}

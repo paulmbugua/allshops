@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { orderStages } from "./pos-workflows.js";
+export { businessProfiles, orderStages } from "./pos-workflows.js";
 
 export const businessTypeSchema = z.enum([
   "RETAIL",
@@ -12,6 +14,15 @@ export const businessTypeSchema = z.enum([
   "HARDWARE",
   "ELECTRONICS",
   "PRINTING",
+  "WATER_VENDING",
+  "ANIMAL_FEEDS",
+  "BAKERY",
+  "FACTORY",
+  "PHARMACY",
+  "BUTCHERY",
+  "AGROVET",
+  "WHOLESALE",
+  "LPG_RETAIL",
   "GENERAL_SERVICES",
   "OTHER",
 ]);
@@ -472,6 +483,13 @@ export const completeHeldSaleSchema = z.object({
   discount: discountSchema.nullable().optional(),
   payments: z.array(paymentInputSchema).max(10).default([]),
 });
+export const placePosOrderSchema = holdSaleSchema.extend({
+  channel: z.string().trim().min(1).max(40),
+  reference: z.string().trim().min(1).max(120),
+  discount: discountSchema.nullable().optional(),
+});
+export const advancePosOrderSchema = z.object({ from: z.enum(orderStages) });
+export type PlacePosOrderInput = z.infer<typeof placePosOrderSchema>;
 export const refundSchema = z.object({
   kind: z.enum(["REFUND", "RETURN", "EXCHANGE"]).default("REFUND"),
   amountMinor: z.number().int().positive().max(2_147_483_647),

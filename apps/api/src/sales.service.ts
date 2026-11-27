@@ -8,6 +8,7 @@ import {
   ServiceUnavailableException,
 } from "@nestjs/common";
 import { Prisma, prisma } from "@allshops/database";
+import { businessProfiles, orderStages } from "@allshops/contracts";
 import type {
   AppointmentCheckoutInput,
   CheckoutInput,
@@ -15,6 +16,7 @@ import type {
   DiscountInput,
   HoldSaleInput,
   PaymentInput,
+  PlacePosOrderInput,
   RefundInput,
   PosBarcodeLookupInput,
   PosProductListInput,
@@ -55,6 +57,7 @@ type ResolvedLine = {
   taxMinor: number;
   totalMinor: number;
   tracked: boolean;
+  allowNegativeStock: boolean;
   etimsItemCode: string | null;
   etimsItemClassCode: string | null;
   etimsTaxTypeCode: string | null;
@@ -67,6 +70,7 @@ type FinalizeOptions = {
   appointmentId?: string;
   priceOverrides?: Map<string, number>;
   allowNegativeStockOverride?: boolean;
+  queuedOrderTotalMinor?: number;
   offline?: {
     transactionUuid: string;
     localReference: string;
@@ -107,6 +111,7 @@ const etimsDate = (value: Date, includeTime = true) => {
 };
 const hasPermission = (tenant: TenantContext, permission: string) =>
   tenant.permissions.includes(permission);
+const inventoryKey = (productId: string, variantId: string | null) => `${productId}:${variantId ?? "BASE"}`;
 
 export function calculateSaleTotals(
   lines: Array<{ grossMinor: number }>,
@@ -247,6 +252,9 @@ export class SalesService {
           ? {
               OR: [
                 { name: { contains: input.search, mode: "insensitive" } },
+                { arabicName: { contains: input.search, mode: "insensitive" } },
+                { category: { name: { contains: input.search, mode: "insensitive" } } },
+                { brand: { name: { contains: input.search, mode: "insensitive" } } },
                 { sku: { contains: input.search, mode: "insensitive" } },
                 { barcode: { contains: input.search, mode: "insensitive" } },
                 {
@@ -306,7 +314,12 @@ export class SalesService {
       prisma.product.count({ where }),
     ]);
     const mayReadCost = hasPermission(tenant, "product.cost.read");
+    const reservations = await this.orderReservations(prisma, tenant.organizationId, location.id, products.filter((product) => product.trackInventory).map((product) => product.id));
     const items = products.flatMap((product) => {
+      const availableQuantity = (variantId: string | null) => product.trackInventory
+        ? (product.inventoryBalances.find((balance) => balance.variantId === variantId)?.quantity ?? new Prisma.Decimal(0))
+          .minus(reservations.get(inventoryKey(product.id, variantId)) ?? 0).toString()
+        : null;
       const rows: Array<Record<string, unknown>> = [
         {
           productId: product.id,
@@ -323,13 +336,7 @@ export class SalesService {
           ...(mayReadCost ? { costMinor: product.costMinor } : {}),
           trackInventory: product.trackInventory,
           allowNegativeStock: product.allowNegativeStock,
-          availableQuantity: product.trackInventory
-            ? (
-                product.inventoryBalances.find(
-                  (balance) => balance.variantId === null,
-                )?.quantity ?? new Prisma.Decimal(0)
-              ).toString()
-            : null,
+          availableQuantity: availableQuantity(null),
           unitSymbol: product.unit.symbol,
           availableStaff: product.staffServices.map((row) => ({
             id: row.staffProfile.id,
@@ -356,13 +363,7 @@ export class SalesService {
             : {}),
           trackInventory: product.trackInventory,
           allowNegativeStock: product.allowNegativeStock,
-          availableQuantity: product.trackInventory
-            ? (
-                product.inventoryBalances.find(
-                  (balance) => balance.variantId === variant.id,
-                )?.quantity ?? new Prisma.Decimal(0)
-              ).toString()
-            : null,
+          availableQuantity: availableQuantity(variant.id),
           unitSymbol: product.unit.symbol,
           availableStaff: product.staffServices.map((row) => ({
             id: row.staffProfile.id,
@@ -663,7 +664,36 @@ export class SalesService {
   }
 
   createHeld(tenant: TenantContext, userId: string, input: HoldSaleInput) {
-    return this.serializable(async (tx) => {
+    return this.serializable((tx) => this.saveHeld(tx, tenant, userId, input));
+  }
+
+  placeOrder(tenant: TenantContext, userId: string, input: PlacePosOrderInput, key: string) {
+    this.assertBranchScope(tenant, input.branchId);
+    this.assertDiscount(tenant, input.discount);
+    return this.idempotent(tenant.organizationId, "pos.orders.place", key, input, async (tx) => {
+      const { businessType } = await tx.organization.findUniqueOrThrow({
+        where: { id: tenant.organizationId }, select: { businessType: true },
+      });
+      if (!businessProfiles[businessType]?.workflow?.channels.includes(input.channel)) {
+        throw new BadRequestException("Choose an order type available for this business category.");
+      }
+      return this.saveHeld(tx, tenant, userId, input, {
+        category: businessType, channel: input.channel, reference: input.reference, discount: input.discount,
+      });
+    });
+  }
+
+  async posConfiguration(tenant: TenantContext) {
+    const { businessType } = await prisma.organization.findUniqueOrThrow({
+      where: { id: tenant.organizationId }, select: { businessType: true },
+    });
+    return { businessType, profiles: businessProfiles };
+  }
+
+  private async saveHeld(
+    tx: Transaction, tenant: TenantContext, userId: string, input: HoldSaleInput,
+    order?: { category: Prisma.SaleUncheckedCreateInput["orderCategory"]; channel: string; reference: string; discount?: DiscountInput | null },
+  ) {
       this.assertBranchScope(tenant, input.branchId);
       const location = await this.activeBranchLocation(
         tx,
@@ -681,6 +711,10 @@ export class SalesService {
         tenant.organizationId,
         input.items,
       );
+      if (order) {
+        await this.validateStaffAssignments(tx, tenant.organizationId, input.branchId, lines);
+        await this.assertOrderStock(tx, tenant.organizationId, location.id, lines, true);
+      }
       const customer = input.customerId
         ? await tx.customer.findFirst({
             where: {
@@ -695,7 +729,7 @@ export class SalesService {
           code: "CUSTOMER_NOT_FOUND",
           message: "Active customer not found.",
         });
-      const totals = this.calculate(lines, null);
+      const totals = this.calculate(lines, order?.discount ?? null);
       const sale = await tx.sale.create({
         data: {
           organizationId: tenant.organizationId,
@@ -711,6 +745,10 @@ export class SalesService {
           notes: input.notes,
           deviceId: input.deviceId,
           ...totals,
+          ...(order && {
+            orderStage: "PLACED", orderCategory: order.category, orderChannel: order.channel,
+            orderReference: order.reference, orderUpdatedAt: new Date(), balanceMinor: totals.totalMinor,
+          }),
         },
       });
       await this.replaceItems(tx, tenant.organizationId, sale.id, lines);
@@ -718,14 +756,42 @@ export class SalesService {
         tx,
         tenant.organizationId,
         userId,
-        "SALE_HELD",
+        order ? "POS_ORDER_PLACED" : "SALE_HELD",
         sale.id,
         {
           branchId: sale.branchId,
           totalMinor: sale.totalMinor,
+          ...(order && { channel: order.channel }),
         },
       );
       return this.saleDetail(tx, tenant, sale.id);
+  }
+
+  advanceOrder(tenant: TenantContext, userId: string, saleId: string, from: (typeof orderStages)[number]) {
+    const next = orderStages[orderStages.indexOf(from) + 1];
+    if (!next) throw new ConflictException("This order has already been handed over.");
+    return this.serializable(async (tx) => {
+      const changed = await tx.sale.updateMany({
+        where: { id: saleId, organizationId: tenant.organizationId, branchId: tenant.branchId ?? undefined, status: "HELD", orderStage: from },
+        data: { orderStage: next, orderUpdatedAt: new Date() },
+      });
+      if (changed.count !== 1) {
+        const order = await tx.sale.findFirst({
+          where: { id: saleId, organizationId: tenant.organizationId, branchId: tenant.branchId ?? undefined, orderStage: { not: null } },
+          select: { id: true },
+        });
+        if (!order) throw new NotFoundException("Order not found in this register’s scope.");
+        throw new ConflictException("The order has changed. Refresh the queue and check its current status.");
+      }
+      if (next === "FULFILLED") {
+        const sale = await tx.sale.findUniqueOrThrow({ where: { id: saleId }, include: { items: true } });
+        const lines = await this.resolveLines(tx, tenant.organizationId, sale.items.map((item) => ({
+          productId: item.productId, variantId: item.variantId, staffProfileId: item.staffProfileId, quantity: item.quantity.toString(),
+        })));
+        await this.assertOrderStock(tx, tenant.organizationId, sale.locationId, lines, true, sale.id);
+      }
+      await this.audit(tx, tenant.organizationId, userId, "POS_ORDER_ADVANCED", saleId, { from, to: next });
+      return this.saleDetail(tx, tenant, saleId);
     });
   }
 
@@ -760,6 +826,14 @@ export class SalesService {
             message: "Only a draft or held sale can be completed.",
           });
         }
+        if (held.orderStage && held.orderStage !== "FULFILLED") {
+          throw new ConflictException("Hand over the order or finish the service before taking payment.");
+        }
+        if (held.orderStage && input.discount) {
+          throw new BadRequestException("The discount was fixed when the order was placed.");
+        }
+        const orderDiscount = held.discountType === "FIXED" ? { type: "FIXED" as const, valueMinor: held.discountValue! }
+          : held.discountType === "PERCENTAGE" ? { type: "PERCENTAGE" as const, basisPoints: held.discountValue! } : null;
         const checkout: CheckoutInput = {
           branchId: held.branchId,
           items: held.items.map((item) => ({
@@ -768,7 +842,7 @@ export class SalesService {
             staffProfileId: item.staffProfileId,
             quantity: item.quantity.toString(),
           })),
-          discount: input.discount,
+          discount: held.orderStage ? orderDiscount : input.discount,
           payments: input.payments,
           customerId: held.customerId,
           customerName: held.customerName,
@@ -776,7 +850,14 @@ export class SalesService {
           notes: held.notes,
           deviceId: held.deviceId,
         };
-        return this.finalize(tx, tenant, userId, checkout, held.id, options);
+        const orderOptions = held.orderStage ? {
+          ...options,
+          queuedOrderTotalMinor: held.totalMinor,
+          priceOverrides: new Map(held.items.map((item) => [
+            `${item.productId}:${item.variantId ?? "BASE"}:${item.staffProfileId ?? "NONE"}`, item.unitPriceMinor,
+          ])),
+        } : options;
+        return this.finalize(tx, tenant, userId, checkout, held.id, orderOptions);
       },
     );
   }
@@ -967,8 +1048,9 @@ export class SalesService {
           message: "Sale not found.",
         });
       this.assertBranchScope(tenant, sale.branchId);
+      if (sale.orderStage === "FULFILLED") throw new ConflictException("A handed-over order must be settled before a reversal can be recorded.");
       const claimed = await tx.sale.updateMany({
-        where: { id: sale.id, status: { in: ["DRAFT", "HELD"] } },
+        where: { id: sale.id, status: { in: ["DRAFT", "HELD"] }, orderStage: sale.orderStage },
         data: { status: "CANCELLED", cancelledAt: new Date() },
       });
       if (claimed.count !== 1)
@@ -980,7 +1062,7 @@ export class SalesService {
         tx,
         tenant.organizationId,
         userId,
-        "SALE_DRAFT_CANCELLED",
+        sale.orderStage ? "POS_ORDER_CANCELLED" : "SALE_DRAFT_CANCELLED",
         sale.id,
         { branchId: sale.branchId },
       );
@@ -989,10 +1071,10 @@ export class SalesService {
   }
 
   async held(tenant: TenantContext, input: SalesListInput) {
-    return this.list(tenant, { ...input, status: "HELD" });
+    return this.list(tenant, { ...input, status: "HELD" }, false);
   }
 
-  async list(tenant: TenantContext, input: SalesListInput) {
+  async list(tenant: TenantContext, input: SalesListInput, orders?: boolean) {
     this.assertBranchScope(tenant, input.branchId);
     const where: Prisma.SaleWhereInput = {
       organizationId: tenant.organizationId,
@@ -1002,6 +1084,7 @@ export class SalesService {
           ? { branchId: input.branchId }
           : {}),
       ...(input.status ? { status: input.status } : {}),
+      ...(orders === undefined ? {} : { orderStage: orders ? { not: null } : null }),
       ...(input.paymentMethod
         ? {
             payments: {
@@ -1034,7 +1117,7 @@ export class SalesService {
         where,
         skip: (input.page - 1) * input.pageSize,
         take: input.pageSize,
-        orderBy: { createdAt: "desc" },
+        orderBy: [{ createdAt: orders ? "asc" : "desc" }, { id: "asc" }],
         include: {
           branch: { select: { id: true, name: true, code: true } },
           creator: { select: { id: true, name: true } },
@@ -1456,6 +1539,7 @@ export class SalesService {
       input.items,
       options?.priceOverrides,
     );
+    await this.assertOrderStock(tx, tenant.organizationId, location.id, lines, options?.queuedOrderTotalMinor != null, existingSaleId);
     const fiscal = await this.assertFiscalReadiness(
       tx,
       tenant.organizationId,
@@ -1469,6 +1553,9 @@ export class SalesService {
       lines,
     );
     const totals = this.calculate(lines, input.discount ?? null);
+    if (options?.queuedOrderTotalMinor != null && totals.totalMinor !== options.queuedOrderTotalMinor) {
+      throw new ConflictException("The order amount no longer matches its saved ticket. Review the order before taking payment.");
+    }
     if (input.customerId)
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`customer:${input.customerId}`}))`;
     const customer = input.customerId
@@ -1490,6 +1577,9 @@ export class SalesService {
       (sum, row) => sum + row.amountMinor,
       0,
     );
+    if (options?.queuedOrderTotalMinor != null && submittedMinor < totals.totalMinor) {
+      throw new ConflictException("Collect the full order amount before completing payment.");
+    }
     if (submittedMinor < totals.totalMinor)
       await this.entitlements.assertFeature(
         tenant.organizationId,
@@ -1537,6 +1627,7 @@ export class SalesService {
             status: "COMPLETED",
             paymentStatus,
             completedAt: now,
+            ...(options?.queuedOrderTotalMinor != null && { createdBy: userId }),
             locationId: location.id,
             paidMinor: payment.paidMinor,
             changeMinor: payment.changeMinor,
@@ -1590,8 +1681,13 @@ export class SalesService {
           userId,
           allowNegativeOverride: options?.allowNegativeStockOverride,
         });
-    if (payment.rows.length > 0)
-      await tx.payment.createMany({
+    if (payment.rows.length > 0) {
+      const manualMpesa = payment.rows.filter((row) => row.method === "OTHER" && row.reference?.startsWith("M-PESA MANUAL:"));
+      if (manualMpesa.some((row) => !/^M-PESA MANUAL:[A-Z0-9]{8,16}$/.test(row.reference!))) {
+        throw new BadRequestException("Enter a valid M-Pesa transaction code.");
+      }
+      const recorded = await tx.payment.createMany({
+        skipDuplicates: manualMpesa.length > 0,
         data: payment.rows.map((row) => ({
           organizationId: tenant.organizationId,
           saleId: sale.id,
@@ -1602,6 +1698,8 @@ export class SalesService {
           recordedBy: userId,
         })),
       });
+      if (recorded.count !== payment.rows.length) throw new ConflictException("This M-Pesa transaction code has already been recorded for this business.");
+    }
     for (const row of payment.rows)
       await this.audit(
         tx,
@@ -1782,6 +1880,7 @@ export class SalesService {
         taxMinor: 0,
         totalMinor: grossMinor,
         tracked: product.type === "STOCK_ITEM" && product.trackInventory,
+        allowNegativeStock: product.allowNegativeStock,
         etimsItemCode: product.etimsMapping?.isActive
           ? product.etimsMapping.itemCode
           : null,
@@ -1821,6 +1920,44 @@ export class SalesService {
       taxMinor += line.taxMinor;
     }
     return { ...totals, taxMinor };
+  }
+
+  private async assertOrderStock(
+    tx: Transaction, organizationId: string, locationId: string, lines: ResolvedLine[],
+    queueOrder: boolean, excludedSaleId?: string,
+  ) {
+    const tracked = lines.filter((line) => line.tracked && !line.allowNegativeStock);
+    if (!tracked.length) return;
+    const productIds = [...new Set(tracked.map((line) => line.productId))];
+    const reserved = await this.orderReservations(tx, organizationId, locationId, productIds, excludedSaleId);
+    if (!queueOrder && !reserved.size) return;
+    const balances = await tx.inventoryBalance.findMany({
+      where: { organizationId, locationId, productId: { in: productIds } },
+      select: { productId: true, variantId: true, quantity: true },
+    });
+    const quantities = new Map(balances.map((row) => [inventoryKey(row.productId, row.variantId), row.quantity]));
+    for (const line of tracked) {
+      const key = inventoryKey(line.productId, line.variantId);
+      const reservedQuantity = reserved.get(key);
+      if (!queueOrder && !reservedQuantity) continue;
+      const remaining = (quantities.get(key) ?? new Prisma.Decimal(0)).minus(line.quantity);
+      if (remaining.lt(reservedQuantity ?? 0)) throw new ConflictException({
+        code: "INSUFFICIENT_STOCK", message: `There is not enough unreserved stock for ${line.variantNameSnapshot ?? line.productNameSnapshot}.`,
+      });
+      quantities.set(key, remaining);
+    }
+  }
+
+  private async orderReservations(tx: Transaction, organizationId: string, locationId: string, productIds: string[], excludedSaleId?: string) {
+    if (!productIds.length) return new Map<string, Prisma.Decimal>();
+    const rows = await tx.saleItem.groupBy({
+      by: ["productId", "variantId"],
+      where: { organizationId, productId: { in: productIds }, sale: {
+        locationId, status: "HELD", orderStage: { not: null }, id: excludedSaleId ? { not: excludedSaleId } : undefined,
+      } },
+      _sum: { quantity: true },
+    });
+    return new Map(rows.map((row) => [inventoryKey(row.productId, row.variantId), row._sum.quantity ?? new Prisma.Decimal(0)]));
   }
 
   private async validateStaffAssignments(

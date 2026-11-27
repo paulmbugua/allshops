@@ -1,4 +1,5 @@
 "use client";
+import { businessProfiles } from "@allshops/contracts";
 import Link from "next/link";
 import { useEffect, useState, type FormEvent } from "react";
 import { api, selectOrganization, type CurrentUser } from "../lib/api";
@@ -104,13 +105,7 @@ export default function OnboardingPage() {
           <label>
             Business type
             <select name="businessType" defaultValue="RETAIL">
-              <option value="RETAIL">Retail</option>
-              <option value="GROCERY">Grocery</option>
-              <option value="RESTAURANT_CAFE">Restaurant / café</option>
-              <option value="SALON">Salon</option>
-              <option value="BARBERSHOP">Barbershop</option>
-              <option value="GENERAL_SERVICES">General services</option>
-              <option value="OTHER">Other</option>
+              {Object.entries(businessProfiles).map(([code, profile]) => <option key={code} value={code}>{profile.label}</option>)}
             </select>
           </label>
           <label>

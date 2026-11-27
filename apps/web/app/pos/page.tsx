@@ -1,4 +1,5 @@
 "use client";
+import { businessProfiles } from "@allshops/contracts";
 import {
   useEffect,
   useMemo,
@@ -10,6 +11,7 @@ import {
 import Link from "next/link";
 import { AppShell } from "../components/app-shell";
 import { Can } from "../components/permission-context";
+import { PlaceOrderDialog, PosOrderBoard } from "../components/pos-orders";
 import {
   api,
   clearSession,
@@ -63,6 +65,15 @@ export default function PosPage() {
   const [productTotal, setProductTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [branches, setBranches] = useState<Branch[]>([]);
+  const [businessType, setBusinessType] = useState("RETAIL");
+  const [orderBoardOpen, setOrderBoardOpen] = useState(false);
+  const [placeOrderOpen, setPlaceOrderOpen] = useState(false);
+  const [orderError, setOrderError] = useState("");
+  const [placedOrder, setPlacedOrder] = useState<Sale>();
+  const [hasQueuedOrders, setHasQueuedOrders] = useState(false);
+  const placementAttempt = useRef<{ payload: string; key: string }>(null);
+  const profile = businessProfiles[businessType] ?? businessProfiles.RETAIL!;
+  const workflow = profile.workflow;
   const [currentUser, setCurrentUser] = useState<CurrentUser>();
   const [branchId, setBranchId] = useState("");
   const [query, setQuery] = useState("");
@@ -215,7 +226,9 @@ export default function PosPage() {
     salesCounts,
   ]);
 
-  const displayedProducts = query.trim() ? products : quickProducts;
+  const displayedProducts = query.trim() ? products : profile.services
+    ? [...quickProducts].sort((a, b) => Number(b.type === "SERVICE") - Number(a.type === "SERVICE"))
+    : quickProducts;
 
   const quickCash = useMemo(() => {
     const qar = total / 100;
@@ -285,6 +298,7 @@ export default function PosPage() {
   // to the actions printed on the large desktop controls.
   useEffect(() => {
     const onShortcut = (event: globalThis.KeyboardEvent) => {
+      if (placeOrderOpen || orderBoardOpen) return;
       const target = event.target as HTMLElement | null;
       const editing =
         target?.tagName === "INPUT" ||
@@ -366,6 +380,8 @@ export default function PosPage() {
     loyaltyBusy,
     pendingReceipt,
     paymentPanelOpen,
+    placeOrderOpen,
+    orderBoardOpen,
     busy,
     tenderMode,
     splitTender,
@@ -503,6 +519,23 @@ export default function PosPage() {
   }, [organizationId, branchId, query, page, pageSize]);
 
   useEffect(() => setPage(1), [branchId, query]);
+
+  useEffect(() => {
+    if (!organizationId) return;
+    const abort = new AbortController();
+    void api<{ businessType: string }>(`/organizations/${organizationId}`, { cache: "no-store", signal: abort.signal })
+      .then((record) => setBusinessType(record.businessType)).catch(() => undefined);
+    return () => abort.abort();
+  }, [organizationId]);
+
+  useEffect(() => {
+    if (!organizationId || !branchId || workflow) return;
+    const abort = new AbortController();
+    setHasQueuedOrders(false);
+    void api<{ total: number }>(`/organizations/${organizationId}/pos/orders?branchId=${branchId}&pageSize=1`, { cache: "no-store", signal: abort.signal })
+      .then(({ total }) => setHasQueuedOrders(total > 0)).catch(() => undefined);
+    return () => abort.abort();
+  }, [organizationId, branchId, workflow]);
 
   function add(product: PosProduct) {
     if (
@@ -973,6 +1006,36 @@ export default function PosPage() {
       setBusy(false);
     }
   }
+  async function placeOrder(details: { channel: string; reference: string; notes: string }) {
+    if (!organizationId || !branchId || !cart.length || busy || appointmentId || mpesaIntent) return;
+    setBusy(true);
+    setOrderError("");
+    try {
+      const body = JSON.stringify({ ...payload(), ...details, notes: details.notes.trim() || undefined });
+      if (placementAttempt.current?.payload !== body) placementAttempt.current = { payload: body, key: crypto.randomUUID() };
+      const placed = await api<Sale>(`/organizations/${organizationId}/pos/orders`, {
+        method: "POST", headers: { "Idempotency-Key": placementAttempt.current.key }, body,
+      });
+      placementAttempt.current = null;
+      setPlacedOrder(placed);
+      setCart([]);
+      setCustomerId("");
+      setSelectedCartKey("");
+      setDiscountType("");
+      setDiscountValue("");
+      setCashTender("");
+      setSplitCash("");
+      setSplitTender(false);
+      setTerminalReference("");
+      setMpesaSelected(false);
+      setMpesaPhone("");
+      setPlaceOrderOpen(false);
+      setMobileCartOpen(false);
+      setMessage("");
+    } catch (cause) {
+      setOrderError(cause instanceof Error ? cause.message : "The order was not confirmed. Try again with the same details.");
+    } finally { setBusy(false); }
+  }
   return (
     <AppShell title="Point of Sale">
       <section className="pos-workspace">
@@ -980,7 +1043,7 @@ export default function PosPage() {
           <div className="pos-brand-block">
             <span className="pos-live-dot" />
             <span>
-              <strong>Live register</strong>
+              <strong>{businessType === "RETAIL" ? "Live register" : profile.label}</strong>
               <small>
                 Scanner ready ·{" "}
                 {branches.find((branch) => branch.id === branchId)?.name ??
@@ -1121,20 +1184,33 @@ export default function PosPage() {
                 <small>Inventory &amp; production</small>
               </Link>
             </nav>
+            {(workflow || hasQueuedOrders) && <div className="pos-workflow-strip">
+              <Can permissions={["sale.read"]}><button type="button" className="secondary" disabled={!branchId || busy} onClick={() => setOrderBoardOpen(true)}>{workflow?.board ?? "Open orders"}</button></Can>
+              {workflow && <Can permissions={["sale.hold", "sale.create"]}><button type="button" disabled={!cart.length || busy || !branchId || !!appointmentId || !!mpesaIntent} onClick={() => { setOrderError(""); setPlaceOrderOpen(true); }}>Place order</button></Can>}
+            </div>}
+            {placedOrder && <div className="pos-order-sent" role="status">
+              <strong>{placedOrder.orderReference} sent to the queue</strong>
+              <Link href={`/pos/orders/${placedOrder.id}`} target="_blank" rel="opener">Print {workflow?.ticket.toLowerCase() ?? "ticket"}</Link>
+              <button className="secondary" type="button" onClick={() => setPlacedOrder(undefined)} aria-label="Dismiss order confirmation">×</button>
+            </div>}
             <div className="toolbar">
               <input
                 ref={searchRef}
                 autoFocus
                 aria-label="Search or scan barcode"
-                placeholder="Search name, SKU, barcode — Enter to scan"
+                placeholder={profile.search}
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 onKeyDown={scan}
               />
             </div>
+            {(profile.shortcuts?.length || profile.services) && <div className="pos-search-shortcuts" aria-label="Catalogue shortcuts">
+              {profile.shortcuts?.map((shortcut) => <button type="button" key={shortcut} aria-pressed={query === shortcut} className="secondary" onClick={() => setQuery(query === shortcut ? "" : shortcut)}>{shortcut}</button>)}
+              {profile.services && <Can permissions={["appointment.read"]}><Link href="/appointments" className="button-link secondary">Appointments</Link></Can>}
+            </div>}
             <div className="pos-section-heading">
               <span>
-                <strong>{query ? "Search results" : "Fast-sale items"}</strong>
+                <strong>{query ? "Search results" : profile.catalogue}</strong>
                 <small>
                   {query
                     ? `${productTotal} products found`
@@ -1892,6 +1968,8 @@ export default function PosPage() {
           </div>
         </section>
       </section>
+      {placeOrderOpen && workflow && <PlaceOrderDialog workflow={workflow} total={total} currency="KES" busy={busy} error={orderError} onClose={() => setPlaceOrderOpen(false)} onPlace={placeOrder} />}
+      {orderBoardOpen && organizationId && branchId && <PosOrderBoard key={branchId} organizationId={organizationId} branchId={branchId} title={workflow?.board ?? "Open orders"} onClose={() => setOrderBoardOpen(false)} onPaid={setPreviousSale} />}
       {printJob && (
         <iframe
           className="receipt-print-frame"
