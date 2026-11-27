@@ -60,6 +60,7 @@ export interface Sale {
   currency: string;
   customerName: string | null;
   loyaltyAward?: { memberName: string; points: number } | null;
+  kraPin?: string | null;
   customerPhone: string | null;
   customerId: string | null;
   balanceMinor: number;

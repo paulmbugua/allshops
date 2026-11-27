@@ -48,12 +48,15 @@ export default function ReceiptPage() {
           {sale.organization?.arabicName && (
             <p lang="sw">{sale.organization.arabicName}</p>
           )}
-          <p>
-            {sale.branch.name}
-            <br />
-            {sale.branch.address}
-            <br />
-            {sale.branch.phone ?? sale.organization?.phone}
+          <p className="receipt-issuer">
+            <span>{sale.branch.name}</span>
+            {sale.branch.address?.trim() && (
+              <span>Address: {sale.branch.address.trim()}</span>
+            )}
+            {(sale.branch.phone ?? sale.organization?.phone) && (
+              <span>{sale.branch.phone ?? sale.organization?.phone}</span>
+            )}
+            {sale.kraPin && <strong>KRA PIN: {sale.kraPin}</strong>}
           </p>
         </header>
         <hr />

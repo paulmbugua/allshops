@@ -1393,6 +1393,30 @@ export class SalesService {
         code: "RECEIPT_NOT_AVAILABLE",
         message: "A receipt is available only for a completed sale.",
       });
+    // Reprints keep the issuer PIN used on the original fiscal document.
+    const fiscalSnapshot = detail.fiscalDocument
+      ? await prisma.fiscalDocument.findFirst({
+          where: { saleId: detail.id, organizationId: tenant.organizationId },
+          select: { requestJson: true },
+        })
+      : null;
+    const request = fiscalSnapshot?.requestJson;
+    const originalPin =
+      request &&
+      typeof request === "object" &&
+      !Array.isArray(request) &&
+      typeof request.tin === "string"
+        ? request.tin.trim()
+        : null;
+    const kraPin =
+      originalPin ||
+      (
+        await prisma.etimsIntegration.findUnique({
+          where: { organizationId: tenant.organizationId },
+          select: { kraPin: true },
+        })
+      )?.kraPin ||
+      null;
     await prisma.auditLog.create({
       data: {
         organizationId: tenant.organizationId,
@@ -1403,7 +1427,7 @@ export class SalesService {
         afterJson: { invoiceNumber: detail.invoiceNumber },
       },
     });
-    return { ...detail, customerPhone: null };
+    return { ...detail, customerPhone: null, kraPin };
   }
 
   private async finalize(

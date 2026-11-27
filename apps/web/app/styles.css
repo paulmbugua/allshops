@@ -781,6 +781,11 @@ nav a:hover {
   font-size: 18px;
   letter-spacing: 0;
 }
+.receipt-issuer > :is(span, strong) {
+  display: block;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
 .receipt table {
   width: 100%;
   border-collapse: collapse;
